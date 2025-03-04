@@ -422,7 +422,7 @@ pub const Material = struct {
 
     pub fn setValue(self: *Self, name: []const u8, value: anytype) void {
         switch (@TypeOf(value.*)) {
-            math.Mat4x4f => self.setFloats(name, @as([*]const f32, @ptrCast(&value.m11))[0..16]),
+            math.Mat4x4f => self.setFloats(name, @as([*]const f32, @ptrCast(&value.data))[0..16]),
             else => unreachable,
         }
     }

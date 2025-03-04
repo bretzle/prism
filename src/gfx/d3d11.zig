@@ -174,7 +174,7 @@ pub const D3D11Renderer = struct {
     }
 
     pub fn beforeRender(self: *Self, size: math.Point) void {
-        if (!self.last_window_size.eq(size)) {
+        if (!math.eql(self.last_window_size, size)) {
             self.last_window_size = size;
 
             if (self.backbuffer_view) |view| {

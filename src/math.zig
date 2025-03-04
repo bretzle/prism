@@ -1,26 +1,17 @@
 const std = @import("std");
 
 pub const Vec2f = Vec2(f32);
-pub const Vec2d = Vec2(f64);
 pub const Vec2i = Vec2(i32);
 pub const Point = Vec2(i32);
 pub const Vec3f = Vec3(f32);
-pub const Vec3d = Vec3(f64);
 pub const Vec4f = Vec4(f32);
-pub const Vec4d = Vec4(f64);
 pub const Mat3x2f = Mat3x2(f32);
-pub const Mat3x2d = Mat3x2(f64);
 pub const Mat4x4f = Mat4x4(f32);
-pub const Mat4x4d = Mat4x4(f64);
 pub const Rectf = Rect(f32);
-pub const Rectd = Rect(f64);
 pub const Recti = Rect(i32);
 pub const Quadf = Quad(f32);
-pub const Quadd = Quad(f64);
 pub const Linef = Line(f32);
-pub const Lined = Line(f64);
 pub const Circlef = Circle(f32);
-pub const Circled = Circle(f64);
 
 pub fn Vec2(comptime T: type) type {
     return extern struct {
@@ -31,15 +22,11 @@ pub fn Vec2(comptime T: type) type {
 
         pub const zero = Self{ .x = 0, .y = 0 };
         pub const one = Self{ .x = 1, .y = 1 };
-
-        pub inline fn eq(a: Self, b: Self) bool {
-            return a.x == b.x and a.y == b.y;
-        }
     };
 }
 
 pub fn Vec3(comptime T: type) type {
-    return struct {
+    return extern struct {
         const Self = @This();
 
         x: T,
@@ -49,7 +36,7 @@ pub fn Vec3(comptime T: type) type {
 }
 
 pub fn Vec4(comptime T: type) type {
-    return struct {
+    return extern struct {
         const Self = @This();
 
         x: T,
@@ -60,7 +47,7 @@ pub fn Vec4(comptime T: type) type {
 }
 
 pub fn Rect(comptime T: type) type {
-    return struct {
+    return extern struct {
         const Self = @This();
 
         x: T = 0,
@@ -71,7 +58,7 @@ pub fn Rect(comptime T: type) type {
 }
 
 pub fn Circle(comptime T: type) type {
-    return struct {
+    return extern struct {
         const Self = @This();
 
         center: Vec2(T),
@@ -80,7 +67,7 @@ pub fn Circle(comptime T: type) type {
 }
 
 pub fn Quad(comptime T: type) type {
-    return struct {
+    return extern struct {
         const Self = @This();
 
         a: Vec2(T),
@@ -91,7 +78,7 @@ pub fn Quad(comptime T: type) type {
 }
 
 pub fn Line(comptime T: type) type {
-    return struct {
+    return extern struct {
         const Self = @This();
 
         a: Vec2(T),
@@ -100,17 +87,12 @@ pub fn Line(comptime T: type) type {
 }
 
 pub fn Mat3x2(comptime T: type) type {
-    return struct {
+    return extern struct {
         const Self = @This();
 
-        m11: T = 0,
-        m12: T = 0,
-        m21: T = 0,
-        m22: T = 0,
-        m31: T = 0,
-        m32: T = 0,
+        data: [3][2]T = .{ .{ 0, 0 }, .{ 0, 0 }, .{ 0, 0 } },
 
-        pub const identity = Self{ .m11 = 1, .m22 = 1 };
+        pub const identity = Self{ .data = .{ .{ 1, 0 }, .{ 0, 1 }, .{ 0, 0 } } };
 
         pub fn transform(position: Vec2(T), origin: Vec2(T), scale: Vec2(T), rotation: T) Self {
             var matrix = Self.identity;
@@ -130,64 +112,75 @@ pub fn Mat3x2(comptime T: type) type {
 
         pub fn translation(position: Vec2(T)) Self {
             return Self{
-                .m11 = 1,
-                .m12 = 0,
-                .m21 = 0,
-                .m22 = 1,
-                .m31 = position.x,
-                .m32 = position.y,
+                .data = .{
+                    .{ 1, 0 },
+                    .{ 0, 1 },
+                    .{ position.x, position.y },
+                },
             };
         }
 
         pub fn mul(a: *const Self, b: *const Self) Self {
+            const am = a.data;
+            const bm = b.data;
+
             return Self{
-                .m11 = a.m11 * b.m11 + a.m12 * b.m21,
-                .m12 = a.m11 * b.m12 + a.m12 * b.m22,
-                .m21 = a.m21 * b.m11 + a.m22 * b.m21,
-                .m22 = a.m21 * b.m12 + a.m22 * b.m22,
-                .m31 = a.m31 * b.m11 + a.m32 * b.m21 + b.m31,
-                .m32 = a.m31 * b.m12 + a.m32 * b.m22 + b.m32,
+                .data = .{
+                    .{ am[0][0] * bm[0][0] + am[0][1] * bm[1][0], am[0][0] * bm[0][1] + am[0][1] * bm[1][1] },
+                    .{ am[1][0] * bm[0][0] + am[1][1] * bm[1][0], am[1][0] * bm[0][1] + am[1][1] * bm[1][1] },
+                    .{ am[2][0] * bm[0][0] + am[2][1] * bm[1][0] + bm[2][0], am[2][0] * bm[0][1] + am[2][1] * bm[1][1] + bm[2][1] },
+                },
             };
         }
     };
 }
 
 pub fn Mat4x4(comptime T: type) type {
-    return struct {
+    return extern struct {
         const Self = @This();
 
-        m11: T = 0,
-        m12: T = 0,
-        m13: T = 0,
-        m14: T = 0,
+        // [row][col]
+        data: [4][4]T = .{.{ 0, 0, 0, 0 }} ** 4,
 
-        m21: T = 0,
-        m22: T = 0,
-        m23: T = 0,
-        m24: T = 0,
-
-        m31: T = 0,
-        m32: T = 0,
-        m33: T = 0,
-        m34: T = 0,
-
-        m41: T = 0,
-        m42: T = 0,
-        m43: T = 0,
-        m44: T = 0,
-
-        pub const identity = Self{ .m11 = 1, .m22 = 1, .m33 = 1, .m44 = 1 };
+        pub const identity = Self{
+            .data = .{
+                .{ 1, 0, 0, 0 },
+                .{ 0, 1, 0, 0 },
+                .{ 0, 0, 1, 0 },
+                .{ 0, 0, 0, 1 },
+            },
+        };
 
         pub fn orthoOffcenter(left: T, right: T, bottom: T, top: T, near: T, far: T) Self {
-            return Self{
-                .m11 = 2 / (right - left),
-                .m22 = 2 / (top - bottom),
-                .m33 = 1 / (near - far),
-                .m41 = (left + right) / (left - right),
-                .m42 = (top + bottom) / (bottom - top),
-                .m43 = near / (near - far),
-                .m44 = 1,
-            };
+            var result = Self.identity;
+            result.data[0][0] = 2 / (right - left);
+            result.data[1][1] = 2 / (top - bottom);
+            result.data[2][2] = 1 / (far - near);
+            result.data[3][0] = (left + right) / (left - right);
+            result.data[3][1] = (top + bottom) / (bottom - top);
+            result.data[3][2] = near / (near - far);
+            return result;
         }
     };
+}
+
+pub const eql = std.meta.eql;
+
+// meta helpers
+
+fn scalar(comptime T: type) type {
+    const First = @typeInfo(T).@"struct".fields[0].type;
+    return switch (@typeInfo(First)) {
+        .int, .float => First,
+        .@"struct" => scalar(First),
+        else => unreachable,
+    };
+}
+
+fn assertIsVector(comptime T: type) void {
+    const S = scalar(T);
+    switch (T) {
+        Vec2(S), Vec3(S), Vec4(S) => {},
+        else => comptime unreachable,
+    }
 }

@@ -181,8 +181,8 @@ inline fn PUSH_QUAD(self: *Self, px0: anytype, py0: anytype, px1: anytype, py1: 
 inline fn MAKE_VERTEX(mat: anytype, px: anytype, py: anytype, tx: anytype, ty: anytype, c: anytype, m: anytype, w: anytype, f: anytype) Vertex {
     return Vertex{
         .pos = .{
-            .x = (px * mat.m11) + (py * mat.m21) + mat.m31,
-            .y = (px * mat.m12) + (py * mat.m22) + mat.m32,
+            .x = (px * mat.data[0][0]) + (py * mat.data[1][0]) + mat.data[2][0],
+            .y = (px * mat.data[0][1]) + (py * mat.data[1][1]) + mat.data[2][1],
         },
         .tex = .{ .x = tx, .y = ty },
         .col = c,
