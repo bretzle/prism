@@ -277,6 +277,7 @@ pub const WS_OVERLAPPEDWINDOW = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THI
     WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
 pub const WS_VISIBLE = 0x10000000;
 
+pub const WM_SETCURSOR = 0x0020;
 pub const WM_MOUSEMOVE = 0x0200;
 pub const WM_LBUTTONDOWN = 0x0201;
 pub const WM_LBUTTONUP = 0x0202;
@@ -432,11 +433,11 @@ pub inline fn GET_Y_LPARAM(lparam: LPARAM) i32 {
     return @as(i32, @intCast(@as(i16, @bitCast(@as(u16, @intCast((lparam >> 16) & 0xffff))))));
 }
 
-pub inline fn LOWORD(dword: DWORD) WORD {
+pub inline fn LOWORD(dword: anytype) WORD {
     return @as(WORD, @bitCast(@as(u16, @intCast(dword & 0xffff))));
 }
 
-pub inline fn HIWORD(dword: DWORD) WORD {
+pub inline fn HIWORD(dword: anytype) WORD {
     return @as(WORD, @bitCast(@as(u16, @intCast((dword >> 16) & 0xffff))));
 }
 
@@ -586,3 +587,26 @@ pub const DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
 pub const DWMWA_WINDOW_CORNER_PREFERENCE = 33;
 
 pub extern "dwmapi" fn DwmSetWindowAttribute(hwnd: ?HWND, dwAttribute: DWORD, pvAttribute: LPCVOID, cbAttribute: DWORD) callconv(WINAPI) HRESULT;
+
+pub const IDC_ARROW: LPCSTR = @ptrFromInt(32512);
+pub const IDC_IBEAM: LPCSTR = @ptrFromInt(32513);
+pub const IDC_WAIT: LPCSTR = @ptrFromInt(32514);
+pub const IDC_CROSS: LPCSTR = @ptrFromInt(32515);
+pub const IDC_UPARROW: LPCSTR = @ptrFromInt(32516);
+pub const IDC_SIZE: LPCSTR = @ptrFromInt(32640);
+pub const IDC_ICON: LPCSTR = @ptrFromInt(32641);
+pub const IDC_SIZENWSE: LPCSTR = @ptrFromInt(32642);
+pub const IDC_SIZENESW: LPCSTR = @ptrFromInt(32643);
+pub const IDC_SIZEWE: LPCSTR = @ptrFromInt(32644);
+pub const IDC_SIZENS: LPCSTR = @ptrFromInt(32645);
+pub const IDC_SIZEALL: LPCSTR = @ptrFromInt(32646);
+pub const IDC_NO: LPCSTR = @ptrFromInt(32648);
+pub const IDC_HAND: LPCSTR = @ptrFromInt(32649);
+pub const IDC_APPSTARTING: LPCSTR = @ptrFromInt(32650);
+pub const IDC_HELP: LPCSTR = @ptrFromInt(32651);
+pub const IDC_PIN: LPCSTR = @ptrFromInt(32671);
+pub const IDC_PERSON: LPCSTR = @ptrFromInt(32672);
+
+pub extern "user32" fn SetCursor(hCursor: ?HCURSOR) callconv(WINAPI) HCURSOR;
+
+pub const HTCLIENT = 1;

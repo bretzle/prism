@@ -11,6 +11,7 @@ pub fn Application(comptime ParentApp: type, comptime T: type) type {
         const class_name = @typeName(Self);
 
         hwnd: w32.HWND,
+        cursor: w32.HCURSOR,
         renderer: *gfx.Renderer,
 
         pub fn init(self: *Self) !void {
@@ -49,6 +50,7 @@ pub fn Application(comptime ParentApp: type, comptime T: type) type {
 
             self.* = .{
                 .hwnd = hwnd,
+                .cursor = w32.LoadCursorA(null, w32.IDC_ARROW).?,
                 .renderer = try .create(parent.allocator, .{ .x = 800, .y = 600 }, hwnd),
             };
         }
@@ -79,11 +81,18 @@ pub fn Application(comptime ParentApp: type, comptime T: type) type {
             const ptr = w32.GetWindowLongPtrA(hwnd, w32.GWLP_USERDATA) orelse return w32.DefWindowProcA(hwnd, msg, wparam, lparam);
             const parent: *ParentApp = @alignCast(@ptrCast(ptr));
             const self: *Self = &parent.impl;
-            _ = self; // autofix
 
             switch (msg) {
                 w32.WM_DESTROY => w32.PostQuitMessage(0),
                 w32.WM_CLOSE => parent.exit(),
+                w32.WM_SETCURSOR => {
+                    if (w32.LOWORD(lparam) == w32.HTCLIENT) {
+                        _ = w32.SetCursor(self.cursor);
+                        return 1;
+                    } else {
+                        return w32.DefWindowProcA(hwnd, msg, wparam, lparam);
+                    }
+                },
                 else => return w32.DefWindowProcA(hwnd, msg, wparam, lparam),
             }
 
