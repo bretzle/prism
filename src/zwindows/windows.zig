@@ -581,3 +581,8 @@ pub const SW_FORCEMINIMIZE = 11;
 pub extern "user32" fn ShowWindow(hWnd: ?HWND, nCmdShow: u32) callconv(WINAPI) BOOL;
 
 pub extern "user32" fn GetWindowRect(hWnd: ?HWND, lpRect: *RECT) callconv(WINAPI) BOOL;
+
+pub const DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+pub const DWMWA_WINDOW_CORNER_PREFERENCE = 33;
+
+pub extern "dwmapi" fn DwmSetWindowAttribute(hwnd: ?HWND, dwAttribute: DWORD, pvAttribute: LPCVOID, cbAttribute: DWORD) callconv(WINAPI) HRESULT;
