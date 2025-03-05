@@ -130,23 +130,23 @@ pub const D3D11Renderer = struct {
 
         // TODO create a depth backbuffer
 
-        // print driver info
-        {
-            var dxgi_device: *dxgi.IDevice = undefined;
-            vhr(device.QueryInterface(&dxgi.IID_IDevice, @ptrCast(&dxgi_device)));
-
-            var dxgi_adapter: *dxgi.IAdapter = undefined;
-            var adapter_desc: dxgi.ADAPTER_DESC = undefined;
-            vhr(dxgi_device.GetAdapter(@ptrCast(&dxgi_adapter)));
-            vhr(dxgi_adapter.GetDesc(&adapter_desc));
-
-            const string = try std.unicode.utf16LeToUtf8Alloc(allocator, &adapter_desc.Description);
-            defer allocator.free(string);
-            std.log.debug("{s}", .{string});
-
-            _ = dxgi_device.Release();
-            _ = dxgi_adapter.Release();
-        }
+        // // print driver info
+        // {
+        //     var dxgi_device: *dxgi.IDevice = undefined;
+        //     vhr(device.QueryInterface(&dxgi.IID_IDevice, @ptrCast(&dxgi_device)));
+        //
+        //     var dxgi_adapter: *dxgi.IAdapter = undefined;
+        //     var adapter_desc: dxgi.ADAPTER_DESC = undefined;
+        //     vhr(dxgi_device.GetAdapter(@ptrCast(&dxgi_adapter)));
+        //     vhr(dxgi_adapter.GetDesc(&adapter_desc));
+        //
+        //     const string = try std.unicode.utf16LeToUtf8Alloc(allocator, &adapter_desc.Description);
+        //     defer allocator.free(string);
+        //     std.log.debug("{s}", .{string});
+        //
+        //     _ = dxgi_device.Release();
+        //     _ = dxgi_adapter.Release();
+        // }
 
         self.* = .{
             .device = device,
@@ -679,33 +679,33 @@ pub const D3D11Texture = struct {
 
     pub fn destroy(self: *Self) void {
         _ = self.texture.Release();
-        // _ = self.staging.Release();
-        // _ = self.view.Release();
+        if (self.staging) |staging| _ = staging.Release();
+        if (self.view) |view| _ = view.Release();
     }
 
-    pub inline fn getWidth(self: *const Self) u32 {
-        return self.width;
+    pub fn update(self: *Self, bytes: []const u8) void {
+        self.updatePart(0, 0, self.width, self.height, bytes);
     }
 
-    pub inline fn getHeight(self: *const Self) u32 {
-        return self.height;
-    }
-
-    pub inline fn getFormat(self: *const Self) gfx.TextureFormat {
-        return self.format;
-    }
-
-    pub fn update(self: *Self, data: []const u8) void {
+    pub fn updatePart(self: *Self, x: u32, y: u32, width: u32, height: u32, bytes: []const u8) void {
         var box = d3d11.BOX{
-            .left = 0,
-            .right = self.width,
-            .top = 0,
-            .bottom = self.height,
+            .left = x,
+            .right = x + width,
+            .top = y,
+            .bottom = y + height,
             .front = 0,
             .back = 1,
         };
 
-        renderer.context.UpdateSubresource(@ptrCast(self.texture), 0, &box, @ptrCast(data.ptr), self.size / self.height, 0);
+        const pitch = (self.size / (self.width * self.height)) * width;
+        renderer.context.UpdateSubresource(
+            @ptrCast(self.texture),
+            0,
+            &box,
+            @ptrCast(bytes.ptr),
+            pitch,
+            0,
+        );
     }
 };
 

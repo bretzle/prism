@@ -11,7 +11,14 @@ const App = prism.Application(struct {
     pub fn init(self: *Self, app: *App) !void {
         self.batch = try .create(app.allocator);
         self.tex = try prism.gfx.Texture.create(app.allocator, 25, 25, .rgba);
-        self.tex.update(@alignCast(std.mem.sliceAsBytes(&[1]u32{0x123456} ** (25 * 25))));
+
+        var buf: [25 * 25 * 4]u8 = undefined;
+
+        @memset(std.mem.bytesAsSlice(u32, &buf), 0x123456);
+        self.tex.update(&buf);
+
+        @memset(&buf, 0);
+        self.tex.updatePart(1, 1, 23, 23, &buf);
     }
 
     pub fn render(self: *Self, app: *App) void {
