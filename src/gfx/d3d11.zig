@@ -616,26 +616,71 @@ pub const D3D11Texture = struct {
     height: u32,
     format: gfx.TextureFormat,
     dxgi_format: dxgi.FORMAT,
-    is_framebuffer: bool,
     size: u32,
 
     texture: *d3d11.ITexture2D,
-    staging: *d3d11.ITexture2D,
-    view: *d3d11.IShaderResourceView,
+    staging: ?*d3d11.ITexture2D,
+    view: ?*d3d11.IShaderResourceView,
 
-    pub fn create(width: u32, height: u32, format: gfx.TextureFormat, is_framebuffer: bool) Self {
-        _ = is_framebuffer; // autofix
-        _ = format; // autofix
-        _ = height; // autofix
-        _ = width; // autofix
+    pub fn create(allocator: std.mem.Allocator, width: u32, height: u32, format: gfx.TextureFormat) !*Self {
+        const self = try allocator.create(Self);
 
-        unreachable;
+        const size = switch (format) {
+            .none => unreachable,
+            .r => width * height,
+            .rg => width * height * 2,
+            .rgba => width * height * 4,
+            .depth_stencil => width * height * 4,
+        };
+
+        const desc = d3d11.TEXTURE2D_DESC{
+            .Width = width,
+            .Height = height,
+            .MipLevels = 1,
+            .ArraySize = 1,
+            .SampleDesc = .{ .Count = 1, .Quality = 0 },
+            .Usage = .DEFAULT,
+            .CPUAccessFlags = .{},
+            .MiscFlags = .{},
+            .BindFlags = .{
+                .SHADER_RESOURCE = format != .depth_stencil,
+                .DEPTH_STENCIL = format == .depth_stencil,
+            },
+            .Format = switch (format) {
+                .none => unreachable,
+                .r => .R8_UNORM,
+                .rg => .R8G8_UNORM,
+                .rgba => .R8G8B8A8_UNORM,
+                .depth_stencil => .D24_UNORM_S8_UINT,
+            },
+        };
+
+        var texture: *d3d11.ITexture2D = undefined;
+        vhr(renderer.device.CreateTexture2D(&desc, null, @ptrCast(&texture)));
+
+        var view: ?*d3d11.IShaderResourceView = null;
+        if (format != .depth_stencil) {
+            vhr(renderer.device.CreateShaderResourceView(@ptrCast(texture), null, @ptrCast(&view)));
+        }
+
+        self.* = .{
+            .width = width,
+            .height = height,
+            .format = format,
+            .dxgi_format = desc.Format,
+            .size = size,
+            .texture = texture,
+            .staging = null,
+            .view = view,
+        };
+
+        return self;
     }
 
     pub fn destroy(self: *Self) void {
         _ = self.texture.Release();
-        _ = self.staging.Release();
-        _ = self.view.Release();
+        // _ = self.staging.Release();
+        // _ = self.view.Release();
     }
 
     pub inline fn getWidth(self: *const Self) u32 {
@@ -648,6 +693,19 @@ pub const D3D11Texture = struct {
 
     pub inline fn getFormat(self: *const Self) gfx.TextureFormat {
         return self.format;
+    }
+
+    pub fn update(self: *Self, data: []const u8) void {
+        var box = d3d11.BOX{
+            .left = 0,
+            .right = self.width,
+            .top = 0,
+            .bottom = self.height,
+            .front = 0,
+            .back = 1,
+        };
+
+        renderer.context.UpdateSubresource(@ptrCast(self.texture), 0, &box, @ptrCast(data.ptr), self.size / self.height, 0);
     }
 };
 

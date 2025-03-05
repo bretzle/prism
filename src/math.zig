@@ -132,6 +132,13 @@ pub fn Mat3x2(comptime T: type) type {
                 },
             };
         }
+
+        pub fn apply(self: *const Self, vec: Vec2(T)) Vec2(T) {
+            return .{
+                .x = (vec.x * self.data[0][0]) + (vec.y * self.data[1][0]) + self.data[2][0],
+                .y = (vec.x * self.data[0][1]) + (vec.y * self.data[1][1]) + self.data[2][1],
+            };
+        }
     };
 }
 

@@ -6,9 +6,12 @@ const App = prism.Application(struct {
     const Self = @This();
 
     batch: prism.Batch,
+    tex: *prism.gfx.Texture,
 
     pub fn init(self: *Self, app: *App) !void {
         self.batch = try .create(app.allocator);
+        self.tex = try prism.gfx.Texture.create(app.allocator, 25, 25, .rgba);
+        self.tex.update(@alignCast(std.mem.sliceAsBytes(&[1]u32{0x123456} ** (25 * 25))));
     }
 
     pub fn render(self: *Self, app: *App) void {
@@ -20,6 +23,7 @@ const App = prism.Application(struct {
 
         self.batch.pushMatrix(transform);
         self.batch.drawRect(.{ .x = -32, .y = -32, .w = 64, .h = 64 }, .red);
+        self.batch.drawTexture(self.tex, .{ .x = 64, .y = -32 });
         _ = self.batch.popMatrix();
 
         self.batch.render(target);

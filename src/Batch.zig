@@ -2,6 +2,7 @@ const std = @import("std");
 const math = @import("math.zig");
 const gfx = @import("gfx.zig");
 const Color = @import("Color.zig").Color;
+const Vec2 = math.Vec2f;
 
 pub const ColorMode = enum { normal, wash };
 
@@ -10,10 +11,22 @@ pub const Vertex = extern struct {
     tex: math.Vec2f,
     col: Color,
 
-    mult: u8,
-    wash: u8,
-    fill: u8,
+    mult: u8 = 0,
+    wash: u8 = 0,
+    fill: u8 = 0xFF,
     pad: u8 = 0,
+};
+
+const DrawBatch = struct {
+    layer: u32 = 0,
+    offset: u32 = 0,
+    elements: u32 = 0,
+    material: ?*gfx.Material = null,
+    blend: gfx.BlendMode = .normal,
+    texture: ?*gfx.Texture = null,
+    sampler: gfx.TextureSampler = .{},
+    flip_vertically: bool = false,
+    scissor: math.Rectf = .{ .x = 0, .y = 0, .w = -1, .h = -1 },
 };
 
 const batch_shader_source = @embedFile("batch_shader.hlsl");
@@ -61,6 +74,9 @@ color_mode_stack: std.ArrayList(ColorMode),
 layer_stack: std.ArrayList(u32),
 batches: std.ArrayList(DrawBatch),
 batch_insert: u32 = 0,
+
+idx_ptr: [*]u32 = &[0]u32{},
+vtx_ptr: [*]Vertex = &[0]Vertex{},
 
 pub fn create(allocator: std.mem.Allocator) !Self {
     const shader = try gfx.Shader.create(allocator, &batch_shader_data);
@@ -160,46 +176,81 @@ pub fn clear(self: *Self) void {
 }
 
 pub fn drawRect(self: *Self, rect: math.Rectf, color: Color) void {
-    self.PUSH_QUAD(rect.x, rect.y, rect.x + rect.w, rect.y, rect.x + rect.w, rect.y + rect.h, rect.x, rect.y + rect.h, 0, 0, 0, 0, 0, 0, 0, 0, color, color, color, color, 0, 0, 255);
+    self.reserve(6, 4);
+    self.pushRect(.{ .x = rect.x, .y = rect.y }, .{ .x = rect.x + rect.w, .y = rect.y + rect.h }, color);
 }
 
-inline fn PUSH_QUAD(self: *Self, px0: anytype, py0: anytype, px1: anytype, py1: anytype, px2: anytype, py2: anytype, px3: anytype, py3: anytype, tx0: anytype, ty0: anytype, tx1: anytype, ty1: anytype, tx2: anytype, ty2: anytype, tx3: anytype, ty3: anytype, col0: anytype, col1: anytype, col2: anytype, col3: anytype, mult: anytype, fill: anytype, wash: anytype) void {
-    self.batch.elements += 2;
-    const indices = self.indices.addManyAsArray(6) catch unreachable;
-    const idx: u32 = @intCast(self.vertices.items.len);
-    indices.* = .{ idx + 0, idx + 1, idx + 2, idx + 0, idx + 2, idx + 3 };
+pub fn drawTexture(self: *Self, tex: *gfx.Texture, pos: Vec2) void {
+    self.setTexture(tex);
 
-    const vertices = self.vertices.addManyAsArray(4) catch unreachable;
-    vertices.* = .{
-        MAKE_VERTEX(self.matrix, px0, py0, tx0, ty0, col0, mult, fill, wash),
-        MAKE_VERTEX(self.matrix, px1, py1, tx1, ty1, col1, mult, fill, wash),
-        MAKE_VERTEX(self.matrix, px2, py2, tx2, ty2, col2, mult, fill, wash),
-        MAKE_VERTEX(self.matrix, px3, py3, tx3, ty3, col3, mult, fill, wash),
-    };
+    const width: f32 = @floatFromInt(tex.width);
+    const height: f32 = @floatFromInt(tex.height);
+
+    self.reserve(6, 4);
+    self.pushRectUV(pos, .{ .x = pos.x + width, .y = pos.y + height }, .white);
 }
 
-inline fn MAKE_VERTEX(mat: anytype, px: anytype, py: anytype, tx: anytype, ty: anytype, c: anytype, m: anytype, w: anytype, f: anytype) Vertex {
-    return Vertex{
-        .pos = .{
-            .x = (px * mat.data[0][0]) + (py * mat.data[1][0]) + mat.data[2][0],
-            .y = (px * mat.data[0][1]) + (py * mat.data[1][1]) + mat.data[2][1],
-        },
-        .tex = .{ .x = tx, .y = ty },
-        .col = c,
-        .mult = m,
-        .wash = w,
-        .fill = f,
-    };
+fn reserve(self: *Self, idx_count: u32, vtx_count: u32) void {
+    std.debug.assert(idx_count % 3 == 0);
+    std.debug.assert(vtx_count % 2 == 0);
+
+    self.batch.elements += @divExact(idx_count, 3);
+    self.idx_ptr = (self.indices.addManyAsSlice(idx_count) catch unreachable).ptr;
+    self.vtx_ptr = (self.vertices.addManyAsSlice(vtx_count) catch unreachable).ptr;
 }
 
-const DrawBatch = struct {
-    layer: u32 = 0,
-    offset: u32 = 0,
-    elements: u32 = 0,
-    material: ?*gfx.Material = null,
-    blend: gfx.BlendMode = .normal,
-    texture: ?*gfx.Texture = null,
-    sampler: gfx.TextureSampler = .{},
-    flip_vertically: bool = false,
-    scissor: math.Rectf = .{ .x = 0, .y = 0, .w = -1, .h = -1 },
-};
+fn pushRect(self: *Self, a: Vec2, c: Vec2, col: Color) void {
+    const b = Vec2{ .x = c.x, .y = a.y };
+    const d = Vec2{ .x = a.x, .y = c.y };
+
+    defer {
+        self.idx_ptr += 6;
+        self.vtx_ptr += 4;
+    }
+
+    const idx: u32 = @intCast(self.vertices.items.len - 4);
+    self.idx_ptr[0] = idx;
+    self.idx_ptr[1] = idx + 1;
+    self.idx_ptr[2] = idx + 2;
+    self.idx_ptr[3] = idx;
+    self.idx_ptr[4] = idx + 2;
+    self.idx_ptr[5] = idx + 3;
+
+    self.vtx_ptr[0] = .{ .pos = self.matrix.apply(a), .tex = .zero, .col = col };
+    self.vtx_ptr[1] = .{ .pos = self.matrix.apply(b), .tex = .zero, .col = col };
+    self.vtx_ptr[2] = .{ .pos = self.matrix.apply(c), .tex = .zero, .col = col };
+    self.vtx_ptr[3] = .{ .pos = self.matrix.apply(d), .tex = .zero, .col = col };
+}
+
+fn pushRectUV(self: *Self, a: Vec2, c: Vec2, col: Color) void {
+    const b = Vec2{ .x = c.x, .y = a.y };
+    const d = Vec2{ .x = a.x, .y = c.y };
+
+    defer {
+        self.idx_ptr += 6;
+        self.vtx_ptr += 4;
+    }
+
+    const idx: u32 = @intCast(self.vertices.items.len - 4);
+    self.idx_ptr[0] = idx;
+    self.idx_ptr[1] = idx + 1;
+    self.idx_ptr[2] = idx + 2;
+    self.idx_ptr[3] = idx;
+    self.idx_ptr[4] = idx + 2;
+    self.idx_ptr[5] = idx + 3;
+
+    self.vtx_ptr[0] = .{ .pos = self.matrix.apply(a), .mult = 0xFF, .fill = 0, .tex = .{ .x = 0, .y = 0 }, .col = col };
+    self.vtx_ptr[1] = .{ .pos = self.matrix.apply(b), .mult = 0xFF, .fill = 0, .tex = .{ .x = 1, .y = 0 }, .col = col };
+    self.vtx_ptr[2] = .{ .pos = self.matrix.apply(c), .mult = 0xFF, .fill = 0, .tex = .{ .x = 1, .y = 1 }, .col = col };
+    self.vtx_ptr[3] = .{ .pos = self.matrix.apply(d), .mult = 0xFF, .fill = 0, .tex = .{ .x = 0, .y = 1 }, .col = col };
+}
+
+fn setTexture(self: *Self, tex: *gfx.Texture) void {
+    if (self.batch.elements > 0 and self.batch.texture != null and tex != self.batch.texture) {
+        unreachable;
+    }
+
+    if (self.batch.texture != tex) {
+        self.batch.texture = tex;
+    }
+}

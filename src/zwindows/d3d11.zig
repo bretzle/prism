@@ -844,7 +844,7 @@ pub const IDeviceContext = extern struct {
                 pDstResource: *IResource,
                 DstSubresource: UINT,
                 pDstBox: ?*BOX,
-                pSrcData: *anyopaque,
+                pSrcData: *const anyopaque,
                 SrcRowPitch: UINT,
                 SrcDepthPitch: UINT,
             ) void {
@@ -970,7 +970,7 @@ pub const IDeviceContext = extern struct {
         RSSetScissorRects: *const fn (*T, UINT, ?[*]const RECT) callconv(WINAPI) void,
         CopySubresourceRegion: *anyopaque,
         CopyResource: *anyopaque,
-        UpdateSubresource: *const fn (*T, *IResource, UINT, ?*BOX, *anyopaque, UINT, UINT) callconv(WINAPI) void,
+        UpdateSubresource: *const fn (*T, *IResource, UINT, ?*BOX, *const anyopaque, UINT, UINT) callconv(WINAPI) void,
         CopyStructureCount: *anyopaque,
         ClearRenderTargetView: *const fn (*T, *IRenderTargetView, *const [4]FLOAT) callconv(WINAPI) void,
         ClearUnorderedAccessViewUint: *anyopaque,
