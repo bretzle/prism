@@ -68,7 +68,7 @@ pub fn Application(comptime ParentApp: type, comptime T: type) type {
         }
 
         pub fn getSize(self: *const Self) math.Point {
-            var rect = w32.RECT{};
+            var rect: w32.RECT = undefined;
             _ = w32.GetWindowRect(self.hwnd, &rect);
             return .{ .x = rect.right - rect.left, .y = rect.bottom - rect.top };
         }
@@ -100,7 +100,7 @@ pub fn Application(comptime ParentApp: type, comptime T: type) type {
         }
 
         fn clientToWindow(size: [2]i32, style: u32) [2]i32 {
-            var rect = w32.RECT{ .right = size[0], .bottom = size[1] };
+            var rect = w32.RECT{ .left = 0, .top = 0, .right = size[0], .bottom = size[1] };
             _ = w32.AdjustWindowRectEx(&rect, style, 0, 0);
             return [2]i32{ rect.right - rect.left, rect.bottom - rect.top };
         }
