@@ -10,34 +10,6 @@ pub const Texture = impl.D3D11Texture;
 pub const Shader = impl.D3D11Shader;
 pub const Mesh = impl.D3D11Mesh;
 
-const iface = struct {
-    const interface = @import("interface");
-
-    const IRenderer = interface.Interface(.{
-        .destroy = fn (anytype) void,
-    }, null);
-    const IShader = interface.Interface(.{
-        .destroy = fn (anytype) void,
-    }, null);
-    const ITexture = interface.Interface(.{
-        .destroy = fn (anytype) void,
-    }, null);
-    const ITarget = interface.Interface(.{
-        .destroy = fn (anytype) void,
-    }, null);
-    const IMesh = interface.Interface(.{
-        .destroy = fn (anytype) void,
-    }, null);
-};
-
-// comptime {
-//     iface.IRenderer.satisfiedBy(Renderer);
-//     iface.IShader.satisfiedBy(Shader);
-//     iface.ITexture.satisfiedBy(Texture);
-//     iface.ITarget.satisfiedBy(Target);
-//     iface.IMesh.satisfiedBy(Mesh);
-// }
-
 pub const Compare = enum {
     none,
     always,
@@ -87,18 +59,17 @@ pub const BlendFactor = enum {
 };
 
 pub const BlendMask = packed struct {
-    red: bool = false,
-    green: bool = false,
-    blue: bool = false,
-    alpha: bool = false,
+    red: bool,
+    green: bool,
+    blue: bool,
+    alpha: bool,
 
-    pub const rgb = BlendMask{ .red = true, .green = true, .blue = true };
+    pub const none = BlendMask{ .red = false, .green = false, .blue = false, .alpha = false };
+    pub const rgb = BlendMask{ .red = true, .green = true, .blue = true, .alpha = false };
     pub const rgba = BlendMask{ .red = true, .green = true, .blue = true, .alpha = true };
 };
 
 pub const BlendMode = struct {
-    const Self = @This();
-
     color_op: BlendOp,
     color_src: BlendFactor,
     color_dst: BlendFactor,
@@ -122,7 +93,7 @@ pub const BlendMode = struct {
     // pub const subtract: BlendMode = undefined;
     // pub const additive: BlendMode = undefined;
 
-    pub fn create(op: BlendOp, src: BlendFactor, dst: BlendFactor) Self {
+    pub inline fn create(op: BlendOp, src: BlendFactor, dst: BlendFactor) BlendMode {
         return .{
             .color_op = op,
             .color_src = src,
@@ -135,10 +106,8 @@ pub const BlendMode = struct {
         };
     }
 
-    pub fn eq(a: *const Self, b: *const Self) bool {
-        return a.color_op == b.color_op and a.color_src == b.color_src and a.color_dst == b.color_dst and
-            a.alpha_op == b.alpha_op and a.alpha_src == b.alpha_src and a.alpha_dst == b.alpha_dst and
-            a.mask == b.mask and a.rgba == b.rgba;
+    pub inline fn eq(a: BlendMode, b: BlendMode) bool {
+        return std.meta.eql(a, b);
     }
 };
 
@@ -155,14 +124,12 @@ pub const TextureWrap = enum {
 };
 
 pub const TextureSampler = struct {
-    const Self = @This();
-
-    filter: TextureFilter = .linear,
+    filter: TextureFilter = .nearest,
     wrap_x: TextureWrap = .repeat,
     wrap_y: TextureWrap = .repeat,
 
-    pub fn eq(a: *const Self, b: *const Self) bool {
-        return a.filter == b.filter and a.wrap_x == b.wrap_x and a.wrap_y == b.wrap_y;
+    pub inline fn eq(a: TextureSampler, b: TextureSampler) bool {
+        return std.meta.eql(a, b);
     }
 };
 
@@ -175,10 +142,11 @@ pub const TextureFormat = enum {
 };
 
 pub const ClearMask = packed struct {
-    color: bool = false,
-    depth: bool = false,
-    stencil: bool = false,
+    color: bool,
+    depth: bool,
+    stencil: bool,
 
+    pub const none = ClearMask{ .color = false, .depth = false, .stencil = false };
     pub const all = ClearMask{ .color = true, .depth = true, .stencil = true };
 };
 
@@ -239,10 +207,7 @@ pub const IndexFormat = enum {
 };
 
 pub const ShaderData = struct {
-    pub const HLSLAttribute = struct {
-        semantic_name: [:0]const u8,
-        semantic_index: u8 = 0,
-    };
+    pub const HLSLAttribute = struct { name: [:0]const u8, index: u8 = 0 };
 
     vertex: []const u8,
     fragment: []const u8,
@@ -258,8 +223,8 @@ pub const DrawCall = struct {
     material: *Material,
     has_viewport: bool = false,
     has_scissor: bool = false,
-    viewport: math.Rectf = .{},
-    scissor: math.Rectf = .{},
+    viewport: math.Rect = .zero,
+    scissor: math.Rect = .zero,
     index_start: u32 = 0,
     index_count: u32 = 0,
     instance_count: u32 = 0,
@@ -280,7 +245,7 @@ pub const DrawCall = struct {
             unreachable;
         }
 
-        const draw_size = math.Vec2f{ .x = @floatFromInt(pass.target.getWidth()), .y = @floatFromInt(pass.target.getHeight()) };
+        const draw_size = math.Vec2{ .x = @floatFromInt(pass.target.getWidth()), .y = @floatFromInt(pass.target.getHeight()) };
 
         if (!pass.has_viewport) {
             pass.viewport = .{
@@ -422,7 +387,7 @@ pub const Material = struct {
 
     pub fn setValue(self: *Self, name: []const u8, value: anytype) void {
         switch (@TypeOf(value.*)) {
-            math.Mat4x4f => self.setFloats(name, @as([*]const f32, @ptrCast(&value.data))[0..16]),
+            math.Mat4x4 => self.setFloats(name, value.asArray()),
             else => unreachable,
         }
     }

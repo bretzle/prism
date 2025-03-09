@@ -36,8 +36,8 @@ pub fn Application(comptime ParentApp: type, comptime T: type) type {
                 style,
                 w32.CW_USEDEFAULT,
                 w32.CW_USEDEFAULT,
-                size[0],
-                size[1],
+                size.x,
+                size.y,
                 null,
                 null,
                 @ptrCast(w32.GetModuleHandleA(null)),
@@ -99,10 +99,10 @@ pub fn Application(comptime ParentApp: type, comptime T: type) type {
             return 0;
         }
 
-        fn clientToWindow(size: [2]i32, style: u32) [2]i32 {
-            var rect = w32.RECT{ .left = 0, .top = 0, .right = size[0], .bottom = size[1] };
+        fn clientToWindow(size: math.Point, style: u32) math.Point {
+            var rect = w32.RECT{ .left = 0, .top = 0, .right = size.x, .bottom = size.y };
             _ = w32.AdjustWindowRectEx(&rect, style, 0, 0);
-            return [2]i32{ rect.right - rect.left, rect.bottom - rect.top };
+            return .{ .x = rect.right - rect.left, .y = rect.bottom - rect.top };
         }
     };
 }

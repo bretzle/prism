@@ -2,13 +2,13 @@ const std = @import("std");
 const math = @import("math.zig");
 const gfx = @import("gfx.zig");
 const Color = @import("Color.zig").Color;
-const Vec2 = math.Vec2f;
+const Vec2 = math.Vec2;
 
 pub const ColorMode = enum { normal, wash };
 
 pub const Vertex = extern struct {
-    pos: math.Vec2f,
-    tex: math.Vec2f,
+    pos: Vec2,
+    tex: Vec2,
     col: Color,
 
     mult: u8 = 0,
@@ -26,7 +26,7 @@ const DrawBatch = struct {
     texture: ?*gfx.Texture = null,
     sampler: gfx.TextureSampler = .{},
     flip_vertically: bool = false,
-    scissor: math.Rectf = .{ .x = 0, .y = 0, .w = -1, .h = -1 },
+    scissor: math.Rect = .{ .x = 0, .y = 0, .w = -1, .h = -1 },
 };
 
 const batch_shader_source = @embedFile("batch_shader.hlsl");
@@ -34,15 +34,15 @@ const batch_shader_data = gfx.ShaderData{
     .vertex = batch_shader_source,
     .fragment = batch_shader_source,
     .hlsl_attributes = std.BoundedArray(gfx.ShaderData.HLSLAttribute, 16).fromSlice(&.{
-        .{ .semantic_name = "POS" },
-        .{ .semantic_name = "TEX" },
-        .{ .semantic_name = "COL" },
-        .{ .semantic_name = "MASK" },
+        .{ .name = "POS" },
+        .{ .name = "TEX" },
+        .{ .name = "COL" },
+        .{ .name = "MASK" },
     }) catch unreachable,
 };
 
 const format = gfx.VertexFormat{
-    .stride = 8 + 8 + 4 + 4,
+    .stride = @sizeOf(Vertex),
     .attributes = std.BoundedArray(gfx.VertexAttribute, 16).fromSlice(&.{
         .{ .index = 0, .type = .float2, .normalized = false },
         .{ .index = 1, .type = .float2, .normalized = false },
@@ -59,15 +59,15 @@ const Self = @This();
 
 default_material: *gfx.Material,
 mesh: *gfx.Mesh,
-matrix: math.Mat3x2f = .identity,
+matrix: math.Mat3x2 = .identity,
 color_mode: ColorMode = .normal,
 tex_mult: u8 = 255,
 tex_wash: u8 = 0,
 batch: DrawBatch,
 vertices: std.ArrayList(Vertex),
 indices: std.ArrayList(u32),
-matrix_stack: std.ArrayList(math.Mat3x2f),
-scissor_stack: std.ArrayList(math.Rectf),
+matrix_stack: std.ArrayList(math.Mat3x2),
+scissor_stack: std.ArrayList(math.Rect),
 blend_stack: std.ArrayList(gfx.BlendMode),
 material_stack: std.ArrayList(*gfx.Material),
 color_mode_stack: std.ArrayList(ColorMode),
@@ -97,12 +97,12 @@ pub fn create(allocator: std.mem.Allocator) !Self {
     };
 }
 
-pub fn pushMatrix(self: *Self, mat: math.Mat3x2f) void {
+pub fn pushMatrix(self: *Self, mat: math.Mat3x2) void {
     self.matrix_stack.append(mat) catch unreachable;
-    self.matrix = mat.mul(&self.matrix);
+    self.matrix = mat.mul(self.matrix);
 }
 
-pub fn popMatrix(self: *Self) math.Mat3x2f {
+pub fn popMatrix(self: *Self) math.Mat3x2 {
     const was = self.matrix;
     self.matrix = self.matrix_stack.pop().?;
     return was;
@@ -111,7 +111,7 @@ pub fn popMatrix(self: *Self) math.Mat3x2f {
 pub fn render(self: *Self, target: *gfx.Target) void {
     if ((self.batches.items.len <= 0 and self.batch.elements <= 0) or self.indices.items.len <= 0) return;
 
-    const matrix = math.Mat4x4f.orthoOffcenter(0, @floatFromInt(target.getWidth()), @floatFromInt(target.getHeight()), 0, 0.1, 1000);
+    const matrix = math.Mat4x4.orthoOffcenter(0, @floatFromInt(target.getWidth()), @floatFromInt(target.getHeight()), 0, 0.1, 1000);
 
     // upload data
     self.mesh.indexData(.u32, std.mem.sliceAsBytes(self.indices.items), self.indices.items.len);
@@ -122,7 +122,7 @@ pub fn render(self: *Self, target: *gfx.Target) void {
         .mesh = self.mesh,
         .material = undefined,
         .has_viewport = false,
-        .viewport = .{},
+        .viewport = .zero,
         .instance_count = 0,
         .depth = .none,
         .cull = .none,
@@ -141,7 +141,7 @@ pub fn render(self: *Self, target: *gfx.Target) void {
     }
 }
 
-fn renderSingleBatch(self: *Self, pass: *gfx.DrawCall, b: *const DrawBatch, matrix: *const math.Mat4x4f) void {
+fn renderSingleBatch(self: *Self, pass: *gfx.DrawCall, b: *const DrawBatch, matrix: *const math.Mat4x4) void {
     pass.material = b.material orelse self.default_material;
 
     if (pass.material.hasValue(texture_uniform)) {
@@ -175,7 +175,7 @@ pub fn clear(self: *Self) void {
     self.matrix_stack.items.len = 0;
 }
 
-pub fn drawRect(self: *Self, rect: math.Rectf, color: Color) void {
+pub fn drawRect(self: *Self, rect: math.Rect, color: Color) void {
     self.reserve(6, 4);
     self.pushRect(.{ .x = rect.x, .y = rect.y }, .{ .x = rect.x + rect.w, .y = rect.y + rect.h }, color);
 }

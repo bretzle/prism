@@ -25,8 +25,8 @@ const App = prism.Application(struct {
         const target = app.backbuffer();
         target.clear(.{ .color = .black });
 
-        const center = math.Vec2f{ .x = 100, .y = 100 };
-        const transform = math.Mat3x2f.transform(center, .zero, .one, 0);
+        const center = math.Vec2{ .x = 100, .y = 100 };
+        const transform = math.Mat3x2.transform(center, .zero, .one, 0);
 
         self.batch.pushMatrix(transform);
         self.batch.drawRect(.{ .x = -32, .y = -32, .w = 64, .h = 64 }, .red);

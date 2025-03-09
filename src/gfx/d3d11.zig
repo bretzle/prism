@@ -174,7 +174,7 @@ pub const D3D11Renderer = struct {
     }
 
     pub fn beforeRender(self: *Self, size: math.Point) void {
-        if (!math.eql(self.last_window_size, size)) {
+        if (!self.last_window_size.eql(size)) {
             self.last_window_size = size;
 
             if (self.backbuffer_view) |view| {
@@ -368,7 +368,7 @@ pub const D3D11Renderer = struct {
 
     fn getBlend(self: *Self, blend: *const gfx.BlendMode) ?*d3d11.IBlendState {
         for (self.blend_cache.items) |it| {
-            if (it.blend.eq(blend)) {
+            if (it.blend.eq(blend.*)) {
                 return it.state;
             }
         }
@@ -435,8 +435,8 @@ pub const D3D11Renderer = struct {
         var descs = std.BoundedArray(d3d11.INPUT_ELEMENT_DESC, 16){};
         for (0..shader.attributes.len) |i| {
             const it = descs.addOne() catch unreachable;
-            it.SemanticName = shader.attributes.buffer[i].semantic_name.ptr;
-            it.SemanticIndex = shader.attributes.buffer[i].semantic_index;
+            it.SemanticName = shader.attributes.buffer[i].name.ptr;
+            it.SemanticIndex = shader.attributes.buffer[i].index;
 
             if (!format.attributes.buffer[i].normalized) {
                 it.Format = switch (format.attributes.buffer[i].type) {
@@ -495,7 +495,7 @@ pub const D3D11Renderer = struct {
 
     fn getSampler(self: *Self, sampler: *const gfx.TextureSampler) ?*d3d11.ISamplerState {
         for (self.sampler_cache.items) |it| {
-            if (it.sampler.eq(sampler)) {
+            if (it.sampler.eq(sampler.*)) {
                 return it.state;
             }
         }
@@ -844,10 +844,10 @@ pub const D3D11Shader = struct {
 
         var hash: u32 = 5381;
         for (attributes.constSlice()) |attr| {
-            for (attr.semantic_name) |c| {
+            for (attr.name) |c| {
                 hash = ((hash << 5) +% hash) +% c;
             }
-            hash = (@as(u32, attr.semantic_index) << 5) +% hash;
+            hash = (@as(u32, attr.index) << 5) +% hash;
         }
 
         self.* = .{

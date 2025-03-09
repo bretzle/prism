@@ -8,19 +8,21 @@ pub const Color = @import("Color.zig").Color;
 pub const Batch = @import("Batch.zig");
 
 pub const Flags = packed struct {
-    fixed_timestamp: bool = false,
-    vsync: bool = false,
-    fullscreen: bool = false,
-    resizable: bool = false,
-    audio_enabled: bool = false,
+    // fixed_timestamp: bool = false,
+    // vsync: bool = false,
+    // fullscreen: bool = false,
+    // resizable: bool = false,
+    // audio_enabled: bool = false,
+
+    pub const defaults = Flags{};
 };
 
 pub const Config = struct {
     name: [:0]const u8 = "prism",
-    size: [2]i32 = .{ 800, 600 },
+    size: math.Point = .{ .x = 800, .y = 600 },
     target_framerate: u32 = 60,
     audio_frequency: u32 = 44100,
-    flags: Flags = .{ .vsync = true, .resizable = true, .fixed_timestamp = true, .audio_enabled = true },
+    flags: Flags = .defaults,
 };
 
 pub fn Application(comptime T: type) type {
