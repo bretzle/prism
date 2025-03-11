@@ -246,11 +246,12 @@ pub const Buffer = struct {
     len: usize,
     cap: usize,
     stride: u32,
+    type: gpu.BufferType,
 
     pub fn create(desc: gpu.BufferDesc) Buffer {
         const stride = desc.elem_size;
         const buffer_desc = d3d11.BUFFER_DESC{
-            .ByteWidth = desc.size_in_bytes,
+            .ByteWidth = std.math.ceilPowerOfTwoAssert(u32, desc.size_in_bytes),
             .Usage = .DYNAMIC,
             .BindFlags = .{
                 .VERTEX_BUFFER = desc.type == .vertex,
@@ -270,22 +271,44 @@ pub const Buffer = struct {
             .len = if (desc.content) |cnt| cnt.len * desc.size_in_bytes else 0,
             .cap = desc.size_in_bytes,
             .stride = stride,
+            .type = desc.type,
         };
     }
 
+    pub fn resize(self: *Buffer, new_cap: u32) void {
+        var desc: d3d11.BUFFER_DESC = undefined;
+        self.raw.GetDesc(&desc);
+        desc.ByteWidth = new_cap;
+
+        _ = self.raw.Release();
+
+        var buffer: *d3d11.IBuffer = undefined;
+        const hr = device.CreateBuffer(&desc, null, @ptrCast(&buffer));
+        std.debug.assert(hr == 0);
+
+        self.len = 0;
+        self.cap = new_cap;
+        self.raw = buffer;
+    }
+
     pub fn update(self: *Buffer, bytes: []const u8) void {
-        std.debug.assert(bytes.len <= self.cap);
-        self.len = bytes.len;
+        self.len = 0;
+        self.append(bytes);
+    }
+
+    pub fn append(self: *Buffer, bytes: []const u8) void {
+        if (self.cap < self.len + bytes.len) {
+            self.resize(std.math.ceilPowerOfTwoAssert(u32, @intCast(self.len + bytes.len)));
+        }
 
         var map: d3d11.MAPPED_SUBRESOURCE = undefined;
         const hr = context.Map(@ptrCast(self.raw), 0, .WRITE_DISCARD, .{}, &map);
         std.debug.assert(hr == 0);
         defer context.Unmap(@ptrCast(self.raw), 0);
 
-        @memcpy(@as([*]u8, @ptrCast(map.pData)), bytes);
+        @memcpy(@as([*]u8, @ptrCast(map.pData))[self.len..], bytes);
+        self.len += bytes.len;
     }
-
-    // TODO: append? resize? reconfigure
 };
 
 pub const Shader = struct {
@@ -442,40 +465,24 @@ pub const Shader = struct {
             }
 
             for (0..desc.Variables) |j| {
-                var var_desc: d3d11.SHADER_VARIABLE_DESC = undefined;
-                var type_desc: d3d11.SHADER_TYPE_DESC = undefined;
+                var vd: d3d11.SHADER_VARIABLE_DESC = undefined;
+                var td: d3d11.SHADER_TYPE_DESC = undefined;
 
                 const var_ = cb.GetVariableByIndex(@intCast(j));
-                vhr(var_.GetDesc(&var_desc));
+                _ = var_.GetDesc(&vd);
 
                 const type_ = var_.GetType();
-                vhr(type_.GetDesc(&type_desc));
+                _ = type_.GetDesc(&td);
 
                 const uniform = try append_uniforms_to.addOne();
                 uniform.* = gpu.UniformInfo{
-                    .name = std.mem.span(var_desc.Name),
+                    .name = std.mem.span(vd.Name),
                     .shader = shader_type,
                     .register_index = 0,
                     .buffer_index = @intCast(i),
-                    .array_length = @intCast(@max(1, type_desc.Elements)),
-                    .type = .none,
+                    .array_length = @intCast(@max(1, td.Elements)),
+                    .type = conv.uniform_type(td.Type, td.Rows, td.Columns),
                 };
-
-                if (type_desc.Type == .FLOAT) {
-                    if (type_desc.Rows == 1) {
-                        switch (type_desc.Columns) {
-                            1 => uniform.type = .float,
-                            2 => uniform.type = .float2,
-                            3 => uniform.type = .float3,
-                            4 => uniform.type = .float4,
-                            else => {},
-                        }
-                    } else if (type_desc.Rows == 2 and type_desc.Columns == 3) {
-                        uniform.type = .mat3x2;
-                    } else if (type_desc.Rows == 4 and type_desc.Columns == 4) {
-                        uniform.type = .mat4x4;
-                    }
-                }
             }
         }
 

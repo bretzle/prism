@@ -81,19 +81,8 @@ vtx_ptr: [*]Vertex = &[0]Vertex{},
 pub fn create(allocator: std.mem.Allocator) !Self {
     const shader = try gpu.createShader(batch_shader_data);
 
-    const ibuf = gpu.createBuffer(.{
-        .type = .index,
-        .elem_size = 4,
-        .size_in_bytes = 1000 * 4,
-        .content = null,
-    });
-
-    const vbuf = gpu.createBuffer(.{
-        .type = .vertex,
-        .elem_size = @sizeOf(Vertex),
-        .size_in_bytes = 3000 * @sizeOf(Vertex),
-        .content = null,
-    });
+    const ibuf = gpu.createBuffer(.empty(u32, .index, 100));
+    const vbuf = gpu.createBuffer(.empty(Vertex, .vertex, 100));
 
     const bindings = gpu.Bindings{
         .index_buffer = ibuf,
@@ -162,7 +151,7 @@ fn renderSingleBatch(self: *Self, b: *const DrawBatch, matrix: *const math.Mat4x
     self.bindings.textures.len = 1;
     self.bindings.samplers.len = 1;
 
-    gpu.beginPass(.default, .default);
+    gpu.beginPass(.backbuffer, .default);
     gpu.applyPipeline(self.pipeline);
     gpu.applyBindings(self.bindings);
     gpu.applyUniforms(self.shader, .vertex, matrix.asArray());

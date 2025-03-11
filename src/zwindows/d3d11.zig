@@ -1476,12 +1476,16 @@ pub const IBuffer = extern struct {
     pub fn Methods(comptime T: type) type {
         return extern struct {
             pub usingnamespace IResource.Methods(T);
+
+            pub inline fn GetDesc(self: *T, desc: *BUFFER_DESC) void {
+                return @as(*const IBuffer.VTable, @ptrCast(self.__v)).GetDesc(@as(*IBuffer, @ptrCast(self)), desc);
+            }
         };
     }
 
     pub const VTable = extern struct {
         base: IResource.VTable,
-        GetDesc: *anyopaque,
+        GetDesc: *const fn (*IBuffer, *BUFFER_DESC) callconv(WINAPI) void,
     };
 };
 

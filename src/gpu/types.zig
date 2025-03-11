@@ -227,6 +227,24 @@ pub const BufferDesc = struct {
     elem_size: u32,
     size_in_bytes: u32,
     content: ?[]const u8,
+
+    pub inline fn empty(comptime T: type, typ: BufferType, count: comptime_int) BufferDesc {
+        return .{
+            .type = typ,
+            .elem_size = @sizeOf(T),
+            .size_in_bytes = @sizeOf(T) * count,
+            .content = null,
+        };
+    }
+
+    pub inline fn data(comptime T: type, typ: BufferType, content: []const T) BufferDesc {
+        return .{
+            .type = typ,
+            .elem_size = @sizeOf(T),
+            .size_in_bytes = @sizeOf(T) * content.len,
+            .content = std.mem.sliceAsBytes(content),
+        };
+    }
 };
 
 pub const TextureDesc = struct {
@@ -261,7 +279,7 @@ pub const PassAction = union(enum) {
 const gpu = @import("../gpu.zig");
 pub const Bindings = struct {
     index_buffer: gpu.BufferId,
-    vertex_buffer: gpu.BufferId,
+    vertex_buffer: gpu.BufferId, // TODO support multiple vertex buffers
     textures: std.BoundedArray(gpu.TextureId, 8) = .{},
     samplers: std.BoundedArray(gpu.TextureSampler, 8) = .{},
 };

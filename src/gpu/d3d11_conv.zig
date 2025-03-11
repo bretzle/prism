@@ -46,3 +46,18 @@ pub fn blend_factor(factor: gpu.BlendFactor) d3d11.BLEND {
         .one_minus_src1_alpha => .INV_SRC1_ALPHA,
     };
 }
+
+// zig fmt: off
+pub fn uniform_type(typ: d3d11.SHADER_VARIABLE_TYPE, rows: u32, cols: u32) gpu.UniformType {
+    if (typ != .FLOAT) return .none;
+
+    const mapping = [4][4]gpu.UniformType{
+        .{ .float, .float2, .float3, .float4 }, // row 1
+        .{ .none,  .none,   .mat3x2, .none   }, // row 2
+        .{ .none,  .none,   .none,   .none   }, // row 3
+        .{ .none,  .none,   .none,   .mat4x4 }, // row 4
+    };
+
+    return mapping[rows - 1][cols - 1];
+}
+// zig fmt: on

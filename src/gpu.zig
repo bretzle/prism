@@ -23,7 +23,7 @@ const pools = struct {
 pub const BufferId = enum(u32) { invalid, _ };
 pub const ShaderId = enum(u32) { invalid, _ };
 pub const TextureId = enum(u32) { invalid, _ };
-pub const PassId = enum(u32) { default, _ };
+pub const PassId = enum(u32) { backbuffer, _ };
 pub const PipelineId = enum(u32) { invalid, _ };
 
 pub fn init(size: math.Point, handle: *anyopaque) !void {
@@ -49,6 +49,16 @@ pub fn updateBuffer(id: BufferId, bytes: []const u8) void {
     buffer.update(bytes);
 }
 
+pub fn appendBuffer(id: BufferId, bytes: []const u8) void {
+    const buffer = pools.buffers.get(id);
+    buffer.append(bytes);
+}
+
+pub fn resizeBuffer(id: BufferId, cap: u32) void {
+    const buffer = pools.buffers.get(id);
+    buffer.resize(buffer.stride * cap);
+}
+
 pub fn createShader(desc: gpu.ShaderDesc) !ShaderId {
     const shader = try Shader.create(desc);
     return pools.shaders.add(shader);
@@ -69,11 +79,21 @@ pub fn updateTexturePart(id: TextureId, x: u32, y: u32, width: u32, height: u32,
     texture.update(x, y, width, height, bytes);
 }
 
-pub fn textureSizef(id: TextureId) [2]f32 {
+pub fn resizeTexture(id: TextureId, width: u32, height: u32) void {
+    _ = id; // autofix
+    _ = width; // autofix
+    _ = height; // autofix
+    unreachable;
+}
+
+pub fn textureSize(id: TextureId) [2]u32 {
     const texture = pools.textures.get(id);
-    const width: f32 = @floatFromInt(texture.width);
-    const height: f32 = @floatFromInt(texture.height);
-    return .{ width, height };
+    return .{ texture.width, texture.height };
+}
+
+pub fn textureSizef(id: TextureId) [2]f32 {
+    const size = textureSize(id);
+    return .{ @floatFromInt(size[0]), @floatFromInt(size[1]) };
 }
 
 pub fn createPipeline(desc: gpu.PipelineDesc) PipelineId {
@@ -82,7 +102,7 @@ pub fn createPipeline(desc: gpu.PipelineDesc) PipelineId {
 }
 
 pub fn beginPass(pass: PassId, action: gpu.PassAction) void {
-    std.debug.assert(pass == .default); // TODO
+    std.debug.assert(pass == .backbuffer); // TODO
 
     impl.beginPass(action);
 }
@@ -101,6 +121,9 @@ pub fn applyBindings(bindings: gpu.Bindings) void {
     const ibuf = pools.buffers.get(bindings.index_buffer);
     const vbuf = pools.buffers.get(bindings.vertex_buffer);
 
+    std.debug.assert(ibuf.type == .index);
+    std.debug.assert(vbuf.type == .vertex);
+
     var textures = std.BoundedArray(*Texture, 8){};
     for (bindings.textures.constSlice()) |id| {
         if (id != .invalid) {
@@ -111,12 +134,13 @@ pub fn applyBindings(bindings: gpu.Bindings) void {
     impl.applyBindings(ibuf, vbuf, textures.constSlice(), bindings.samplers.constSlice());
 }
 
-pub fn applyUniforms(id: ShaderId, typ: gpu.ShaderType, data: []const f32) void {
+pub fn applyUniforms(id: ShaderId, typ: gpu.ShaderType, bytes: []const f32) void {
     const shader = pools.shaders.get(id);
-    impl.applyUniforms(shader, typ, data);
+    impl.applyUniforms(shader, typ, bytes);
 }
 
 pub fn draw(base: u32, elements: u32, instances: u32) void {
+    if (elements == 0) return;
     impl.draw(base, elements, instances);
 }
 
