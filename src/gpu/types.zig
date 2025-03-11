@@ -232,7 +232,7 @@ pub const BufferDesc = struct {
 pub const TextureDesc = struct {
     width: u32,
     height: u32,
-    format: TextureFormat = .rgba8,
+    format: TextureFormat = .rgba,
     content: ?*const anyopaque = null,
 };
 

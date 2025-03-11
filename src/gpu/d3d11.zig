@@ -64,7 +64,7 @@ pub fn init(size: math.Point, handle: *anyopaque) !void {
         .SampleDesc = .{ .Count = 1, .Quality = 0 },
         .BufferUsage = .{ .RENDER_TARGET_OUTPUT = true },
         .BufferCount = 1,
-        .OutputWindow = @ptrCast(handle),
+        .OutputWindow = @as(w32.HWND, @ptrCast(handle)),
         .Windowed = 1,
     });
 
@@ -114,7 +114,7 @@ pub fn applyPipeline(pipeline: *Pipeline, shader: *Shader) void {
     }
 
     context.IASetPrimitiveTopology(.TRIANGLELIST);
-    const layout = getLayout(shader, &pipeline.vertex_format);
+    const layout = getLayout(shader, &pipeline.format);
     context.IASetInputLayout(layout);
 
     context.VSSetShader(unreachable, unreachable, unreachable);
@@ -179,10 +179,10 @@ pub const Buffer = struct {
     pub fn create(desc: gpu.BufferDesc) Buffer {
         const stride = switch (desc.format) {
             .vertex => |v| v.stride,
-            .index => |i| switch (i) {
+            .index => |i| @as(u32, switch (i) {
                 .u16 => 2,
                 .u32 => 4,
-            },
+            }),
         };
         const buffer_desc = d3d11.BUFFER_DESC{
             .ByteWidth = desc.size_in_bytes,
@@ -230,7 +230,7 @@ pub const Shader = struct {
     fragment_uniform_buffers: []*d3d11.IBuffer,
     vertex_uniform_values: []List(f32),
     fragment_uniform_values: []List(f32),
-    attributes: std.BoundedArray(gpu.ShaderData.HLSLAttribute, 16),
+    attributes: std.BoundedArray(gpu.ShaderDesc.HLSLAttribute, 16),
     uniform_list: []gpu.UniformInfo,
     hash: u32,
 
@@ -250,8 +250,8 @@ pub const Shader = struct {
 
         checkUniforms(uniform_list.items);
 
-        const vertex_uniform_values = try allocator.alloc(List(f32), vertex_uniform_buffers.items.len);
-        const fragment_uniform_values = try allocator.alloc(List(f32), fragment_uniform_buffers.items.len);
+        const vertex_uniform_values = try allocator.alloc(List(f32), vertex_uniform_buffers.len);
+        const fragment_uniform_values = try allocator.alloc(List(f32), fragment_uniform_buffers.len);
 
         @memset(vertex_uniform_values, .empty);
         @memset(fragment_uniform_values, .empty);
@@ -308,7 +308,7 @@ pub const Shader = struct {
         }
     }
 
-    fn calcHash(attrs: []gpu.ShaderDesc.HLSLAttribute) u32 {
+    fn calcHash(attrs: []const gpu.ShaderDesc.HLSLAttribute) u32 {
         var hash: u32 = 5381;
         for (attrs) |attr| {
             for (attr.name) |c| {
@@ -319,7 +319,7 @@ pub const Shader = struct {
         return hash;
     }
 
-    fn reflect_uniforms(append_uniforms_to: *std.ArrayList(gpu.UniformInfo), shader: *d3dcommon.IBlob, shader_type: gpu.ShaderType) !std.ArrayList(*d3d11.IBuffer) {
+    fn reflect_uniforms(append_uniforms_to: *std.ArrayList(gpu.UniformInfo), shader: *d3dcommon.IBlob, shader_type: gpu.ShaderType) ![]*d3d11.IBuffer {
         var append_buffers_to = std.ArrayList(*d3d11.IBuffer).init(allocator);
 
         var reflector: *d3d11.IShaderReflection = undefined;
@@ -412,7 +412,7 @@ pub const Shader = struct {
             }
         }
 
-        return append_buffers_to;
+        return try append_buffers_to.toOwnedSlice();
     }
 };
 
@@ -444,7 +444,8 @@ pub const Texture = struct {
         };
 
         var texture: *d3d11.ITexture2D = undefined;
-        vhr(device.CreateTexture2D(&desc, data.content, @ptrCast(&texture)));
+        const sub = d3d11.SUBRESOURCE_DATA{ .pSysMem = data.content };
+        vhr(device.CreateTexture2D(&desc, &sub, @ptrCast(&texture)));
 
         var view: ?*d3d11.IShaderResourceView = null;
         if (!depth) {
@@ -498,6 +499,7 @@ pub const Pipeline = struct {
             .depth = desc.depth,
             .cull = desc.cull,
             .blend = desc.blend,
+            .format = unreachable,
         };
     }
 };

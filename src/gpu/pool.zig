@@ -26,7 +26,7 @@ pub fn Pool(comptime K: type, comptime V: type) type {
         pub fn add(self: *Self, item: V) K {
             const handle = self.alloc();
             self.buffer[handle.index] = item;
-            return @bitCast(handle);
+            return @enumFromInt(@as(u32, @bitCast(handle)));
         }
 
         pub fn get(self: *Self, id: K) *V {
@@ -50,7 +50,7 @@ pub fn Pool(comptime K: type, comptime V: type) type {
         }
 
         inline fn asHandle(id: K) Handle {
-            return @bitCast(id);
+            return @bitCast(@as(u32, @intFromEnum(id)));
         }
     };
 }

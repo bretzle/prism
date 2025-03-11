@@ -50,7 +50,7 @@ pub fn createShader(desc: gpu.ShaderDesc) !ShaderId {
     return pools.shaders.add(shader);
 }
 
-pub fn createTexture(desc: gpu.ShaderDesc) TextureId {
+pub fn createTexture(desc: gpu.TextureDesc) TextureId {
     const texture = Texture.create(desc);
     return pools.textures.add(texture);
 }
@@ -105,11 +105,11 @@ pub fn draw(base: u32, elements: u32, instances: u32) void {
     impl.draw(base, elements, instances);
 }
 
-pub fn applyViewport(x: u32, y: u32, w: u32, h: u32) void {
+pub fn applyViewport(x: i32, y: i32, w: i32, h: i32) void {
     impl.applyViewport(x, y, w, h);
 }
 
-pub fn applyScissor(x: u32, y: u32, w: u32, h: u32) void {
+pub fn applyScissor(x: i32, y: i32, w: i32, h: i32) void {
     impl.applyScissor(x, y, w, h);
 }
 
