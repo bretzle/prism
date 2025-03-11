@@ -1,5 +1,4 @@
 const std = @import("std");
-const interface = @import("interface");
 const platform = @import("platform/win32.zig");
 
 pub const gfx = @import("gfx.zig");
@@ -29,11 +28,6 @@ pub fn Application(comptime T: type) type {
     return struct {
         const Self = @This();
 
-        const IUserData = interface.Interface(.{
-            .init = fn (*T, *Self) anyerror!void,
-            .render = fn (*T, *Self) void,
-        }, null);
-
         config: Config,
         userdata: T = undefined,
         allocator: std.mem.Allocator,
@@ -45,8 +39,6 @@ pub fn Application(comptime T: type) type {
         impl: platform.Application(Self, T),
 
         pub fn create(allocator: std.mem.Allocator, config: Config) !*Self {
-            comptime IUserData.satisfiedBy(T);
-
             const self = try allocator.create(Self);
             errdefer allocator.destroy(self);
 

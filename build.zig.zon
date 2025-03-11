@@ -5,12 +5,7 @@
     .fingerprint = 0x8ed1b8ba3cdedbce,
     .minimum_zig_version = "0.14.0",
 
-    .dependencies = .{
-        .interface = .{
-            .url = "git+https://github.com/nilslice/zig-interface#33a939d3e37d7527d5d90979deb6f79cdd9c487d",
-            .hash = "12201b6c0c9102fb5f8861147145761f7ac603621e5b581ba1ec22be169b0fb64150",
-        },
-    },
+    .dependencies = .{},
 
     .paths = .{
         "src",
