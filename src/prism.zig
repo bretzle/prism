@@ -1,7 +1,6 @@
 const std = @import("std");
 const platform = @import("platform/win32.zig");
 
-pub const gfx = @import("gfx.zig");
 pub const math = @import("math.zig");
 pub const Color = @import("Color.zig").Color;
 pub const Batch = @import("Batch.zig");
@@ -36,7 +35,6 @@ pub fn Application(comptime T: type) type {
 
         is_running: bool,
         is_exiting: bool,
-        _backbuffer: gfx.Target,
 
         impl: platform.Application(Self, T),
 
@@ -49,7 +47,6 @@ pub fn Application(comptime T: type) type {
                 .userdata = undefined,
                 .is_running = true,
                 .is_exiting = false,
-                ._backbuffer = .{ .is_backbuffer = true },
                 .allocator = allocator,
 
                 .impl = undefined,
@@ -61,6 +58,7 @@ pub fn Application(comptime T: type) type {
             // initialize audio
 
             // initialize graphics
+            try gpu.init(.{ .x = 800, .y = 600 }, self.impl.hwnd);
 
             // apply any flags
 
@@ -86,12 +84,11 @@ pub fn Application(comptime T: type) type {
 
         fn step(self: *Self) void {
             self.impl.step();
-            self.impl.renderer.update();
             if (std.meta.hasMethod(T, "update")) self.userdata.update();
 
-            self.impl.renderer.beforeRender(self.getSize());
+            gpu.resizeFramebuffer(self.getSize());
             self.userdata.render(self);
-            self.impl.renderer.afterRender();
+            gpu.commit();
         }
 
         pub fn exit(self: *Self) void {
@@ -102,10 +99,6 @@ pub fn Application(comptime T: type) type {
 
         pub fn getSize(self: *const Self) math.Point {
             return self.impl.getSize();
-        }
-
-        pub fn backbuffer(self: *Self) *gfx.Target {
-            return &self._backbuffer;
         }
     };
 }

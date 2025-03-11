@@ -1,6 +1,5 @@
 const std = @import("std");
 const w32 = @import("../zwindows/windows.zig");
-const gfx = @import("../gfx.zig");
 const prism = @import("../prism.zig");
 const math = @import("../math.zig");
 
@@ -12,7 +11,6 @@ pub fn Application(comptime ParentApp: type, comptime T: type) type {
 
         hwnd: w32.HWND,
         cursor: w32.HCURSOR,
-        renderer: *gfx.Renderer,
 
         pub fn init(self: *Self) !void {
             const parent = self.getParent();
@@ -51,7 +49,6 @@ pub fn Application(comptime ParentApp: type, comptime T: type) type {
             self.* = .{
                 .hwnd = hwnd,
                 .cursor = w32.LoadCursorA(null, w32.IDC_ARROW).?,
-                .renderer = try .create(parent.allocator, .{ .x = 800, .y = 600 }, hwnd),
             };
         }
 

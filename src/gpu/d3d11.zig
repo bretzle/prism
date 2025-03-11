@@ -100,15 +100,51 @@ pub fn init(size: math.Point, handle: *anyopaque) !void {
     vhr(device.CreateRenderTargetView(@ptrCast(framebuffer), null, @ptrCast(&backbuffer_view)));
 }
 
-pub fn applyPipeline(pipeline: *Pipeline, shader: *Shader) void {
-    if (getRasterizer(pipeline.cull)) |rs| context.RSSetState(rs);
+pub fn resizeFramebuffer(size: math.Point) void {
+    if (!last_window_size.eql(size)) {
+        last_window_size = size;
 
-    if (getDepthstencil(pipeline.depth)) |ds| context.OMSetDepthStencilState(ds, 0);
+        if (backbuffer_view) |view| {
+            _ = view.Release();
+        }
+
+        var hr = swap_chain.ResizeBuffers(0, 0, 0, .B8G8R8A8_UNORM, .{});
+        std.debug.assert(hr == 0);
+
+        var framebuffer: *d3d11.ITexture2D = undefined;
+        hr = swap_chain.GetBuffer(0, &d3d11.IID_ITexture2D, @ptrCast(&framebuffer));
+        std.debug.assert(hr == 0);
+
+        var desc: d3d11.TEXTURE2D_DESC = undefined;
+        framebuffer.GetDesc(&desc);
+        drawable_size = .{ .x = @intCast(desc.Width), .y = @intCast(desc.Height) };
+
+        hr = device.CreateRenderTargetView(@ptrCast(framebuffer), null, @ptrCast(&backbuffer_view));
+        std.debug.assert(hr == 0);
+        _ = framebuffer.Release();
+    }
+}
+
+pub fn beginPass(action: gpu.PassAction) void {
+    context.OMSetRenderTargets(1, @ptrCast(&backbuffer_view), null);
+
+    applyViewport(0, 0, drawable_size.x, drawable_size.y);
+    applyScissor(0, 0, drawable_size.x, drawable_size.y);
+
+    if (action == .clear) clear(action.clear);
+}
+
+pub fn applyPipeline(pipeline: *Pipeline, shader: *Shader) void {
+    const raster = getRasterizer(pipeline.cull);
+    context.RSSetState(raster);
+
+    const ds = getDepthstencil(pipeline.depth);
+    context.OMSetDepthStencilState(ds, 0);
+
     if (getBlend(&pipeline.blend)) |blend| {
         const color = Color.rgba(pipeline.blend.rgba);
         const factor = [4]f32{ asF32(color.r) / 255.0, asF32(color.g) / 255.0, asF32(color.b) / 255.0, asF32(color.a) / 255.0 };
-        const mask = 0xFFFFFFFF;
-        context.OMSetBlendState(blend, &factor, mask);
+        context.OMSetBlendState(blend, &factor, 0xFFFFFFFF);
     } else {
         context.OMSetBlendState(null, null, 0);
     }
@@ -117,22 +153,83 @@ pub fn applyPipeline(pipeline: *Pipeline, shader: *Shader) void {
     const layout = getLayout(shader, &pipeline.format);
     context.IASetInputLayout(layout);
 
-    context.VSSetShader(unreachable, unreachable, unreachable);
-    context.VSSetConstantBuffers(unreachable, unreachable, unreachable);
+    context.VSSetShader(shader.vertex, null, 0);
+    context.VSSetConstantBuffers(0, @intCast(shader.vertex_uniform_buffers.len), shader.vertex_uniform_buffers.ptr);
 
-    context.PSSetShader(unreachable, unreachable, unreachable);
-    context.PSSetConstantBuffers(unreachable, unreachable, unreachable);
+    context.PSSetShader(shader.fragment, null, 0);
+    context.PSSetConstantBuffers(0, @intCast(shader.fragment_uniform_buffers.len), shader.fragment_uniform_buffers.ptr);
 }
 
-pub fn applyBindings(bindings: gpu.Bindings) void {
-    _ = bindings; // autofix
-    // IASetVertexBuffers
-    // IASetIndexBuffer
-    // VSSetShaderResources
-    // PSSetShaderResources
-    // VSSetSamplers
-    // PSSetSamplers
-    unreachable;
+pub fn applyBindings(ibuf: *Buffer, vbuf: *Buffer, textures: []const ?*Texture, samplers: []const gpu.TextureSampler) void {
+    const stride: u32 = vbuf.stride;
+    const offset: u32 = 0;
+    context.IASetVertexBuffers(0, 1, @ptrCast(&vbuf.raw), @ptrCast(&stride), @ptrCast(&offset));
+
+    const format = switch (ibuf.stride) {
+        2 => dxgi.FORMAT.R16_UINT,
+        4 => dxgi.FORMAT.R32_UINT,
+        else => unreachable,
+    };
+    context.IASetIndexBuffer(ibuf.raw, format, 0);
+
+    for (textures, 0..) |texture, i| {
+        if (texture) |t| {
+            context.PSSetShaderResources(@intCast(i), 1, @ptrCast(&t.view));
+        }
+    }
+
+    for (samplers, 0..) |sampler, i| {
+        if (getSampler(sampler)) |smp| {
+            context.PSSetSamplers(@intCast(i), 1, @ptrCast(&smp));
+        }
+    }
+}
+
+pub fn applyUniforms(shader: *Shader, typ: gpu.ShaderType, bytes: []const f32) void {
+    const buffers: []*d3d11.IBuffer = if (typ == .vertex) shader.vertex_uniform_buffers else shader.fragment_uniform_buffers;
+    const values: []List(f32) = if (typ == .vertex) shader.vertex_uniform_values else shader.fragment_uniform_values;
+
+    for (0..buffers.len) |i| {
+        values[i].items.len = 0;
+
+        var data: [*]const f32 = bytes.ptr;
+        for (shader.uniform_list) |it| {
+            const size: u32 = switch (it.type) {
+                .none, .texture_2d, .sampler_2d => continue,
+                .float => 1,
+                .float2 => 2,
+                .float3 => 3,
+                .float4 => 4,
+                .mat3x2 => 6,
+                .mat4x4 => 16,
+            };
+            const length = size * it.array_length;
+
+            if (it.buffer_index == i and it.shader == typ) {
+                const remaining = 4 - values[i].items.len % 4;
+                if (remaining != 4 and remaining + length > 4) {
+                    unreachable;
+                }
+
+                const start = values[i].addManyAsSlice(allocator, length) catch unreachable;
+                @memcpy(start, data);
+            }
+
+            data += length;
+        }
+
+        // apply block
+        var map: d3d11.MAPPED_SUBRESOURCE = undefined;
+        vhr(context.Map(@ptrCast(buffers[i]), 0, .WRITE_DISCARD, .{}, &map));
+        defer context.Unmap(@ptrCast(buffers[i]), 0);
+
+        @memcpy(@as([*]f32, @alignCast(@ptrCast(map.pData))), values[i].items);
+    }
+}
+
+pub fn draw(base: u32, elements: u32, instances: u32) void {
+    std.debug.assert(instances == 0); // TODO
+    context.DrawIndexed(elements, base, 0);
 }
 
 pub fn applyViewport(x: i32, y: i32, w: i32, h: i32) void {
@@ -159,14 +256,18 @@ pub fn applyScissor(x: i32, y: i32, w: i32, h: i32) void {
     context.RSSetScissorRects(1, @ptrCast(&rect));
 }
 
-pub fn draw(base: u32, elements: u32, instances: u32) void {
-    std.debug.assert(instances == 0); // TODO
-    context.DrawIndexed(elements, base, 0);
+pub fn clear(params: gpu.ClearParams) void {
+    if (params.mask.color) {
+        const color: [4]f32 = .{ asF32(params.color.r) / 255, asF32(params.color.g) / 255, asF32(params.color.b) / 255, asF32(params.color.a) / 255 };
+        context.ClearRenderTargetView(backbuffer_view.?, &color);
+    }
+
+    // TODO clear depth
 }
 
-pub fn applyUniforms() void {
-    // UpdateSubresource
-    unreachable;
+pub fn commit() void {
+    const hr = swap_chain.Present(1, .{});
+    std.debug.assert(hr == 0);
 }
 
 pub const Buffer = struct {
@@ -174,22 +275,15 @@ pub const Buffer = struct {
     len: usize,
     cap: usize,
     stride: u32,
-    format: gpu.BufferFormat,
 
     pub fn create(desc: gpu.BufferDesc) Buffer {
-        const stride = switch (desc.format) {
-            .vertex => |v| v.stride,
-            .index => |i| @as(u32, switch (i) {
-                .u16 => 2,
-                .u32 => 4,
-            }),
-        };
+        const stride = desc.elem_size;
         const buffer_desc = d3d11.BUFFER_DESC{
             .ByteWidth = desc.size_in_bytes,
             .Usage = .DYNAMIC,
             .BindFlags = .{
-                .VERTEX_BUFFER = desc.format == .vertex,
-                .INDEX_BUFFER = desc.format == .index,
+                .VERTEX_BUFFER = desc.type == .vertex,
+                .INDEX_BUFFER = desc.type == .index,
             },
             .CPUAccessFlags = .{ .WRITE = true },
         };
@@ -197,7 +291,7 @@ pub const Buffer = struct {
         const res_data = d3d11.SUBRESOURCE_DATA{ .pSysMem = @ptrCast(desc.content) };
 
         var buffer: *d3d11.IBuffer = undefined;
-        const hr = device.CreateBuffer(&buffer_desc, &res_data, @ptrCast(&buffer));
+        const hr = device.CreateBuffer(&buffer_desc, if (desc.content == null) null else &res_data, @ptrCast(&buffer));
         std.debug.assert(hr == 0);
 
         return .{
@@ -205,11 +299,13 @@ pub const Buffer = struct {
             .len = if (desc.content) |cnt| cnt.len * desc.size_in_bytes else 0,
             .cap = desc.size_in_bytes,
             .stride = stride,
-            .format = desc.format,
         };
     }
 
     pub fn update(self: *Buffer, bytes: []const u8) void {
+        std.debug.assert(bytes.len <= self.cap);
+        self.len = bytes.len;
+
         var map: d3d11.MAPPED_SUBRESOURCE = undefined;
         const hr = context.Map(@ptrCast(self.raw), 0, .WRITE_DISCARD, .{}, &map);
         std.debug.assert(hr == 0);
@@ -445,7 +541,7 @@ pub const Texture = struct {
 
         var texture: *d3d11.ITexture2D = undefined;
         const sub = d3d11.SUBRESOURCE_DATA{ .pSysMem = data.content };
-        vhr(device.CreateTexture2D(&desc, &sub, @ptrCast(&texture)));
+        vhr(device.CreateTexture2D(&desc, if (data.content == null) null else &sub, @ptrCast(&texture)));
 
         var view: ?*d3d11.IShaderResourceView = null;
         if (!depth) {
@@ -499,7 +595,7 @@ pub const Pipeline = struct {
             .depth = desc.depth,
             .cull = desc.cull,
             .blend = desc.blend,
-            .format = unreachable,
+            .format = desc.format,
         };
     }
 };
@@ -753,4 +849,40 @@ fn getLayout(shader: *Shader, format: *const gpu.VertexFormat) ?*d3d11.IInputLay
         .layout = layout,
     };
     return layout;
+}
+
+fn getSampler(sampler: gpu.TextureSampler) ?*d3d11.ISamplerState {
+    for (sampler_cache.items) |it| {
+        if (it.sampler.eq(sampler)) {
+            return it.state;
+        }
+    }
+
+    const desc = d3d11.SAMPLER_DESC{
+        .Filter = switch (sampler.filter) {
+            .none, .nearest => .MIN_MAG_MIP_POINT,
+            .linear => .MIN_MAG_MIP_LINEAR,
+        },
+        .AddressU = switch (sampler.wrap_x) {
+            .none, .repeat => .WRAP,
+            .clamp => .CLAMP,
+        },
+        .AddressV = switch (sampler.wrap_y) {
+            .none, .repeat => .WRAP,
+            .clamp => .CLAMP,
+        },
+        .AddressW = .WRAP,
+        .ComparisonFunc = .NEVER,
+    };
+
+    var result: *d3d11.ISamplerState = undefined;
+    const hr = device.CreateSamplerState(&desc, @ptrCast(&result));
+    std.debug.assert(hr == 0);
+
+    const entry = sampler_cache.addOne(allocator) catch unreachable;
+    entry.* = .{
+        .sampler = sampler,
+        .state = result,
+    };
+    return result;
 }

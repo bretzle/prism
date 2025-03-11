@@ -219,11 +219,11 @@ pub const ShaderDesc = struct {
     hlsl_attributes: std.BoundedArray(HLSLAttribute, 16),
 };
 
-pub const BufferFormat = union(enum) { vertex: VertexFormat, index: IndexFormat };
+pub const BufferType = enum { vertex, index };
 
 // TODO: usage?
 pub const BufferDesc = struct {
-    format: BufferFormat,
+    type: BufferType,
     elem_size: u32,
     size_in_bytes: u32,
     content: ?[]const u8,
@@ -241,6 +241,7 @@ pub const PipelineDesc = struct {
     depth: Compare = .none,
     cull: Cull = .none,
     blend: BlendMode = .normal,
+    format: VertexFormat,
 };
 
 pub const ClearParams = struct {
@@ -253,12 +254,14 @@ pub const ClearParams = struct {
 pub const PassAction = union(enum) {
     nothing,
     clear: ClearParams,
+
+    pub const default = PassAction{ .clear = .{ .color = .rgba(0x12345678) } };
 };
 
 const gpu = @import("../gpu.zig");
 pub const Bindings = struct {
     index_buffer: gpu.BufferId,
     vertex_buffer: gpu.BufferId,
-    // vertex_buffer_offsets: [4]u32 = [_]u32{0} ** 4,
-    // images: [8]gpu.TextureId = [_]gpu.TextureId{.invalid} ** 8,
+    textures: std.BoundedArray(gpu.TextureId, 8) = .{},
+    samplers: std.BoundedArray(gpu.TextureSampler, 8) = .{},
 };

@@ -1,6 +1,6 @@
 const std = @import("std");
 const math = @import("math.zig");
-const gfx = @import("gfx.zig");
+const gpu = @import("gpu.zig");
 const Color = @import("Color.zig").Color;
 const Vec2 = math.Vec2;
 
@@ -21,19 +21,18 @@ const DrawBatch = struct {
     layer: u32 = 0,
     offset: u32 = 0,
     elements: u32 = 0,
-    material: ?*gfx.Material = null,
-    blend: gfx.BlendMode = .normal,
-    texture: ?*gfx.Texture = null,
-    sampler: gfx.TextureSampler = .{},
+    blend: gpu.BlendMode = .normal,
+    texture: gpu.TextureId = .invalid,
+    sampler: gpu.TextureSampler = .{},
     flip_vertically: bool = false,
     scissor: math.Rect = .{ .x = 0, .y = 0, .w = -1, .h = -1 },
 };
 
 const batch_shader_source = @embedFile("batch_shader.hlsl");
-const batch_shader_data = gfx.ShaderData{
+const batch_shader_data = gpu.ShaderDesc{
     .vertex = batch_shader_source,
     .fragment = batch_shader_source,
-    .hlsl_attributes = std.BoundedArray(gfx.ShaderData.HLSLAttribute, 16).fromSlice(&.{
+    .hlsl_attributes = std.BoundedArray(gpu.ShaderDesc.HLSLAttribute, 16).fromSlice(&.{
         .{ .name = "POS" },
         .{ .name = "TEX" },
         .{ .name = "COL" },
@@ -41,9 +40,9 @@ const batch_shader_data = gfx.ShaderData{
     }) catch unreachable,
 };
 
-const format = gfx.VertexFormat{
+const format = gpu.VertexFormat{
     .stride = @sizeOf(Vertex),
-    .attributes = std.BoundedArray(gfx.VertexAttribute, 16).fromSlice(&.{
+    .attributes = std.BoundedArray(gpu.VertexAttribute, 16).fromSlice(&.{
         .{ .index = 0, .type = .float2, .normalized = false },
         .{ .index = 1, .type = .float2, .normalized = false },
         .{ .index = 2, .type = .ubyte4, .normalized = true },
@@ -57,8 +56,10 @@ pub const matrix_uniform = "u_matrix";
 
 const Self = @This();
 
-default_material: *gfx.Material,
-mesh: *gfx.Mesh,
+bindings: gpu.Bindings,
+pipeline: gpu.PipelineId,
+shader: gpu.ShaderId,
+
 matrix: math.Mat3x2 = .identity,
 color_mode: ColorMode = .normal,
 tex_mult: u8 = 255,
@@ -68,8 +69,7 @@ vertices: std.ArrayList(Vertex),
 indices: std.ArrayList(u32),
 matrix_stack: std.ArrayList(math.Mat3x2),
 scissor_stack: std.ArrayList(math.Rect),
-blend_stack: std.ArrayList(gfx.BlendMode),
-material_stack: std.ArrayList(*gfx.Material),
+blend_stack: std.ArrayList(gpu.BlendMode),
 color_mode_stack: std.ArrayList(ColorMode),
 layer_stack: std.ArrayList(u32),
 batches: std.ArrayList(DrawBatch),
@@ -79,18 +79,43 @@ idx_ptr: [*]u32 = &[0]u32{},
 vtx_ptr: [*]Vertex = &[0]Vertex{},
 
 pub fn create(allocator: std.mem.Allocator) !Self {
-    const shader = try gfx.Shader.create(allocator, &batch_shader_data);
+    const shader = try gpu.createShader(batch_shader_data);
+
+    const ibuf = gpu.createBuffer(.{
+        .type = .index,
+        .elem_size = 4,
+        .size_in_bytes = 1000 * 4,
+        .content = null,
+    });
+
+    const vbuf = gpu.createBuffer(.{
+        .type = .vertex,
+        .elem_size = @sizeOf(Vertex),
+        .size_in_bytes = 3000 * @sizeOf(Vertex),
+        .content = null,
+    });
+
+    const bindings = gpu.Bindings{
+        .index_buffer = ibuf,
+        .vertex_buffer = vbuf,
+    };
+
+    const pipeline = gpu.createPipeline(.{
+        .shader = shader,
+        .format = format,
+    });
 
     return .{
-        .default_material = try gfx.Material.create(allocator, shader),
-        .mesh = try gfx.Mesh.create(allocator),
+        .bindings = bindings,
+        .pipeline = pipeline,
+        .shader = shader,
+
         .batch = .{},
         .vertices = .init(allocator),
         .indices = .init(allocator),
         .matrix_stack = .init(allocator),
         .scissor_stack = .init(allocator),
         .blend_stack = .init(allocator),
-        .material_stack = .init(allocator),
         .color_mode_stack = .init(allocator),
         .layer_stack = .init(allocator),
         .batches = .init(allocator),
@@ -108,63 +133,41 @@ pub fn popMatrix(self: *Self) math.Mat3x2 {
     return was;
 }
 
-pub fn render(self: *Self, target: *gfx.Target) void {
+pub fn render(self: *Self, size: math.Point) void {
     if ((self.batches.items.len <= 0 and self.batch.elements <= 0) or self.indices.items.len <= 0) return;
 
-    const matrix = math.Mat4x4.orthoOffcenter(0, @floatFromInt(target.getWidth()), @floatFromInt(target.getHeight()), 0, 0.1, 1000);
+    const matrix = math.Mat4x4.orthoOffcenter(0, @floatFromInt(size.x), @floatFromInt(size.y), 0, 0.1, 1000);
 
     // upload data
-    self.mesh.indexData(.u32, std.mem.sliceAsBytes(self.indices.items), self.indices.items.len);
-    self.mesh.vertexData(format, std.mem.sliceAsBytes(self.vertices.items), self.vertices.items.len);
-
-    var pass = gfx.DrawCall{
-        .target = target,
-        .mesh = self.mesh,
-        .material = undefined,
-        .has_viewport = false,
-        .viewport = .zero,
-        .instance_count = 0,
-        .depth = .none,
-        .cull = .none,
-    };
+    gpu.updateBuffer(self.bindings.index_buffer, std.mem.sliceAsBytes(self.indices.items));
+    gpu.updateBuffer(self.bindings.vertex_buffer, std.mem.sliceAsBytes(self.vertices.items));
 
     for (0..self.batches.items.len) |i| {
         if (self.batch_insert == i and self.batch.elements > 0) {
-            self.renderSingleBatch(&pass, &self.batch, &matrix);
+            self.renderSingleBatch(&self.batch, &matrix);
         }
 
-        self.renderSingleBatch(&pass, &self.batches.items[i], &matrix);
+        self.renderSingleBatch(&self.batches.items[i], &matrix);
     }
 
     if (self.batch_insert == self.batches.items.len and self.batch.elements > 0) {
-        self.renderSingleBatch(&pass, &self.batch, &matrix);
+        self.renderSingleBatch(&self.batch, &matrix);
     }
 }
 
-fn renderSingleBatch(self: *Self, pass: *gfx.DrawCall, b: *const DrawBatch, matrix: *const math.Mat4x4) void {
-    pass.material = b.material orelse self.default_material;
+fn renderSingleBatch(self: *Self, b: *const DrawBatch, matrix: *const math.Mat4x4) void {
+    self.bindings.textures.buffer[0] = b.texture;
+    self.bindings.samplers.buffer[0] = b.sampler;
 
-    if (pass.material.hasValue(texture_uniform)) {
-        pass.material.setTexture(texture_uniform, b.texture, 0);
-    } else {
-        pass.material.setTexture2(0, b.texture);
-    }
+    self.bindings.textures.len = 1;
+    self.bindings.samplers.len = 1;
 
-    if (pass.material.hasValue(sampler_uniform)) {
-        pass.material.setSampler(sampler_uniform, b.sampler, 0);
-    } else {
-        pass.material.setSampler2(0, b.sampler);
-    }
-
-    pass.material.setValue(matrix_uniform, matrix);
-
-    pass.blend = b.blend;
-    pass.has_scissor = b.scissor.w >= 0 and b.scissor.h >= 0;
-    pass.scissor = b.scissor;
-    pass.index_start = b.offset * 3;
-    pass.index_count = b.elements * 3;
-
-    pass.perform();
+    gpu.beginPass(.default, .default);
+    gpu.applyPipeline(self.pipeline);
+    gpu.applyBindings(self.bindings);
+    gpu.applyUniforms(self.shader, .vertex, matrix.asArray());
+    gpu.draw(b.offset * 3, b.elements * 3, 0);
+    gpu.endPass();
 }
 
 pub fn clear(self: *Self) void {
@@ -180,11 +183,10 @@ pub fn drawRect(self: *Self, rect: math.Rect, color: Color) void {
     self.pushRect(.{ .x = rect.x, .y = rect.y }, .{ .x = rect.x + rect.w, .y = rect.y + rect.h }, color);
 }
 
-pub fn drawTexture(self: *Self, tex: *gfx.Texture, pos: Vec2) void {
+pub fn drawTexture(self: *Self, tex: gpu.TextureId, pos: Vec2) void {
     self.setTexture(tex);
 
-    const width: f32 = @floatFromInt(tex.width);
-    const height: f32 = @floatFromInt(tex.height);
+    const width, const height = gpu.textureSizef(tex);
 
     self.reserve(6, 4);
     self.pushRectUV(pos, .{ .x = pos.x + width, .y = pos.y + height }, .white);
@@ -245,8 +247,8 @@ fn pushRectUV(self: *Self, a: Vec2, c: Vec2, col: Color) void {
     self.vtx_ptr[3] = .{ .pos = self.matrix.apply(d), .mult = 0xFF, .fill = 0, .tex = .{ .x = 0, .y = 1 }, .col = col };
 }
 
-fn setTexture(self: *Self, tex: *gfx.Texture) void {
-    if (self.batch.elements > 0 and self.batch.texture != null and tex != self.batch.texture) {
+fn setTexture(self: *Self, tex: gpu.TextureId) void {
+    if (self.batch.elements > 0 and self.batch.texture != .invalid and tex != self.batch.texture) {
         unreachable;
     }
 

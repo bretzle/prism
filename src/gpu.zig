@@ -35,6 +35,10 @@ pub fn init(size: math.Point, handle: *anyopaque) !void {
     try impl.init(size, handle);
 }
 
+pub fn resizeFramebuffer(size: math.Point) void {
+    impl.resizeFramebuffer(size);
+}
+
 pub fn createBuffer(desc: gpu.BufferDesc) BufferId {
     const buffer = Buffer.create(desc);
     return pools.buffers.add(buffer);
@@ -65,26 +69,26 @@ pub fn updateTexturePart(id: TextureId, x: u32, y: u32, width: u32, height: u32,
     texture.update(x, y, width, height, bytes);
 }
 
+pub fn textureSizef(id: TextureId) [2]f32 {
+    const texture = pools.textures.get(id);
+    const width: f32 = @floatFromInt(texture.width);
+    const height: f32 = @floatFromInt(texture.height);
+    return .{ width, height };
+}
+
 pub fn createPipeline(desc: gpu.PipelineDesc) PipelineId {
     const pipeline = Pipeline.create(desc);
     return pools.pipelines.add(pipeline);
 }
 
 pub fn beginPass(pass: PassId, action: gpu.PassAction) void {
-    if (pass == .default) {
-        unreachable;
-    } else {
-        unreachable;
-    }
+    std.debug.assert(pass == .default); // TODO
 
-    applyViewport(0, 0, 0, 0);
-    applyScissor(0, 0, 0, 0);
-
-    if (action == .clear) clear(action.clear);
+    impl.beginPass(action);
 }
 
 pub fn endPass() void {
-    unreachable;
+    // do nothing?
 }
 
 pub fn applyPipeline(id: PipelineId) void {
@@ -93,12 +97,23 @@ pub fn applyPipeline(id: PipelineId) void {
     impl.applyPipeline(pipeline, shader);
 }
 
-pub fn applyBindings(_: gpu.Bindings) void {
-    unreachable;
+pub fn applyBindings(bindings: gpu.Bindings) void {
+    const ibuf = pools.buffers.get(bindings.index_buffer);
+    const vbuf = pools.buffers.get(bindings.vertex_buffer);
+
+    var textures = std.BoundedArray(*Texture, 8){};
+    for (bindings.textures.constSlice()) |id| {
+        if (id != .invalid) {
+            textures.appendAssumeCapacity(pools.textures.get(id));
+        }
+    }
+
+    impl.applyBindings(ibuf, vbuf, textures.constSlice(), bindings.samplers.constSlice());
 }
 
-pub fn applyUniforms() void {
-    unreachable;
+pub fn applyUniforms(id: ShaderId, typ: gpu.ShaderType, data: []const f32) void {
+    const shader = pools.shaders.get(id);
+    impl.applyUniforms(shader, typ, data);
 }
 
 pub fn draw(base: u32, elements: u32, instances: u32) void {
@@ -114,6 +129,9 @@ pub fn applyScissor(x: i32, y: i32, w: i32, h: i32) void {
 }
 
 pub fn clear(params: gpu.ClearParams) void {
-    _ = params; // autofix
-    unreachable;
+    impl.clear(params);
+}
+
+pub fn commit() void {
+    impl.commit();
 }
