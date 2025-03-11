@@ -27,4 +27,12 @@ pub const Color = extern struct {
             .a = @truncate((value & 0x000000FF)),
         };
     }
+
+    pub fn floats(self: Color) [4]f32 {
+        return .{ asF32(self.r) / 255, asF32(self.g) / 255, asF32(self.b) / 255, asF32(self.a) / 255 };
+    }
 };
+
+inline fn asF32(x: anytype) f32 {
+    return @floatFromInt(x);
+}

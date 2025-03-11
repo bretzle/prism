@@ -1,11 +1,10 @@
 const std = @import("std");
 const platform = @import("platform/win32.zig");
 
+pub const gpu = @import("gpu.zig");
 pub const math = @import("math.zig");
 pub const Color = @import("Color.zig").Color;
 pub const Batch = @import("Batch.zig");
-
-pub const gpu = @import("gpu.zig");
 
 pub const Flags = packed struct {
     // fixed_timestamp: bool = false,
@@ -36,7 +35,7 @@ pub fn Application(comptime T: type) type {
         is_running: bool,
         is_exiting: bool,
 
-        impl: platform.Application(Self, T),
+        impl: platform.Application(Self),
 
         pub fn create(allocator: std.mem.Allocator, config: Config) !*Self {
             const self = try allocator.create(Self);

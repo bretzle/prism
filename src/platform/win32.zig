@@ -3,11 +3,10 @@ const w32 = @import("../zwindows/windows.zig");
 const prism = @import("../prism.zig");
 const math = @import("../math.zig");
 
-pub fn Application(comptime ParentApp: type, comptime T: type) type {
-    _ = T; // autofix
+pub fn Application(comptime ParentApp: type) type {
     return struct {
         const Self = @This();
-        const class_name = @typeName(Self);
+        const class_name = "prism.zig";
 
         hwnd: w32.HWND,
         cursor: w32.HCURSOR,
