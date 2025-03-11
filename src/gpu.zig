@@ -106,19 +106,11 @@ pub fn draw(base: u32, elements: u32, instances: u32) void {
 }
 
 pub fn applyViewport(x: u32, y: u32, w: u32, h: u32) void {
-    _ = x; // autofix
-    _ = y; // autofix
-    _ = w; // autofix
-    _ = h; // autofix
-    unreachable;
+    impl.applyViewport(x, y, w, h);
 }
 
 pub fn applyScissor(x: u32, y: u32, w: u32, h: u32) void {
-    _ = x; // autofix
-    _ = y; // autofix
-    _ = w; // autofix
-    _ = h; // autofix
-    unreachable;
+    impl.applyScissor(x, y, w, h);
 }
 
 pub fn clear(params: gpu.ClearParams) void {

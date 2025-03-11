@@ -11,6 +11,32 @@ const gpu = @import("../gpu.zig");
 const Color = @import("../Color.zig").Color;
 const List = std.ArrayListUnmanaged;
 
+const StoredInputLayout = struct {
+    shader_hash: u32,
+    format: gpu.VertexFormat,
+    layout: *d3d11.IInputLayout,
+};
+
+const StoredBlendState = struct {
+    blend: gpu.BlendMode,
+    state: *d3d11.IBlendState,
+};
+
+const StoredRasterizer = struct {
+    cull: gpu.Cull,
+    state: *d3d11.IRasterizerState,
+};
+
+const StoredSampler = struct {
+    sampler: gpu.TextureSampler,
+    state: *d3d11.ISamplerState,
+};
+
+const StoredDepthStencil = struct {
+    depth: gpu.Compare,
+    state: *d3d11.IDepthStencilState,
+};
+
 const allocator = gpu.allocator;
 
 // render state
@@ -20,6 +46,12 @@ var swap_chain: *dxgi.ISwapChain = undefined;
 var backbuffer_view: ?*d3d11.IRenderTargetView = null;
 var drawable_size: math.Point = undefined;
 var last_window_size: math.Point = undefined;
+
+var layout_cache: List(StoredInputLayout) = .empty;
+var blend_cache: List(StoredBlendState) = .empty;
+var rasterizer_cache: List(StoredRasterizer) = .empty;
+var sampler_cache: List(StoredSampler) = .empty;
+var depthstencil_cache: List(StoredDepthStencil) = .empty;
 
 pub fn init(size: math.Point, handle: *anyopaque) !void {
     last_window_size = size;
@@ -69,18 +101,27 @@ pub fn init(size: math.Point, handle: *anyopaque) !void {
 }
 
 pub fn applyPipeline(pipeline: *Pipeline, shader: *Shader) void {
-    _ = pipeline; // autofix
-    _ = shader; // autofix
-    // RSSetState
-    // OMSetDepthStencilState
-    // OMSetBlendState
-    // IASetPrimitiveTopology
-    // IASetInputLayout
-    // VSSetShader
-    // VSSetConstantBuffers
-    // PSSetShader
-    // PSSetConstantBuffers
-    unreachable;
+    if (getRasterizer(pipeline.cull)) |rs| context.RSSetState(rs);
+
+    if (getDepthstencil(pipeline.depth)) |ds| context.OMSetDepthStencilState(ds, 0);
+    if (getBlend(&pipeline.blend)) |blend| {
+        const color = Color.rgba(pipeline.blend.rgba);
+        const factor = [4]f32{ asF32(color.r) / 255.0, asF32(color.g) / 255.0, asF32(color.b) / 255.0, asF32(color.a) / 255.0 };
+        const mask = 0xFFFFFFFF;
+        context.OMSetBlendState(blend, &factor, mask);
+    } else {
+        context.OMSetBlendState(null, null, 0);
+    }
+
+    context.IASetPrimitiveTopology(.TRIANGLELIST);
+    const layout = getLayout(shader, &pipeline.vertex_format);
+    context.IASetInputLayout(layout);
+
+    context.VSSetShader(unreachable, unreachable, unreachable);
+    context.VSSetConstantBuffers(unreachable, unreachable, unreachable);
+
+    context.PSSetShader(unreachable, unreachable, unreachable);
+    context.PSSetConstantBuffers(unreachable, unreachable, unreachable);
 }
 
 pub fn applyBindings(bindings: gpu.Bindings) void {
@@ -92,6 +133,30 @@ pub fn applyBindings(bindings: gpu.Bindings) void {
     // VSSetSamplers
     // PSSetSamplers
     unreachable;
+}
+
+pub fn applyViewport(x: i32, y: i32, w: i32, h: i32) void {
+    const rect = d3d11.VIEWPORT{
+        .TopLeftX = @floatFromInt(x),
+        .TopLeftY = @floatFromInt(y),
+        .Width = @floatFromInt(w),
+        .Height = @floatFromInt(h),
+        .MinDepth = 0,
+        .MaxDepth = 1,
+    };
+
+    context.RSSetViewports(1, @ptrCast(&rect));
+}
+
+pub fn applyScissor(x: i32, y: i32, w: i32, h: i32) void {
+    const rect = d3d11.RECT{
+        .left = x,
+        .top = y,
+        .right = x + w,
+        .bottom = y + h,
+    };
+
+    context.RSSetScissorRects(1, @ptrCast(&rect));
 }
 
 pub fn draw(base: u32, elements: u32, instances: u32) void {
@@ -425,6 +490,7 @@ pub const Pipeline = struct {
     depth: gpu.Compare,
     cull: gpu.Cull,
     blend: gpu.BlendMode,
+    format: gpu.VertexFormat,
 
     pub fn create(desc: gpu.PipelineDesc) Pipeline {
         return .{
@@ -449,4 +515,240 @@ fn texture_format(format: gpu.TextureFormat) dxgi.FORMAT {
         .rgba => .R8G8B8A8_UNORM,
         .depth_stencil => .D24_UNORM_S8_UINT,
     };
+}
+
+fn getRasterizer(cull: gpu.Cull) ?*d3d11.IRasterizerState {
+    for (rasterizer_cache.items) |it| {
+        if (it.cull == cull) {
+            return it.state;
+        }
+    }
+
+    const desc = d3d11.RASTERIZER_DESC{
+        .FillMode = .SOLID,
+        .CullMode = switch (cull) {
+            .none => .NONE,
+            .front => .FRONT,
+            .back => .BACK,
+        },
+        .FrontCounterClockwise = 1,
+        .DepthBias = 0,
+        .DepthBiasClamp = 0,
+        .SlopeScaledDepthBias = 0,
+        .DepthClipEnable = 0,
+        .ScissorEnable = 1,
+        .MultisampleEndable = 0,
+        .AntialiasedLineEnable = 0,
+    };
+
+    var result: *d3d11.IRasterizerState = undefined;
+    const hr = device.CreateRasterizerState(&desc, @ptrCast(&result));
+    std.debug.assert(hr == 0);
+
+    const entry = rasterizer_cache.addOne(allocator) catch unreachable;
+    entry.* = .{
+        .cull = cull,
+        .state = result,
+    };
+    return result;
+}
+
+fn getDepthstencil(depth: gpu.Compare) ?*d3d11.IDepthStencilState {
+    for (depthstencil_cache.items) |it| {
+        if (it.depth == depth) {
+            return it.state;
+        }
+    }
+
+    const desc = d3d11.DEPTH_STENCIL_DESC{
+        .DepthEnable = @intFromBool(depth != .none),
+        .DepthWriteMask = .ALL,
+        .DepthFunc = switch (depth) {
+            .none => .NEVER,
+            .always => unreachable,
+            .never => unreachable,
+            .less => unreachable,
+            .equal => unreachable,
+            .less_or_equal => unreachable,
+            .greater => unreachable,
+            .not_equal => unreachable,
+            .greater_or_equal => unreachable,
+        },
+    };
+
+    var result: *d3d11.IDepthStencilState = undefined;
+    const hr = device.CreateDepthStencilState(&desc, @ptrCast(&result));
+    std.debug.assert(hr == 0);
+
+    const entry = depthstencil_cache.addOne(allocator) catch unreachable;
+    entry.* = .{
+        .depth = depth,
+        .state = result,
+    };
+    return result;
+}
+
+fn blend_op(op: gpu.BlendOp) d3d11.BLEND_OP {
+    return switch (op) {
+        .add => .ADD,
+        .subtract => .SUBTRACT,
+        .reverse_subtract => .REV_SUBTRACT,
+        .min => .MIN,
+        .max => .MAX,
+    };
+}
+
+fn blend_factor(factor: gpu.BlendFactor) d3d11.BLEND {
+    return switch (factor) {
+        .zero => .ZERO,
+        .one => .ONE,
+        .src_color => .SRC_COLOR,
+        .one_minus_src_color => .INV_SRC_COLOR,
+        .dst_color => .DEST_COLOR,
+        .one_minus_dst_color => .INV_DEST_COLOR,
+        .src_alpha => .SRC_ALPHA,
+        .one_minus_src_alpha => .INV_SRC_ALPHA,
+        .dst_alpha => .DEST_ALPHA,
+        .one_minus_dst_alpha => .INV_DEST_ALPHA,
+        .constant_color => .BLEND_FACTOR,
+        .one_minus_constant_color => .INV_BLEND_FACTOR,
+        .constant_alpha => .BLEND_FACTOR,
+        .one_minus_constant_alpha => .INV_BLEND_FACTOR,
+        .src_alpha_saturate => .SRC_ALPHA_SAT,
+        .src1_color => .SRC1_COLOR,
+        .one_minus_src1_color => .INV_SRC1_COLOR,
+        .src1_alpha => .SRC1_ALPHA,
+        .one_minus_src1_alpha => .INV_SRC1_ALPHA,
+    };
+}
+
+fn getBlend(blend: *const gpu.BlendMode) ?*d3d11.IBlendState {
+    for (blend_cache.items) |it| {
+        if (it.blend.eq(blend.*)) {
+            return it.state;
+        }
+    }
+
+    var desc = std.mem.zeroInit(d3d11.BLEND_DESC, .{
+        .AlphaToCoverageEnable = 0,
+        .IndependentBlendEnable = 0,
+    });
+
+    desc.RenderTarget[0].BlendEnable = @intFromBool(!(blend.color_src == .one and blend.color_dst == .zero and
+        blend.alpha_src == .one and blend.alpha_dst == .zero));
+
+    desc.RenderTarget[0].RenderTargetWriteMask = .{
+        .RED = blend.mask.red,
+        .GREEN = blend.mask.green,
+        .BLUE = blend.mask.blue,
+        .ALPHA = blend.mask.alpha,
+    };
+
+    if (desc.RenderTarget[0].BlendEnable != 0) {
+        desc.RenderTarget[0].BlendOp = blend_op(blend.color_op);
+        desc.RenderTarget[0].SrcBlend = blend_factor(blend.color_src);
+        desc.RenderTarget[0].DestBlend = blend_factor(blend.color_dst);
+
+        desc.RenderTarget[0].BlendOpAlpha = blend_op(blend.alpha_op);
+        desc.RenderTarget[0].SrcBlendAlpha = blend_factor(blend.alpha_src);
+        desc.RenderTarget[0].DestBlendAlpha = blend_factor(blend.alpha_dst);
+    }
+
+    for (1..8) |i| {
+        desc.RenderTarget[i] = desc.RenderTarget[0];
+    }
+
+    var blend_state: *d3d11.IBlendState = undefined;
+    const hr = device.CreateBlendState(&desc, @ptrCast(&blend_state));
+    std.debug.assert(hr == 0);
+
+    const entry = blend_cache.addOne(allocator) catch unreachable;
+    entry.* = .{
+        .blend = blend.*,
+        .state = blend_state,
+    };
+    return blend_state;
+}
+
+inline fn asF32(x: anytype) f32 {
+    return @floatFromInt(x);
+}
+
+fn getLayout(shader: *Shader, format: *const gpu.VertexFormat) ?*d3d11.IInputLayout {
+    for (layout_cache.items) |it| {
+        if (it.shader_hash == shader.hash and it.format.stride == format.stride and it.format.attributes.len == format.attributes.len) {
+            var same_format = true;
+            for (0..format.attributes.len) |n| {
+                if (it.format.attributes.buffer[n].index != format.attributes.buffer[n].index or
+                    it.format.attributes.buffer[n].type != format.attributes.buffer[n].type or
+                    it.format.attributes.buffer[n].normalized != format.attributes.buffer[n].normalized)
+                {
+                    same_format = false;
+                    break;
+                }
+            }
+
+            if (same_format) return it.layout;
+        }
+    }
+
+    var descs = std.BoundedArray(d3d11.INPUT_ELEMENT_DESC, 16){};
+    for (0..shader.attributes.len) |i| {
+        const it = descs.addOne() catch unreachable;
+        it.SemanticName = shader.attributes.buffer[i].name.ptr;
+        it.SemanticIndex = shader.attributes.buffer[i].index;
+
+        if (!format.attributes.buffer[i].normalized) {
+            it.Format = switch (format.attributes.buffer[i].type) {
+                .none => unreachable,
+                .float => .R32_FLOAT,
+                .float2 => .R32G32_FLOAT,
+                .float3 => .R32G32B32_FLOAT,
+                .float4 => .R32G32B32A32_FLOAT,
+                .byte4 => .R8G8B8A8_SINT,
+                .ubyte4 => .R8G8B8A8_UINT,
+                .short2 => .R16G16_SINT,
+                .ushort2 => .R16G16_UINT,
+                .short4 => .R16G16B16A16_SINT,
+                .ushort4 => .R16G16B16A16_UINT,
+            };
+        } else {
+            it.Format = switch (format.attributes.buffer[i].type) {
+                .none => unreachable,
+                .float => .R32_FLOAT,
+                .float2 => .R32G32_FLOAT,
+                .float3 => .R32G32B32_FLOAT,
+                .float4 => .R32G32B32A32_FLOAT,
+                .byte4 => .R8G8B8A8_SNORM,
+                .ubyte4 => .R8G8B8A8_UNORM,
+                .short2 => .R16G16_SNORM,
+                .ushort2 => .R16G16_UNORM,
+                .short4 => .R16G16B16A16_SNORM,
+                .ushort4 => .R16G16B16A16_UNORM,
+            };
+        }
+
+        it.InputSlot = 0;
+        it.AlignedByteOffset = if (i == 0) 0 else d3d11.APPEND_ALIGNED_ELEMENT;
+        it.InputSlotClass = .INPUT_PER_VERTEX_DATA;
+        it.InstanceDataStepRate = 0;
+    }
+
+    var layout: *d3d11.IInputLayout = undefined;
+    const hr = device.CreateInputLayout(
+        &descs.buffer,
+        @intCast(descs.len),
+        shader.vertex_blob.GetBufferPointer(),
+        shader.vertex_blob.GetBufferSize(),
+        @ptrCast(&layout),
+    );
+    std.debug.assert(hr == 0);
+
+    const entry = layout_cache.addOne(allocator) catch unreachable;
+    entry.* = .{
+        .shader_hash = shader.hash,
+        .format = format.*,
+        .layout = layout,
+    };
+    return layout;
 }
