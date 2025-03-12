@@ -159,3 +159,7 @@ pub fn clear(params: gpu.ClearParams) void {
 pub fn commit() void {
     impl.commit();
 }
+
+pub fn framebufferSize() math.Point {
+    return impl.framebufferSize();
+}

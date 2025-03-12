@@ -67,7 +67,7 @@ pub fn Application(comptime T: type) type {
             // input + poll the platform once
 
             // startup
-            try self.userdata.init(self);
+            try self.userdata.init();
 
             return self;
         }
@@ -84,12 +84,17 @@ pub fn Application(comptime T: type) type {
             // TODO shutdown
         }
 
+        pub fn start(config: Config) !void {
+            const self = try create(config);
+            self.run();
+        }
+
         fn step(self: *Self) void {
             self.impl.step();
             if (std.meta.hasMethod(T, "update")) self.userdata.update();
 
             gpu.resizeFramebuffer(self.getSize());
-            self.userdata.render(self);
+            self.userdata.render();
             gpu.commit();
         }
 

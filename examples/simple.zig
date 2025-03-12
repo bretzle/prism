@@ -9,7 +9,7 @@ const App = prism.Application(struct {
     batch: prism.Batch,
     tex: gpu.TextureId,
 
-    pub fn init(self: *Self, _: *App) !void {
+    pub fn init(self: *Self) !void {
         self.batch = try .create(prism.allocator);
         self.tex = gpu.createTexture(.{ .width = 25, .height = 25, .format = .rgba });
 
@@ -21,7 +21,7 @@ const App = prism.Application(struct {
         gpu.updateTexturePart(self.tex, 1, 1, 23, 23, &buf);
     }
 
-    pub fn render(self: *Self, _: *App) void {
+    pub fn render(self: *Self) void {
         const center = math.Vec2{ .x = 100, .y = 100 };
         const transform = math.Mat3x2.transform(center, .zero, .one, 0);
 
@@ -30,12 +30,11 @@ const App = prism.Application(struct {
         self.batch.drawTexture(self.tex, .{ .x = 64, .y = -32 });
         _ = self.batch.popMatrix();
 
-        self.batch.render(.{ .x = 800, .y = 600 });
+        self.batch.render(gpu.framebufferSize());
         self.batch.clear();
     }
 });
 
 pub fn main() !void {
-    const app = try App.create(.{});
-    app.run();
+    try App.start(.{});
 }

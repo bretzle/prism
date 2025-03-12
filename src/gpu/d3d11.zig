@@ -241,6 +241,10 @@ pub fn commit() void {
     std.debug.assert(hr == 0);
 }
 
+pub fn framebufferSize() math.Point {
+    return drawable_size;
+}
+
 pub const Buffer = struct {
     raw: *d3d11.IBuffer,
     len: usize,
