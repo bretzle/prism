@@ -314,6 +314,12 @@ pub const WM_CLOSE = 0x0010;
 pub const WM_QUIT = 0x0012;
 pub const WM_GETMINMAXINFO = 0x0024;
 
+pub const SIZE_MAXHIDE = 4;
+pub const SIZE_MAXIMIZED = 2;
+pub const SIZE_MAXSHOW = 3;
+pub const SIZE_MINIMIZED = 1;
+pub const SIZE_RESTORED = 0;
+
 pub extern "kernel32" fn GetModuleHandleA(lpModuleName: ?LPCSTR) callconv(WINAPI) ?HMODULE;
 
 pub extern "kernel32" fn LoadLibraryA(lpLibFileName: LPCSTR) callconv(WINAPI) ?HMODULE;

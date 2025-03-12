@@ -24,11 +24,14 @@ pub const Flags = packed struct {
 };
 
 pub const Config = struct {
-    name: [:0]const u8 = "prism",
-    size: math.Point = .{ .x = 800, .y = 600 },
-    target_framerate: u32 = 60,
-    audio_frequency: u32 = 44100,
-    flags: Flags = .defaults,
+    window: struct {
+        name: [:0]const u8 = "prism",
+        size: math.Point = .{ .x = 800, .y = 600 },
+        resizable: bool = true,
+    } = .{},
+    video: struct {
+        vsync: bool = true,
+    } = .{},
 };
 
 pub fn Application(comptime T: type) type {
@@ -40,6 +43,7 @@ pub fn Application(comptime T: type) type {
 
         is_running: bool,
         is_exiting: bool,
+        is_minimized: bool,
 
         impl: platform.Application(Self),
 
@@ -52,6 +56,7 @@ pub fn Application(comptime T: type) type {
                 .userdata = undefined,
                 .is_running = true,
                 .is_exiting = false,
+                .is_minimized = false,
                 .impl = undefined,
             };
 
@@ -92,11 +97,14 @@ pub fn Application(comptime T: type) type {
 
         fn step(self: *Self) void {
             self.impl.step();
-            if (std.meta.hasMethod(T, "update")) self.userdata.update();
 
-            gpu.resizeFramebuffer(self.getSize());
-            self.userdata.render();
-            gpu.commit();
+            if (!self.is_minimized) {
+                if (std.meta.hasMethod(T, "update")) self.userdata.update();
+
+                gpu.resizeFramebuffer(self.getSize());
+                self.userdata.render();
+                gpu.commit();
+            }
         }
 
         pub fn exit(self: *Self) void {

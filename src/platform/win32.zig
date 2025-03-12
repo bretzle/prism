@@ -24,12 +24,13 @@ pub fn Application(comptime ParentApp: type) type {
 
             if (w32.RegisterClassExA(&class) == 0) unreachable;
 
-            const style = w32.WS_OVERLAPPEDWINDOW;
-            const size = clientToWindow(parent.config.size, style);
+            var style: u32 = w32.WS_OVERLAPPEDWINDOW;
+            if (!parent.config.window.resizable) style ^= w32.WS_THICKFRAME | w32.WS_MAXIMIZEBOX;
+            const size = clientToWindow(parent.config.window.size, style);
             const hwnd = w32.CreateWindowExA(
                 0,
                 class_name,
-                parent.config.name,
+                parent.config.window.name,
                 style,
                 w32.CW_USEDEFAULT,
                 w32.CW_USEDEFAULT,
@@ -89,6 +90,7 @@ pub fn Application(comptime ParentApp: type) type {
                         return w32.DefWindowProcA(hwnd, msg, wparam, lparam);
                     }
                 },
+                w32.WM_SIZE => parent.is_minimized = wparam == w32.SIZE_MINIMIZED,
                 else => return w32.DefWindowProcA(hwnd, msg, wparam, lparam),
             }
 
