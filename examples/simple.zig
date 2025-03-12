@@ -9,8 +9,8 @@ const App = prism.Application(struct {
     batch: prism.Batch,
     tex: gpu.TextureId,
 
-    pub fn init(self: *Self, app: *App) !void {
-        self.batch = try .create(app.allocator);
+    pub fn init(self: *Self, _: *App) !void {
+        self.batch = try .create(prism.allocator);
         self.tex = gpu.createTexture(.{ .width = 25, .height = 25, .format = .rgba });
 
         var buf: [25 * 25 * 4]u8 = undefined;
@@ -36,8 +36,6 @@ const App = prism.Application(struct {
 });
 
 pub fn main() !void {
-    const allocator = std.heap.page_allocator;
-
-    const app = try App.create(allocator, .{});
+    const app = try App.create(.{});
     app.run();
 }

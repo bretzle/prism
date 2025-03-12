@@ -14,7 +14,7 @@ const conv = @import("d3d11_conv.zig");
 const Color = @import("../Color.zig").Color;
 const List = std.ArrayListUnmanaged;
 
-const allocator = gpu.allocator;
+const allocator = @import("../prism.zig").allocator;
 
 // render state
 pub var device: *d3d11.IDevice = undefined;

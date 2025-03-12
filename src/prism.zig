@@ -1,10 +1,16 @@
 const std = @import("std");
+const root = @import("root");
 const platform = @import("platform/win32.zig");
 
 pub const gpu = @import("gpu.zig");
 pub const math = @import("math.zig");
 pub const Color = @import("Color.zig").Color;
 pub const Batch = @import("Batch.zig");
+
+pub const allocator: std.mem.Allocator = if (@hasDecl(root, "allocator"))
+    root.allocator
+else
+    std.heap.smp_allocator;
 
 pub const Flags = packed struct {
     // fixed_timestamp: bool = false,
@@ -30,14 +36,13 @@ pub fn Application(comptime T: type) type {
 
         config: Config,
         userdata: T = undefined,
-        allocator: std.mem.Allocator,
 
         is_running: bool,
         is_exiting: bool,
 
         impl: platform.Application(Self),
 
-        pub fn create(allocator: std.mem.Allocator, config: Config) !*Self {
+        pub fn create(config: Config) !*Self {
             const self = try allocator.create(Self);
             errdefer allocator.destroy(self);
 
@@ -46,8 +51,6 @@ pub fn Application(comptime T: type) type {
                 .userdata = undefined,
                 .is_running = true,
                 .is_exiting = false,
-                .allocator = allocator,
-
                 .impl = undefined,
             };
 

@@ -3,6 +3,7 @@ const math = @import("math.zig");
 const gpu = @import("gpu.zig");
 const Color = @import("Color.zig").Color;
 const Vec2 = math.Vec2;
+const List = std.ArrayListUnmanaged;
 
 pub const ColorMode = enum { normal, wash };
 
@@ -64,19 +65,20 @@ matrix: math.Mat3x2 = .identity,
 color_mode: ColorMode = .normal,
 tex_mult: u8 = 255,
 tex_wash: u8 = 0,
-batch: DrawBatch,
-vertices: std.ArrayList(Vertex),
-indices: std.ArrayList(u32),
-matrix_stack: std.ArrayList(math.Mat3x2),
-scissor_stack: std.ArrayList(math.Rect),
-blend_stack: std.ArrayList(gpu.BlendMode),
-color_mode_stack: std.ArrayList(ColorMode),
-layer_stack: std.ArrayList(u32),
-batches: std.ArrayList(DrawBatch),
+batch: DrawBatch = .{},
+vertices: List(Vertex) = .empty,
+indices: List(u32) = .empty,
+matrix_stack: List(math.Mat3x2) = .empty,
+scissor_stack: List(math.Rect) = .empty,
+blend_stack: List(gpu.BlendMode) = .empty,
+color_mode_stack: List(ColorMode) = .empty,
+layer_stack: List(u32) = .empty,
+batches: List(DrawBatch) = .empty,
 batch_insert: u32 = 0,
 
 idx_ptr: [*]u32 = &[0]u32{},
 vtx_ptr: [*]Vertex = &[0]Vertex{},
+allocator: std.mem.Allocator,
 
 pub fn create(allocator: std.mem.Allocator) !Self {
     const shader = try gpu.createShader(batch_shader_data);
@@ -98,21 +100,12 @@ pub fn create(allocator: std.mem.Allocator) !Self {
         .bindings = bindings,
         .pipeline = pipeline,
         .shader = shader,
-
-        .batch = .{},
-        .vertices = .init(allocator),
-        .indices = .init(allocator),
-        .matrix_stack = .init(allocator),
-        .scissor_stack = .init(allocator),
-        .blend_stack = .init(allocator),
-        .color_mode_stack = .init(allocator),
-        .layer_stack = .init(allocator),
-        .batches = .init(allocator),
+        .allocator = allocator,
     };
 }
 
 pub fn pushMatrix(self: *Self, mat: math.Mat3x2) void {
-    self.matrix_stack.append(mat) catch unreachable;
+    self.matrix_stack.append(self.allocator, mat) catch unreachable;
     self.matrix = mat.mul(self.matrix);
 }
 
@@ -186,8 +179,8 @@ fn reserve(self: *Self, idx_count: u32, vtx_count: u32) void {
     std.debug.assert(vtx_count % 2 == 0);
 
     self.batch.elements += @divExact(idx_count, 3);
-    self.idx_ptr = (self.indices.addManyAsSlice(idx_count) catch unreachable).ptr;
-    self.vtx_ptr = (self.vertices.addManyAsSlice(vtx_count) catch unreachable).ptr;
+    self.idx_ptr = (self.indices.addManyAsSlice(self.allocator, idx_count) catch unreachable).ptr;
+    self.vtx_ptr = (self.vertices.addManyAsSlice(self.allocator, vtx_count) catch unreachable).ptr;
 }
 
 fn pushRect(self: *Self, a: Vec2, c: Vec2, col: Color) void {

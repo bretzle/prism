@@ -7,7 +7,7 @@ const conv = @import("d3d11_conv.zig");
 
 const List = std.ArrayListUnmanaged;
 
-const allocator = gpu.allocator;
+const allocator = @import("../prism.zig").allocator;
 
 const CachedInputLayout = struct {
     shader_hash: u32,

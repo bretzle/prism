@@ -6,7 +6,7 @@ const gpu = @This();
 
 pub usingnamespace @import("gpu/types.zig");
 
-pub const allocator = std.heap.page_allocator; // FIXME
+const allocator = @import("prism.zig").allocator;
 
 const Buffer = impl.Buffer;
 const Shader = impl.Shader;
