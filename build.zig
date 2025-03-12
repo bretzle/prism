@@ -4,16 +4,32 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const prism = b.createModule(.{
-        .root_source_file = b.path("src/prism.zig"),
+    const pool_mod = b.createModule(.{
+        .root_source_file = b.path("deps/pool.zig"),
         .target = target,
         .optimize = optimize,
     });
 
+    const w32_mod = b.createModule(.{
+        .root_source_file = b.path("deps/w32/windows.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
+    const prism = b.createModule(.{
+        .root_source_file = b.path("src/prism.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "w32", .module = w32_mod },
+            .{ .name = "pool", .module = pool_mod },
+        },
+    });
+
     const exe = b.addExecutable(.{
-        .name = "example",
+        .name = "example - simple",
         .root_module = b.createModule(.{
-            .root_source_file = b.path("main.zig"),
+            .root_source_file = b.path("examples/simple.zig"),
             .target = target,
             .optimize = optimize,
             .imports = &.{

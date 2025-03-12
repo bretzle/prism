@@ -1,5 +1,5 @@
 const std = @import("std");
-const w32 = @import("../zwindows/windows.zig");
+const w32 = @import("w32");
 const prism = @import("../prism.zig");
 const math = @import("../math.zig");
 

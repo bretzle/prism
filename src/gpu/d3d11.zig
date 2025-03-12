@@ -1,11 +1,11 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const math = @import("../math.zig");
-const dxgi = @import("../zwindows/dxgi.zig");
-const d3d11 = @import("../zwindows/d3d11.zig");
-const d3dcommon = @import("../zwindows/d3dcommon.zig");
-const d3dcompiler = @import("../zwindows/d3dcompiler.zig");
-const w32 = @import("../zwindows/windows.zig");
+const w32 = @import("w32");
+const dxgi = w32.dxgi;
+const d3d11 = w32.d3d11;
+const d3dcommon = w32.d3dcommon;
+const d3dcompiler = w32.d3dcompiler;
 const gpu = @import("../gpu.zig");
 
 const cache = @import("d3d11_cache.zig");

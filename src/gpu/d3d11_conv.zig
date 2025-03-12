@@ -1,6 +1,7 @@
 const std = @import("std");
-const dxgi = @import("../zwindows/dxgi.zig");
-const d3d11 = @import("../zwindows/d3d11.zig");
+const w32 = @import("w32");
+const dxgi = w32.dxgi;
+const d3d11 = w32.d3d11;
 const gpu = @import("../gpu.zig");
 
 pub fn texture_format(format: gpu.TextureFormat) dxgi.FORMAT {

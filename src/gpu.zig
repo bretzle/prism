@@ -1,7 +1,7 @@
 const std = @import("std");
 const math = @import("math.zig");
 const impl = @import("gpu/d3d11.zig");
-const Pool = @import("gpu/pool.zig").Pool;
+const Pool = @import("pool").Pool;
 const gpu = @This();
 
 pub usingnamespace @import("gpu/types.zig");

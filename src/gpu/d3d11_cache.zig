@@ -1,6 +1,6 @@
 const std = @import("std");
 const gpu = @import("../gpu.zig");
-const d3d11 = @import("../zwindows/d3d11.zig");
+const d3d11 = @import("w32").d3d11;
 
 const impl = @import("d3d11.zig");
 const conv = @import("d3d11_conv.zig");

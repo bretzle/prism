@@ -2,6 +2,11 @@
 
 const std = @import("std");
 
+pub const d3d11 = @import("d3d11.zig");
+pub const d3dcommon = @import("d3dcommon.zig");
+pub const d3dcompiler = @import("d3dcompiler.zig");
+pub const dxgi = @import("dxgi.zig");
+
 pub usingnamespace std.os.windows;
 
 const WINAPI = std.os.windows.WINAPI;
