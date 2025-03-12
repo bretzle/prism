@@ -3,6 +3,7 @@ const root = @import("root");
 const platform = @import("platform/win32.zig");
 
 pub const gpu = @import("gpu.zig");
+pub const file = @import("file.zig");
 pub const math = @import("math.zig");
 pub const Color = @import("Color.zig").Color;
 pub const Batch = @import("Batch.zig");
@@ -112,4 +113,5 @@ pub fn Application(comptime T: type) type {
 
 test {
     std.testing.refAllDeclsRecursive(gpu);
+    std.testing.refAllDeclsRecursive(file);
 }
