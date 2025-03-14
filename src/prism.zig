@@ -5,6 +5,7 @@ const platform = @import("platform/win32.zig");
 pub const gpu = @import("gpu.zig");
 pub const file = @import("file.zig");
 pub const math = @import("math.zig");
+pub const input = @import("input.zig");
 pub const Color = @import("Color.zig").Color;
 pub const Batch = @import("Batch.zig");
 
@@ -46,6 +47,7 @@ pub fn Application(comptime T: type) type {
         is_minimized: bool,
 
         impl: platform.Application(Self),
+        input: input.Input = .{},
 
         pub fn create(config: Config) !*Self {
             const self = try allocator.create(Self);
@@ -99,12 +101,14 @@ pub fn Application(comptime T: type) type {
             self.impl.step();
 
             if (!self.is_minimized) {
-                if (std.meta.hasMethod(T, "update")) self.userdata.update();
+                if (std.meta.hasMethod(T, "update")) self.userdata.update(self);
 
                 gpu.resizeFramebuffer(self.getSize());
                 self.userdata.render();
                 gpu.commit();
             }
+
+            self.input.step();
         }
 
         pub fn exit(self: *Self) void {

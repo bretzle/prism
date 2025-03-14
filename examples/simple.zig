@@ -21,6 +21,12 @@ const App = prism.Application(struct {
         gpu.updateTexturePart(self.tex, 1, 1, 23, 23, &buf);
     }
 
+    pub fn update(_: *Self, app: *App) void {
+        if (app.input.buttonDown(.left)) {
+            std.debug.print("mouse pos: {any}\n", .{app.input.mouse()});
+        }
+    }
+
     pub fn render(self: *Self) void {
         const center = math.Vec2{ .x = 100, .y = 100 };
         const transform = math.Mat3x2.transform(center, .zero, .one, 0);

@@ -2,6 +2,7 @@ const std = @import("std");
 const w32 = @import("w32");
 const prism = @import("../prism.zig");
 const math = @import("../math.zig");
+const input = @import("../input.zig");
 
 pub fn Application(comptime ParentApp: type) type {
     return struct {
@@ -91,6 +92,23 @@ pub fn Application(comptime ParentApp: type) type {
                     }
                 },
                 w32.WM_SIZE => parent.is_minimized = wparam == w32.SIZE_MINIMIZED,
+                w32.WM_LBUTTONDOWN, w32.WM_LBUTTONUP, w32.WM_RBUTTONDOWN, w32.WM_RBUTTONUP, w32.WM_MBUTTONDOWN, w32.WM_MBUTTONUP => {
+                    const button: input.MouseButton = switch (msg) {
+                        w32.WM_LBUTTONDOWN, w32.WM_LBUTTONUP => .left,
+                        w32.WM_RBUTTONDOWN, w32.WM_RBUTTONUP => .right,
+                        w32.WM_MBUTTONDOWN, w32.WM_MBUTTONUP => .middle,
+                        else => unreachable,
+                    };
+
+                    switch (msg) {
+                        w32.WM_LBUTTONDOWN, w32.WM_RBUTTONDOWN, w32.WM_MBUTTONDOWN => parent.input.state.mouse.onPress(button),
+                        w32.WM_LBUTTONUP, w32.WM_RBUTTONUP, w32.WM_MBUTTONUP => parent.input.state.mouse.onRelease(button),
+                        else => unreachable,
+                    }
+                },
+                w32.WM_MOUSEMOVE => {
+                    parent.input.state.mouse.onMove(@floatFromInt(w32.LOWORD(lparam)), @floatFromInt(w32.HIWORD(lparam)));
+                },
                 else => return w32.DefWindowProcA(hwnd, msg, wparam, lparam),
             }
 

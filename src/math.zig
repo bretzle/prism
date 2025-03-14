@@ -12,6 +12,8 @@ pub const Point = extern struct {
     x: i32,
     y: i32,
 
+    pub const zero = Point{ .x = 0, .y = 0 };
+
     pub inline fn eql(a: Point, b: Point) bool {
         return std.meta.eql(a, b);
     }
