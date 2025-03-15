@@ -6,7 +6,7 @@ const gpu = prism.gpu;
 const App = prism.Application(struct {
     const Self = @This();
 
-    batch: prism.Batch,
+    batch: gpu.Batch,
     tex: gpu.TextureId,
 
     pub fn init(self: *Self) !void {

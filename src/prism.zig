@@ -7,22 +7,11 @@ pub const file = @import("file.zig");
 pub const math = @import("math.zig");
 pub const input = @import("input.zig");
 pub const Color = @import("Color.zig").Color;
-pub const Batch = @import("Batch.zig");
 
 pub const allocator: std.mem.Allocator = if (@hasDecl(root, "allocator"))
     root.allocator
 else
     std.heap.smp_allocator;
-
-pub const Flags = packed struct {
-    // fixed_timestamp: bool = false,
-    // vsync: bool = false,
-    // fullscreen: bool = false,
-    // resizable: bool = false,
-    // audio_enabled: bool = false,
-
-    pub const defaults = Flags{};
-};
 
 pub const Config = struct {
     window: struct {

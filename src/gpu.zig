@@ -4,6 +4,7 @@ const impl = @import("gpu/d3d11.zig");
 const Pool = @import("pool").Pool;
 const gpu = @This();
 
+pub const Batch = @import("gpu/Batch.zig");
 pub usingnamespace @import("gpu/types.zig");
 
 const allocator = @import("prism.zig").allocator;

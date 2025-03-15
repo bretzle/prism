@@ -1,11 +1,12 @@
 const std = @import("std");
-const math = @import("math.zig");
-const gpu = @import("gpu.zig");
-const Color = @import("Color.zig").Color;
+const math = @import("../math.zig");
+const gpu = @import("../gpu.zig");
+const Color = @import("../Color.zig").Color;
+
 const Vec2 = math.Vec2;
 const List = std.ArrayListUnmanaged;
 
-pub const ColorMode = enum { normal, wash };
+// pub const ColorMode = enum { normal, wash };
 
 pub const Vertex = extern struct {
     pos: Vec2,
@@ -62,19 +63,18 @@ pipeline: gpu.PipelineId,
 shader: gpu.ShaderId,
 
 matrix: math.Mat3x2 = .identity,
-color_mode: ColorMode = .normal,
+// color_mode: ColorMode = .normal,
 tex_mult: u8 = 255,
 tex_wash: u8 = 0,
-batch: DrawBatch = .{},
 vertices: List(Vertex) = .empty,
 indices: List(u32) = .empty,
 matrix_stack: List(math.Mat3x2) = .empty,
-scissor_stack: List(math.Rect) = .empty,
-blend_stack: List(gpu.BlendMode) = .empty,
-color_mode_stack: List(ColorMode) = .empty,
-layer_stack: List(u32) = .empty,
-batches: List(DrawBatch) = .empty,
-batch_insert: u32 = 0,
+// scissor_stack: List(math.Rect) = .empty,
+// blend_stack: List(gpu.BlendMode) = .empty,
+// color_mode_stack: List(ColorMode) = .empty,
+// layer_stack: List(u32) = .empty,
+batches: List(DrawBatch),
+batch: *DrawBatch,
 
 idx_ptr: [*]u32 = &[0]u32{},
 vtx_ptr: [*]Vertex = &[0]Vertex{},
@@ -96,10 +96,16 @@ pub fn create(allocator: std.mem.Allocator) !Self {
         .format = format,
     });
 
+    var batches = try List(DrawBatch).initCapacity(allocator, 1);
+    const batch = batches.addOneAssumeCapacity();
+    batch.* = .{};
+
     return .{
         .bindings = bindings,
         .pipeline = pipeline,
         .shader = shader,
+        .batches = batches,
+        .batch = batch,
         .allocator = allocator,
     };
 }
@@ -124,45 +130,42 @@ pub fn render(self: *Self, size: math.Point) void {
     gpu.updateBuffer(self.bindings.index_buffer, std.mem.sliceAsBytes(self.indices.items));
     gpu.updateBuffer(self.bindings.vertex_buffer, std.mem.sliceAsBytes(self.vertices.items));
 
-    for (0..self.batches.items.len) |i| {
-        if (self.batch_insert == i and self.batch.elements > 0) {
-            self.renderSingleBatch(&self.batch, &matrix);
-        }
-
-        self.renderSingleBatch(&self.batches.items[i], &matrix);
-    }
-
-    if (self.batch_insert == self.batches.items.len and self.batch.elements > 0) {
-        self.renderSingleBatch(&self.batch, &matrix);
-    }
-}
-
-fn renderSingleBatch(self: *Self, b: *const DrawBatch, matrix: *const math.Mat4x4) void {
-    self.bindings.textures.buffer[0] = b.texture;
-    self.bindings.samplers.buffer[0] = b.sampler;
-
-    self.bindings.textures.len = 1;
-    self.bindings.samplers.len = 1;
-
+    // start pass
     gpu.beginPass(.backbuffer, .default);
-    gpu.applyPipeline(self.pipeline);
-    gpu.applyBindings(self.bindings);
-    gpu.applyUniforms(self.shader, .vertex, matrix.asArray());
-    gpu.draw(b.offset * 3, b.elements * 3, 0);
-    gpu.endPass();
+    defer gpu.endPass();
+
+    for (self.batches.items) |*batch| {
+        self.bindings.textures.buffer[0] = batch.texture;
+        self.bindings.samplers.buffer[0] = batch.sampler;
+
+        self.bindings.textures.len = 1;
+        self.bindings.samplers.len = 1;
+
+        gpu.applyPipeline(self.pipeline);
+        gpu.applyBindings(self.bindings);
+        gpu.applyUniforms(self.shader, .vertex, matrix.asArray());
+        gpu.draw(batch.offset * 3, batch.elements * 3, 0);
+    }
 }
 
 pub fn clear(self: *Self) void {
     self.matrix = .identity;
     self.vertices.items.len = 0;
     self.indices.items.len = 0;
-    self.batch = .{};
+    self.batches.items.len = 1;
+    self.batch = &self.batches.items[0];
+    self.batch.* = .{};
     self.matrix_stack.items.len = 0;
 }
 
 pub fn drawRect(self: *Self, rect: math.Rect, color: Color) void {
     self.reserve(6, 4);
     self.pushRect(.{ .x = rect.x, .y = rect.y }, .{ .x = rect.x + rect.w, .y = rect.y + rect.h }, color);
+}
+
+pub fn drawTri(self: *Self, p0: Vec2, p1: Vec2, p2: Vec2, color: Color) void {
+    self.reserve(3, 3);
+    self.pushTri(p0, p1, p2, color);
 }
 
 pub fn drawTexture(self: *Self, tex: gpu.TextureId, pos: Vec2) void {
@@ -227,6 +230,22 @@ fn pushRectUV(self: *Self, a: Vec2, c: Vec2, col: Color) void {
     self.vtx_ptr[1] = .{ .pos = self.matrix.apply(b), .mult = 0xFF, .fill = 0, .tex = .{ .x = 1, .y = 0 }, .col = col };
     self.vtx_ptr[2] = .{ .pos = self.matrix.apply(c), .mult = 0xFF, .fill = 0, .tex = .{ .x = 1, .y = 1 }, .col = col };
     self.vtx_ptr[3] = .{ .pos = self.matrix.apply(d), .mult = 0xFF, .fill = 0, .tex = .{ .x = 0, .y = 1 }, .col = col };
+}
+
+fn pushTri(self: *Self, a: Vec2, b: Vec2, c: Vec2, col: Color) void {
+    defer {
+        self.idx_ptr += 3;
+        self.vtx_ptr += 3;
+    }
+
+    const idx: u32 = @intCast(self.vertices.items.len - 3);
+    self.idx_ptr[0] = idx;
+    self.idx_ptr[1] = idx + 1;
+    self.idx_ptr[2] = idx + 2;
+
+    self.vtx_ptr[0] = .{ .pos = self.matrix.apply(a), .tex = .zero, .col = col };
+    self.vtx_ptr[1] = .{ .pos = self.matrix.apply(b), .tex = .zero, .col = col };
+    self.vtx_ptr[2] = .{ .pos = self.matrix.apply(c), .tex = .zero, .col = col };
 }
 
 fn setTexture(self: *Self, tex: gpu.TextureId) void {
