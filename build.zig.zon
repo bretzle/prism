@@ -9,6 +9,7 @@
 
     .paths = .{
         "src",
+        "deps",
         "build.zig",
         "build.zig.zon",
     },
