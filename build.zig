@@ -4,19 +4,19 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const pool_mod = b.createModule(.{
+    const pool_mod = b.addModule("pool", .{
         .root_source_file = b.path("deps/pool.zig"),
         .target = target,
         .optimize = optimize,
     });
 
-    const w32_mod = b.createModule(.{
+    const w32_mod = b.addModule("w32", .{
         .root_source_file = b.path("deps/w32/windows.zig"),
         .target = target,
         .optimize = optimize,
     });
 
-    const prism = b.createModule(.{
+    const prism = b.addModule("prism", .{
         .root_source_file = b.path("src/prism.zig"),
         .target = target,
         .optimize = optimize,
