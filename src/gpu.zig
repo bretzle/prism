@@ -1,7 +1,13 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const math = @import("math.zig");
-const impl = @import("gpu/d3d11.zig");
 const Pool = @import("pool").Pool;
+
+const impl = switch (builtin.os.tag) {
+    .windows => @import("gpu/d3d11.zig"),
+    else => unreachable,
+};
+
 const gpu = @This();
 
 pub const Batch = @import("gpu/Batch.zig");
@@ -27,13 +33,13 @@ pub const TextureId = enum(u32) { invalid, _ };
 pub const PassId = enum(u32) { backbuffer, _ };
 pub const PipelineId = enum(u32) { invalid, _ };
 
-pub fn init(size: math.Point, handle: *anyopaque) !void {
+pub fn init(size: math.Point, vsync: bool, handle: *anyopaque) !void {
     pools.buffers = try .init(allocator);
     pools.shaders = try .init(allocator);
     pools.textures = try .init(allocator);
     pools.pipelines = try .init(allocator);
 
-    try impl.init(size, handle);
+    try impl.init(size, vsync, handle);
 }
 
 pub fn resizeFramebuffer(size: math.Point) void {

@@ -23,9 +23,11 @@ var swap_chain: *dxgi.ISwapChain = undefined;
 var backbuffer_view: ?*d3d11.IRenderTargetView = null;
 var drawable_size: math.Point = undefined;
 var last_window_size: math.Point = undefined;
+var sync_interval: u32 = undefined;
 
-pub fn init(size: math.Point, handle: *anyopaque) !void {
+pub fn init(size: math.Point, vsync: bool, handle: *anyopaque) !void {
     last_window_size = size;
+    sync_interval = @intFromBool(vsync);
 
     const desc = std.mem.zeroInit(dxgi.SWAP_CHAIN_DESC, .{
         .BufferDesc = .{
@@ -237,7 +239,7 @@ pub fn clear(params: gpu.ClearParams) void {
 }
 
 pub fn commit() void {
-    const hr = swap_chain.Present(1, .{});
+    const hr = swap_chain.Present(sync_interval, .{});
     std.debug.assert(hr == 0);
 }
 

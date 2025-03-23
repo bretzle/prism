@@ -1,6 +1,11 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const root = @import("root");
-const platform = @import("platform/win32.zig");
+
+const platform = switch (builtin.os.tag) {
+    .windows => @import("platform/win32.zig"),
+    else => unreachable,
+};
 
 pub const gpu = @import("gpu.zig");
 pub const file = @import("file.zig");
@@ -13,6 +18,8 @@ pub const allocator: std.mem.Allocator = if (@hasDecl(root, "allocator"))
 else
     std.heap.smp_allocator;
 
+pub const log = std.log.scoped(.prism);
+
 pub const Config = struct {
     window: struct {
         name: [:0]const u8 = "prism",
@@ -20,7 +27,11 @@ pub const Config = struct {
         resizable: bool = true,
     } = .{},
     video: struct {
+        enable: bool = true,
         vsync: bool = true,
+    } = .{},
+    audio: struct {
+        enable: bool = true,
     } = .{},
 };
 
@@ -54,14 +65,11 @@ pub fn Application(comptime T: type) type {
             // initialize platform
             try self.impl.init();
 
-            // initialize audio
-
             // initialize graphics
-            try gpu.init(.{ .x = 800, .y = 600 }, self.impl.hwnd);
+            if (config.video.enable) try gpu.init(.{ .x = 800, .y = 600 }, config.video.vsync, self.impl.hwnd);
 
-            // apply any flags
-
-            // input + poll the platform once
+            // initialize audio
+            if (config.audio.enable) {} // TODO
 
             // startup
             try self.userdata.init();
@@ -78,7 +86,12 @@ pub fn Application(comptime T: type) type {
                 self.step();
             }
 
-            // TODO shutdown
+            // TODO
+            // if (std.meta.hasMethod(T, "cleanup")) self.userdata.cleanup();
+            // gpu.cleanup();
+            // self.impl.cleanup();
+            // allocator.destroy(self);
+            // self.* = undefined;
         }
 
         pub fn start(config: Config) !void {
