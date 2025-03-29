@@ -23,19 +23,28 @@ else
 
 pub const log = std.log.scoped(.prism);
 
+pub const Icon = struct {
+    width: u16,
+    height: u16,
+    pixels: []const u8,
+};
+
 pub const Config = struct {
-    window: struct {
-        name: [:0]const u8 = "prism",
-        size: math.Point = .{ .x = 800, .y = 600 },
-        resizable: bool = true,
-    } = .{},
-    video: struct {
-        enable: bool = true,
-        vsync: bool = true,
-    } = .{},
-    audio: struct {
-        enable: bool = true,
-    } = .{},
+    // window
+    title: [:0]const u8 = "prism",
+    size: math.Point = .{ .x = 800, .y = 600 },
+    resizable: bool = true,
+    fullscreen: bool = false,
+    enable_clipboard: bool = false,
+    enable_dragndrop: bool = false,
+    image: ?Icon = null,
+
+    // video
+    enable_gpu: bool = true,
+    vsync: bool = true,
+
+    // audio
+    enable_audio: bool = true,
 };
 
 pub fn Application(comptime T: type) type {
@@ -69,10 +78,10 @@ pub fn Application(comptime T: type) type {
             try self.impl.init();
 
             // initialize graphics
-            if (config.video.enable) try gpu.init(.{ .x = 800, .y = 600 }, config.video.vsync, self.impl.hwnd);
+            if (config.enable_gpu) try gpu.init(config.size, config.vsync, self.impl.hwnd);
 
             // initialize audio
-            if (config.audio.enable) {} // TODO
+            if (config.enable_audio) {} // TODO
 
             // startup
             try self.userdata.init();

@@ -344,7 +344,7 @@ pub const Shader = struct {
         const vertex_uniform_buffers = try reflect_uniforms(&uniform_list, vertex_blob, .vertex);
         const fragment_uniform_buffers = try reflect_uniforms(&uniform_list, fragment_blob, .fragment);
 
-        checkUniforms(uniform_list.items);
+        // checkUniforms(uniform_list.items);
 
         const vertex_uniform_values = try allocator.alloc(List(f32), vertex_uniform_buffers.len);
         const fragment_uniform_values = try allocator.alloc(List(f32), fragment_uniform_buffers.len);
@@ -391,18 +391,18 @@ pub const Shader = struct {
         return code_blob;
     }
 
-    fn checkUniforms(items: []const gpu.UniformInfo) void {
-        // combine uniforms that were in both lists
-        for (0..items.len) |i| {
-            for (i + 1..items.len) |j| {
-                if (std.mem.eql(u8, items[i].name, items[j].name)) {
-                    if (items[i].type == items[j].type) {
-                        unreachable;
-                    }
-                }
-            }
-        }
-    }
+    // fn checkUniforms(items: []const gpu.UniformInfo) void {
+    //     // combine uniforms that were in both lists
+    //     for (0..items.len) |i| {
+    //         for (i + 1..items.len) |j| {
+    //             if (std.mem.eql(u8, items[i].name, items[j].name)) {
+    //                 if (items[i].type == items[j].type) {
+    //                     unreachable;
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
 
     fn calcHash(attrs: []const gpu.ShaderDesc.HLSLAttribute) u32 {
         var hash: u32 = 5381;

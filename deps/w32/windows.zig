@@ -82,6 +82,8 @@ const SECURITY_ATTRIBUTES = std.os.windows.SECURITY_ATTRIBUTES;
 const RECT = std.os.windows.RECT;
 const POINT = std.os.windows.POINT;
 
+pub const HBITMAP = *opaque {};
+
 pub const E_FILE_NOT_FOUND = @as(HRESULT, @bitCast(@as(c_ulong, 0x80070002)));
 
 pub extern "ole32" fn CoInitializeEx(pvReserved: ?LPVOID, dwCoInit: DWORD) callconv(WINAPI) HRESULT;
@@ -270,6 +272,9 @@ pub extern "shell32" fn SHGetKnownFolderPath(
     ppszPath: *[*:0]WCHAR,
 ) callconv(WINAPI) HRESULT;
 
+pub const WS_EX_APPWINDOW = 0x00040000;
+pub const WS_EX_WINDOWEDGE = 0x00000100;
+
 pub const WS_BORDER = 0x00800000;
 pub const WS_OVERLAPPED = 0x00000000;
 pub const WS_SYSMENU = 0x00080000;
@@ -278,8 +283,7 @@ pub const WS_CAPTION = WS_BORDER | WS_DLGFRAME;
 pub const WS_MINIMIZEBOX = 0x00020000;
 pub const WS_MAXIMIZEBOX = 0x00010000;
 pub const WS_THICKFRAME = 0x00040000;
-pub const WS_OVERLAPPEDWINDOW = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME |
-    WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
+pub const WS_OVERLAPPEDWINDOW = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
 pub const WS_VISIBLE = 0x10000000;
 
 pub const WM_SETCURSOR = 0x0020;
@@ -599,6 +603,8 @@ pub const DWMWA_WINDOW_CORNER_PREFERENCE = 33;
 
 pub extern "dwmapi" fn DwmSetWindowAttribute(hwnd: ?HWND, dwAttribute: DWORD, pvAttribute: LPCVOID, cbAttribute: DWORD) callconv(WINAPI) HRESULT;
 
+pub const IDI_WINLOGO: LPCSTR = @ptrFromInt(32517);
+
 pub const IDC_ARROW: LPCSTR = @ptrFromInt(32512);
 pub const IDC_IBEAM: LPCSTR = @ptrFromInt(32513);
 pub const IDC_WAIT: LPCSTR = @ptrFromInt(32514);
@@ -621,3 +627,117 @@ pub const IDC_PERSON: LPCSTR = @ptrFromInt(32672);
 pub extern "user32" fn SetCursor(hCursor: ?HCURSOR) callconv(WINAPI) HCURSOR;
 
 pub const HTCLIENT = 1;
+
+pub extern "user32" fn LoadIconA(hInstance: ?HINSTANCE, lpIconName: LPCSTR) callconv(WINAPI) HICON;
+
+pub const BITMAPV5HEADER = extern struct {
+    bV5Size: DWORD = @sizeOf(BITMAPV5HEADER),
+    bV5Width: LONG = 0,
+    bV5Height: LONG = 0,
+    bV5Planes: WORD = 0,
+    bV5BitCount: WORD = 0,
+    bV5Compression: DWORD = 0,
+    bV5SizeImage: DWORD = 0,
+    bV5XPelsPerMeter: LONG = 0,
+    bV5YPelsPerMeter: LONG = 0,
+    bV5ClrUsed: DWORD = 0,
+    bV5ClrImportant: DWORD = 0,
+    bV5RedMask: DWORD = 0,
+    bV5GreenMask: DWORD = 0,
+    bV5BlueMask: DWORD = 0,
+    bV5AlphaMask: DWORD = 0,
+    bV5CSType: DWORD = 0,
+    bV5Endpoints: CIEXYZTRIPLE = .{},
+    bV5GammaRed: DWORD = 0,
+    bV5GammaGreen: DWORD = 0,
+    bV5GammaBlue: DWORD = 0,
+    bV5Intent: DWORD = 0,
+    bV5ProfileData: DWORD = 0,
+    bV5ProfileSize: DWORD = 0,
+    bV5Reserved: DWORD = 0,
+};
+
+pub const CIEXYZTRIPLE = extern struct {
+    ciexyzRed: CIEXYZ = .{},
+    ciexyzGreen: CIEXYZ = .{},
+    ciexyzBlue: CIEXYZ = .{},
+};
+
+pub const CIEXYZ = extern struct {
+    ciexyzX: FXPT2DOT30 = 0,
+    ciexyzY: FXPT2DOT30 = 0,
+    ciexyzZ: FXPT2DOT30 = 0,
+};
+
+pub const FXPT2DOT30 = c_long;
+
+pub const BI_RGB = 0x0000;
+pub const BI_RLE8 = 0x0001;
+pub const BI_RLE4 = 0x0002;
+pub const BI_BITFIELDS = 0x0003;
+pub const BI_JPEG = 0x0004;
+pub const BI_PNG = 0x0005;
+pub const BI_CMYK = 0x000B;
+pub const BI_CMYKRLE8 = 0x000C;
+pub const BI_CMYKRLE4 = 0x000D;
+
+pub extern "user32" fn GetDC(hwnd: ?HWND) callconv(WINAPI) HDC;
+
+pub extern "gdi32" fn CreateDIBSection(hdc: HDC, pbmi: *const BITMAPINFO, usage: UINT, ppvBits: *?*anyopaque, hSection: ?HANDLE, offset: DWORD) callconv(WINAPI) ?HBITMAP;
+
+pub const BITMAPINFO = extern struct {
+    bmiHeader: BITMAPINFOHEADER,
+    bmiColors: [1]RGBQUAD,
+};
+
+pub const BITMAPINFOHEADER = extern struct {
+    biSize: u32,
+    biWidth: i32,
+    biHeight: i32,
+    biPlanes: u16,
+    biBitCount: u16,
+    biCompression: u32,
+    biSizeImage: u32,
+    biXPelsPerMeter: i32,
+    biYPelsPerMeter: i32,
+    biClrUsed: u32,
+    biClrImportant: u32,
+};
+
+pub const RGBQUAD = extern struct {
+    rgbBlue: u8,
+    rgbGreen: u8,
+    rgbRed: u8,
+    rgbReserved: u8,
+};
+
+pub const DIB_RGB_COLORS = 0;
+pub const DIB_PAL_COLORS = 1;
+
+pub extern "gdi32" fn CreateBitmap(nWidth: i32, nHeight: i32, nPlanes: u32, nBitCount: u32, lpBits: ?*const anyopaque) callconv(WINAPI) ?HBITMAP;
+
+pub const ICONINFO = extern struct {
+    fIcon: BOOL,
+    xHotspot: u32,
+    yHotspot: u32,
+    hbmMask: ?HBITMAP,
+    hbmColor: ?HBITMAP,
+};
+
+pub extern "user32" fn CreateIconIndirect(piconinfo: ?*ICONINFO) callconv(WINAPI) ?HICON;
+
+pub extern "gdi32" fn DeleteObject(ho: ?*anyopaque) callconv(WINAPI) BOOL;
+
+pub extern "user32" fn ReleaseDC(hWnd: ?HWND, hDC: ?HDC) callconv(WINAPI) c_int;
+
+pub extern "user32" fn SetClassLongPtrA(hWnd: ?HWND, nIndex: i32, dwNewLong: LONG_PTR) callconv(WINAPI) ULONG_PTR;
+
+pub extern "user32" fn DestroyIcon(hIcon: HICON) callconv(WINAPI) BOOL;
+
+pub const GCLP_MENUNAME = -8;
+pub const GCLP_HBRBACKGROUND = -10;
+pub const GCLP_HCURSOR = -12;
+pub const GCLP_HICON = -14;
+pub const GCLP_HMODULE = -16;
+pub const GCLP_WNDPROC = -24;
+pub const GCLP_HICONSM = -34;

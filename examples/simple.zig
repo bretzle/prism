@@ -42,5 +42,16 @@ const App = prism.Application(struct {
 });
 
 pub fn main() !void {
-    try App.start(.{});
+    const icon = prism.Icon{
+        .width = 2,
+        .height = 2,
+        .pixels = &std.mem.toBytes([4]u32{
+            0xFFFF70B7,
+            0xFFFF70B7,
+            0xFFFF70B7,
+            0xFFFF70B7,
+        }),
+    };
+
+    try App.start(.{ .image = icon });
 }

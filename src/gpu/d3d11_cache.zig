@@ -252,14 +252,14 @@ pub fn getDepthstencil(depth: gpu.Compare) ?*d3d11.IDepthStencilState {
         .DepthWriteMask = .ALL,
         .DepthFunc = switch (depth) {
             .none => .NEVER,
-            .always => unreachable,
-            .never => unreachable,
-            .less => unreachable,
-            .equal => unreachable,
-            .less_or_equal => unreachable,
-            .greater => unreachable,
-            .not_equal => unreachable,
-            .greater_or_equal => unreachable,
+            .always => .ALWAYS,
+            .never => .NEVER,
+            .less => .LESS,
+            .equal => .EQUAL,
+            .less_or_equal => .LESS_EQUAL,
+            .greater => .GREATER,
+            .not_equal => .NOT_EQUAL,
+            .greater_or_equal => .GREATER_EQUAL,
         },
     };
 
