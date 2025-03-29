@@ -6,6 +6,14 @@ pub const Vec2 = extern struct {
 
     pub const zero = Vec2{ .x = 0, .y = 0 };
     pub const one = Vec2{ .x = 1, .y = 1 };
+
+    pub fn add(lhs: Vec2, rhs: Vec2) Vec2 {
+        return Vec2{ .x = lhs.x + rhs.x, .y = lhs.y + rhs.y };
+    }
+
+    pub fn sub(lhs: Vec2, rhs: Vec2) Vec2 {
+        return Vec2{ .x = lhs.x - rhs.x, .y = lhs.y - rhs.y };
+    }
 };
 
 pub const Point = extern struct {
@@ -26,6 +34,29 @@ pub const Rect = extern struct {
     h: f32,
 
     pub const zero = Rect{ .x = 0, .y = 0, .w = 0, .h = 0 };
+
+    pub fn expand(self: Rect, n: f32) Rect {
+        return Rect{
+            .x = self.x - n,
+            .y = self.y - n,
+            .w = self.w + n * 2,
+            .h = self.h + n * 2,
+        };
+    }
+
+    pub fn intersection(r1: Rect, r2: Rect) Rect {
+        const x1 = @max(r1.x, r2.x);
+        const y1 = @max(r1.y, r2.y);
+        var x2 = @min(r1.x + r1.w, r2.x + r2.w);
+        var y2 = @min(r1.y + r1.h, r2.y + r2.h);
+        if (x2 < x1) x2 = x1;
+        if (y2 < y1) y2 = y1;
+        return Rect{ .x = x1, .y = y1, .w = x2 - x1, .h = y2 - y1 };
+    }
+
+    pub fn overlaps(r: Rect, p: Vec2) bool {
+        return p.x >= r.x and p.x < r.x + r.w and p.y >= r.y and p.y < r.y + r.h;
+    }
 };
 
 pub const Mat3x2 = extern struct {

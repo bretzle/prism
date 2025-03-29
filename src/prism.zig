@@ -12,9 +12,12 @@ pub const file = @import("file.zig");
 pub const math = @import("math.zig");
 pub const input = @import("input.zig");
 pub const Color = @import("Color.zig").Color;
+pub const ui = @import("oui.zig");
 
 pub const allocator: std.mem.Allocator = if (@hasDecl(root, "allocator"))
     root.allocator
+else if (builtin.is_test)
+    std.testing.allocator
 else
     std.heap.smp_allocator;
 
@@ -128,4 +131,5 @@ pub fn Application(comptime T: type) type {
 test {
     std.testing.refAllDeclsRecursive(gpu);
     std.testing.refAllDeclsRecursive(file);
+    std.testing.refAllDeclsRecursive(ui);
 }
