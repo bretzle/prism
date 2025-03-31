@@ -59,6 +59,15 @@ pub const Rect = extern struct {
     }
 };
 
+pub const Recti = extern struct {
+    x: i32,
+    y: i32,
+    w: i32,
+    h: i32,
+
+    pub const zero = Recti{ .x = 0, .y = 0, .w = 0, .h = 0 };
+};
+
 pub const Mat3x2 = extern struct {
     // [row][col]
     data: [3][2]f32,
