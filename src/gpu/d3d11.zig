@@ -524,7 +524,7 @@ pub const Texture = struct {
         };
 
         var texture: *d3d11.ITexture2D = undefined;
-        const sub = d3d11.SUBRESOURCE_DATA{ .pSysMem = data.content };
+        const sub = d3d11.SUBRESOURCE_DATA{ .pSysMem = data.content, .SysMemPitch = data.width * data.format.stride() };
         vhr(device.CreateTexture2D(&desc, if (data.content == null) null else &sub, @ptrCast(&texture)));
 
         var view: ?*d3d11.IShaderResourceView = null;

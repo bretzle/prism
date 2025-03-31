@@ -15,14 +15,19 @@ const App = prism.Application(struct {
 
     pub fn init(self: *Self) !void {
         self.batch = try .create(prism.allocator);
-        self.tex = gpu.createTexture(.{ .width = 25, .height = 25, .format = .rgba });
 
-        var buf: [25 * 25 * 4]u8 = undefined;
-        @memset(std.mem.bytesAsSlice(u32, &buf), 0xFFFF70B7);
-        gpu.updateTexture(self.tex, &buf);
+        var buf: [25 * 25]u32 = undefined;
+        @memset(&buf, 0xFFFF70B7);
+        for (1..24) |i| {
+            @memset(buf[(25 * i) + 1 ..][0..23], 0);
+        }
 
-        @memset(&buf, 0);
-        gpu.updateTexturePart(self.tex, 1, 1, 23, 23, &buf);
+        self.tex = gpu.createTexture(.{
+            .width = 25,
+            .height = 25,
+            .format = .rgba,
+            .content = @ptrCast(&buf),
+        });
 
         const font = try ttf.Font.loadmem(font_data);
         defer font.deinit();
@@ -51,9 +56,8 @@ const App = prism.Application(struct {
             .width = img.width,
             .height = img.height,
             .format = .r,
-            // .content = img.pixels.ptr,
+            .content = img.pixels.ptr,
         });
-        gpu.updateTexture(self.text, img.pixels);
     }
 
     pub fn update(_: *Self, app: *App) void {
@@ -68,8 +72,8 @@ const App = prism.Application(struct {
 
         self.batch.pushMatrix(transform);
         self.batch.drawRect(.{ .x = -32, .y = -32, .w = 64, .h = 64 }, .red);
-        // self.batch.drawTexture(self.tex, .{ .x = 64, .y = -32 });
-        self.batch.drawTexture(self.text, .{ .x = 100, .y = 0 });
+        self.batch.drawTexture(self.tex, .{ .x = 64, .y = -32 });
+        self.batch.drawTexture(self.text, .{ .x = 64, .y = -16 });
         _ = self.batch.popMatrix();
 
         self.batch.render(gpu.framebufferSize());

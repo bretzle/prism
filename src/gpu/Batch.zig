@@ -250,10 +250,28 @@ fn pushTri(self: *Self, a: Vec2, b: Vec2, c: Vec2, col: Color) void {
 
 fn setTexture(self: *Self, tex: gpu.TextureId) void {
     if (self.batch.elements > 0 and self.batch.texture != .invalid and tex != self.batch.texture) {
-        unreachable;
+        self.insertBatch();
     }
 
     if (self.batch.texture != tex) {
         self.batch.texture = tex;
     }
+}
+
+inline fn insertBatch(self: *Self) void {
+    const old = self.batch.*;
+    const ptr = self.batches.addOne(self.allocator) catch unreachable;
+    ptr.* = old;
+
+    self.batch = ptr;
+    self.batch.offset += old.elements;
+    self.batch.elements = 0;
+}
+
+inline fn setBatchVar(self: *Self, comptime name: []const u8, value: anytype) void {
+    if (self.batch.elements > 0 and !std.meta.eql(@field(self.batch, name), value)) {
+        self.insertBatch();
+    }
+
+    @field(self.batch, name) = value;
 }
