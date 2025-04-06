@@ -47,95 +47,78 @@ pub const Config = struct {
     enable_audio: bool = true,
 };
 
-pub fn Application(comptime T: type) type {
-    return struct {
-        const Self = @This();
+pub const Application = struct {
+    const Self = @This();
 
-        config: Config,
-        userdata: T = undefined,
+    config: Config,
 
-        is_running: bool,
-        is_exiting: bool,
-        is_minimized: bool,
+    is_running: bool,
+    is_exiting: bool,
+    is_minimized: bool,
 
-        impl: platform.Application(Self),
-        input: input.Input = .{},
+    impl: platform.Application,
+    input: input.Input = .{},
 
-        pub fn create(config: Config) !*Self {
-            const self = try allocator.create(Self);
-            errdefer allocator.destroy(self);
+    pub fn start(self: *Application, config: Config) !void {
+        self.* = .{
+            .config = config,
+            .is_running = true,
+            .is_exiting = false,
+            .is_minimized = false,
+            .impl = undefined,
+        };
 
-            self.* = .{
-                .config = config,
-                .userdata = undefined,
-                .is_running = true,
-                .is_exiting = false,
-                .is_minimized = false,
-                .impl = undefined,
-            };
+        // initialize platform
+        try self.impl.init();
 
-            // initialize platform
-            try self.impl.init();
+        // initialize graphics
+        if (config.enable_gpu) try gpu.init(config.size, config.vsync, self.impl.hwnd);
 
-            // initialize graphics
-            if (config.enable_gpu) try gpu.init(config.size, config.vsync, self.impl.hwnd);
+        // initialize audio
+        if (config.enable_audio) {} // TODO
 
-            // initialize audio
-            if (config.enable_audio) {} // TODO
+        // startup
+        try root.init();
 
-            // startup
-            try self.userdata.init();
+        // display window
+        self.impl.ready();
 
-            return self;
+        // main loop
+        while (!self.is_exiting) {
+            self.step();
         }
 
-        pub fn run(self: *Self) void {
-            // display window
-            self.impl.ready();
+        // root.cleanup();
+        // gpu.cleanup();
+        // self.impl.cleanup();
+        // allocator.destroy(self);
+        // self.* = undefined;
+    }
 
-            // main loop
-            while (!self.is_exiting) {
-                self.step();
-            }
+    fn step(self: *Self) void {
+        self.impl.step();
 
-            // TODO
-            // if (std.meta.hasMethod(T, "cleanup")) self.userdata.cleanup();
-            // gpu.cleanup();
-            // self.impl.cleanup();
-            // allocator.destroy(self);
-            // self.* = undefined;
+        if (!self.is_minimized) {
+            root.update();
+
+            gpu.resizeFramebuffer(self.getSize());
+            root.render();
+            gpu.commit();
         }
 
-        pub fn start(config: Config) !void {
-            const self = try create(config);
-            self.run();
+        self.input.step();
+    }
+
+    pub fn exit(self: *Self) void {
+        if (!self.is_exiting and self.is_running) {
+            self.is_exiting = true;
         }
+    }
 
-        fn step(self: *Self) void {
-            self.impl.step();
-
-            if (!self.is_minimized) {
-                if (std.meta.hasMethod(T, "update")) self.userdata.update(self);
-
-                gpu.resizeFramebuffer(self.getSize());
-                self.userdata.render();
-                gpu.commit();
-            }
-
-            self.input.step();
-        }
-
-        pub fn exit(self: *Self) void {
-            if (!self.is_exiting and self.is_running) {
-                self.is_exiting = true;
-            }
-        }
-
-        pub fn getSize(self: *const Self) math.Point {
-            return self.impl.getSize();
-        }
-    };
-}
+    pub fn getSize(self: *const Self) math.Point {
+        return self.impl.getSize();
+    }
+};
 
 test {
     std.testing.refAllDeclsRecursive(gpu);
