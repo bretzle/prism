@@ -4,6 +4,8 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    const truetype = b.dependency("truetype", .{});
+
     const pool_mod = b.addModule("pool", .{
         .root_source_file = b.path("deps/pool.zig"),
         .target = target,
@@ -23,6 +25,7 @@ pub fn build(b: *std.Build) void {
         .imports = &.{
             .{ .name = "w32", .module = w32_mod },
             .{ .name = "pool", .module = pool_mod },
+            .{ .name = "truetype", .module = truetype.module("TrueType") },
         },
     });
 

@@ -2,7 +2,6 @@ const std = @import("std");
 const prism = @import("prism");
 const math = prism.math;
 const gpu = prism.gpu;
-const ttf = prism.file.ttf;
 
 var app: prism.Application = undefined;
 
@@ -26,34 +25,19 @@ pub fn init() !void {
         .content = @ptrCast(&buf),
     });
 
-    const font = try ttf.Font.loadmem(@embedFile("roboto.ttf"));
-    defer font.deinit();
+    const font = try prism.file.TrueType.load(prism.file.embedded_font);
 
-    const sft = ttf.SFT{
-        .font = font,
-        .x_scale = 32,
-        .y_scale = 32,
-        .flags = ttf.SFT_DOWNWARD_Y,
-    };
+    const glyph = font.codepointGlyphIndex('@').?;
+    const scale = font.scaleForPixelHeight(32);
 
-    const glyph = try sft.lookup('@');
-    const mtx = try sft.gmetrics(glyph);
-
-    var img = ttf.Image{
-        .width = (mtx.min_width + 3) & ~@as(u32, 3),
-        .height = mtx.min_height,
-        .pixels = undefined,
-    };
-    img.pixels = try prism.allocator.alloc(u8, @intCast(img.width * img.height));
-    defer prism.allocator.free(img.pixels);
-
-    try sft.render(glyph, img);
+    var pixels: std.ArrayListUnmanaged(u8) = .empty;
+    const img = try font.glyphBitmap(prism.allocator, &pixels, glyph, scale, scale);
 
     text = gpu.createTexture(.{
         .width = img.width,
         .height = img.height,
         .format = .r,
-        .content = img.pixels.ptr,
+        .content = pixels.items.ptr,
     });
 }
 

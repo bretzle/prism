@@ -5,7 +5,12 @@
     .fingerprint = 0x8ed1b8ba3cdedbce,
     .minimum_zig_version = "0.14.0",
 
-    .dependencies = .{},
+    .dependencies = .{
+        .truetype = .{
+            .url = "https://codeberg.org/ssmid/TrueType/archive/c3dc30d27f047ad9aacfa92dd4353967e502b68d.tar.gz",
+            .hash = "TrueType-0.0.0-AAAAAMoFAQBqwLqsVTZS1iQtTII49y0FDLMFptSxdZ9b",
+        },
+    },
 
     .paths = .{
         "src",
