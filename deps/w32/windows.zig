@@ -1,292 +1,240 @@
-//! Extends std.os.windows
-
 const std = @import("std");
+const os = std.os.windows;
 
-pub const d3d11 = @import("d3d11.zig");
-pub const d3dcommon = @import("d3dcommon.zig");
-pub const d3dcompiler = @import("d3dcompiler.zig");
-pub const dxgi = @import("dxgi.zig");
+pub const BOOL = os.BOOL;
+pub const UINT = os.UINT;
+pub const INT = os.INT;
+pub const WORD = os.WORD;
+pub const DWORD = os.DWORD;
+pub const LONG = os.LONG;
+pub const ATOM = os.ATOM;
+pub const LPCSTR = os.LPCSTR;
+pub const LPCWSTR = os.LPCWSTR;
+pub const POINT = os.POINT;
+pub const SIZE_T = os.SIZE_T;
+pub const HINSTANCE = os.HINSTANCE;
+pub const HWND = os.HWND;
+pub const WPARAM = os.WPARAM;
+pub const LPARAM = os.LPARAM;
+pub const LRESULT = os.LRESULT;
+pub const HICON = os.HICON;
+pub const HCURSOR = os.HCURSOR;
+pub const HBRUSH = os.HBRUSH;
+pub const HANDLE = os.HANDLE;
+pub const HMENU = os.HMENU;
+pub const LPVOID = os.LPVOID;
+pub const HMONITOR = *opaque {};
+pub const HGLOBAL = *opaque {};
+pub const GUID = os.GUID;
+pub const HRESULT = os.HRESULT;
+pub const ULONG = os.ULONG;
 
-pub usingnamespace std.os.windows;
-
-const WINAPI = std.os.windows.WINAPI;
-const S_OK = std.os.windows.S_OK;
-const S_FALSE = std.os.windows.S_FALSE;
-const E_NOTIMPL = std.os.windows.E_NOTIMPL;
-const E_NOINTERFACE = std.os.windows.E_NOINTERFACE;
-const E_POINTER = std.os.windows.E_POINTER;
-const E_ABORT = std.os.windows.E_ABORT;
-const E_FAIL = std.os.windows.E_FAIL;
-const E_UNEXPECTED = std.os.windows.E_UNEXPECTED;
-const E_ACCESSDENIED = std.os.windows.E_ACCESSDENIED;
-const E_HANDLE = std.os.windows.E_HANDLE;
-const E_OUTOFMEMORY = std.os.windows.E_OUTOFMEMORY;
-const E_INVALIDARG = std.os.windows.E_INVALIDARG;
-const GENERIC_READ = std.os.windows.GENERIC_READ;
-const GENERIC_WRITE = std.os.windows.GENERIC_WRITE;
-const GENERIC_EXECUTE = std.os.windows.GENERIC_EXECUTE;
-const GENERIC_ALL = std.os.windows.GENERIC_ALL;
-const EVENT_ALL_ACCESS = std.os.windows.EVENT_ALL_ACCESS;
-const TRUE = std.os.windows.TRUE;
-const FALSE = std.os.windows.FALSE;
-const BOOL = std.os.windows.BOOL;
-const BOOLEAN = std.os.windows.BOOLEAN;
-const BYTE = std.os.windows.BYTE;
-const CHAR = std.os.windows.CHAR;
-const UCHAR = std.os.windows.UCHAR;
-const WCHAR = std.os.windows.WCHAR;
-const FLOAT = std.os.windows.FLOAT;
-const HCRYPTPROV = std.os.windows.HCRYPTPROV;
-const ATOM = std.os.windows.ATOM;
-const WPARAM = std.os.windows.WPARAM;
-const LPARAM = std.os.windows.LPARAM;
-const LRESULT = std.os.windows.LRESULT;
-const HRESULT = std.os.windows.HRESULT;
-const HBRUSH = std.os.windows.HBRUSH;
-const HCURSOR = std.os.windows.HCURSOR;
-const HICON = std.os.windows.HICON;
-const HINSTANCE = std.os.windows.HINSTANCE;
-const HMENU = std.os.windows.HMENU;
-const HMODULE = std.os.windows.HMODULE;
-const HWND = std.os.windows.HWND;
-const HDC = std.os.windows.HDC;
-const HGLRC = std.os.windows.HGLRC;
-const FARPROC = std.os.windows.FARPROC;
-const INT = std.os.windows.INT;
-const SIZE_T = std.os.windows.SIZE_T;
-const UINT = std.os.windows.UINT;
-const USHORT = std.os.windows.USHORT;
-const SHORT = std.os.windows.SHORT;
-const ULONG = std.os.windows.ULONG;
-const LONG = std.os.windows.LONG;
-const WORD = std.os.windows.WORD;
-const DWORD = std.os.windows.DWORD;
-const ULONGLONG = std.os.windows.ULONGLONG;
-const LONGLONG = std.os.windows.LONGLONG;
-const LARGE_INTEGER = std.os.windows.LARGE_INTEGER;
-const ULARGE_INTEGER = std.os.windows.ULARGE_INTEGER;
-const LPCSTR = std.os.windows.LPCSTR;
-const LPCVOID = std.os.windows.LPCVOID;
-const LPSTR = std.os.windows.LPSTR;
-const LPVOID = std.os.windows.LPVOID;
-const LPWSTR = std.os.windows.LPWSTR;
-const LPCWSTR = std.os.windows.LPCSWTR;
-const PVOID = std.os.windows.PVOID;
-const PWSTR = std.os.windows.PWSTR;
-const PCWSTR = std.os.windows.PCWSTR;
-const HANDLE = std.os.windows.HANDLE;
-const GUID = std.os.windows.GUID;
-const NTSTATUS = std.os.windows.NTSTATUS;
-const CRITICAL_SECTION = std.os.windows.CRITICAL_SECTION;
-const SECURITY_ATTRIBUTES = std.os.windows.SECURITY_ATTRIBUTES;
-const RECT = std.os.windows.RECT;
-const POINT = std.os.windows.POINT;
-
-pub const HBITMAP = *opaque {};
-
-pub const E_FILE_NOT_FOUND = @as(HRESULT, @bitCast(@as(c_ulong, 0x80070002)));
-
-pub extern "ole32" fn CoInitializeEx(pvReserved: ?LPVOID, dwCoInit: DWORD) callconv(WINAPI) HRESULT;
-pub extern "ole32" fn CoUninitialize() callconv(WINAPI) void;
-pub extern "ole32" fn CoTaskMemAlloc(size: SIZE_T) callconv(WINAPI) ?LPVOID;
-pub extern "ole32" fn CoTaskMemFree(pv: LPVOID) callconv(WINAPI) void;
-
-pub const COINIT_APARTMENTTHREADED = 0x2;
-pub const COINIT_MULTITHREADED = 0x3;
-pub const COINIT_DISABLE_OLE1DDE = 0x4;
-pub const COINIT_SPEED_OVER_MEMORY = 0x8;
-pub const UINT_MAX: UINT = 4294967295;
-pub const ULONG_PTR = usize;
-pub const LONG_PTR = isize;
-pub const DWORD_PTR = ULONG_PTR;
-pub const DWORD64 = u64;
-pub const ULONG64 = u64;
-pub const HLOCAL = HANDLE;
-pub const LANGID = c_ushort;
-
-pub const MAX_PATH = 260;
-
-/// [DEPRECATED]: Use proc specific errors as in std.os.windows
-pub const Error = error{
-    UNEXPECTED,
-    NOTIMPL,
-    OUTOFMEMORY,
-    INVALIDARG,
-    POINTER,
-    HANDLE,
-    ABORT,
-    FAIL,
-    ACCESSDENIED,
+pub const RECT = extern struct {
+    left: LONG,
+    top: LONG,
+    right: LONG,
+    bottom: LONG,
 };
+pub const LPRECT = *RECT;
 
-/// [DEPRECATED]: Use proc specific errors as in std.os.windows
-pub const MiscError = error{
-    E_FILE_NOT_FOUND,
-    S_FALSE,
-};
-
-pub const ERROR_SUCCESS = @as(LONG, 0);
-pub const ERROR_DEVICE_NOT_CONNECTED = @as(LONG, 1167);
-pub const ERROR_EMPTY = @as(LONG, 4306);
-
-pub const SEVERITY_SUCCESS = 0;
-pub const SEVERITY_ERROR = 1;
-
-pub fn MAKE_HRESULT(severity: LONG, facility: LONG, value: LONG) HRESULT {
-    return @as(HRESULT, (severity << 31) | (facility << 16) | value);
-}
-
-pub const CW_USEDEFAULT = @as(i32, @bitCast(@as(u32, 0x80000000)));
-
-pub const MINMAXINFO = extern struct {
-    ptReserved: POINT,
-    ptMaxSize: POINT,
-    ptMaxPosition: POINT,
-    ptMinTrackSize: POINT,
-    ptMaxTrackSize: POINT,
-};
-
-pub extern "user32" fn SetProcessDPIAware() callconv(WINAPI) BOOL;
-
-pub extern "user32" fn GetClientRect(HWND, *RECT) callconv(WINAPI) BOOL;
-
-pub extern "user32" fn SetWindowTextA(hWnd: ?HWND, lpString: LPCSTR) callconv(WINAPI) BOOL;
-
-pub extern "user32" fn GetAsyncKeyState(vKey: c_int) callconv(WINAPI) SHORT;
-
-pub extern "user32" fn GetKeyState(vKey: c_int) callconv(WINAPI) SHORT;
-
-pub extern "user32" fn LoadCursorA(hInstance: ?HINSTANCE, lpCursorName: LPCSTR) callconv(WINAPI) ?HCURSOR;
-
-pub const TME_LEAVE = 0x00000002;
-
-pub const TRACKMOUSEEVENT = extern struct {
-    cbSize: DWORD,
-    dwFlags: DWORD,
-    hwndTrack: ?HWND,
-    dwHoverTime: DWORD,
-};
-pub extern "user32" fn TrackMouseEvent(event: *TRACKMOUSEEVENT) callconv(WINAPI) BOOL;
-
-pub extern "user32" fn SetCapture(hWnd: ?HWND) callconv(WINAPI) ?HWND;
-
-pub extern "user32" fn GetCapture() callconv(WINAPI) ?HWND;
-
-pub extern "user32" fn ReleaseCapture() callconv(WINAPI) BOOL;
-
-pub extern "user32" fn GetForegroundWindow() callconv(WINAPI) ?HWND;
-
-pub extern "user32" fn IsChild(hWndParent: ?HWND, hWnd: ?HWND) callconv(WINAPI) BOOL;
-
-pub extern "user32" fn GetCursorPos(point: *POINT) callconv(WINAPI) BOOL;
-
-pub extern "user32" fn ScreenToClient(hWnd: ?HWND, lpPoint: *POINT) callconv(WINAPI) BOOL;
-
-pub extern "user32" fn RegisterClassExA(*const WNDCLASSEXA) callconv(WINAPI) ATOM;
-
-pub extern "user32" fn GetWindowLongPtrA(hWnd: ?HWND, nIndex: INT) callconv(WINAPI) ?*anyopaque;
-
-pub extern "user32" fn SetWindowLongPtrA(hWnd: ?HWND, nIndex: INT, dwNewLong: ?*anyopaque) callconv(WINAPI) LONG_PTR;
-
-pub extern "user32" fn AdjustWindowRectEx(
-    lpRect: *RECT,
-    dwStyle: DWORD,
-    bMenu: BOOL,
-    dwExStyle: DWORD,
-) callconv(WINAPI) BOOL;
-
-pub extern "user32" fn CreateWindowExA(
-    dwExStyle: DWORD,
-    lpClassName: ?LPCSTR,
-    lpWindowName: ?LPCSTR,
-    dwStyle: DWORD,
-    X: i32,
-    Y: i32,
-    nWidth: i32,
-    nHeight: i32,
-    hWindParent: ?HWND,
-    hMenu: ?HMENU,
-    hInstance: HINSTANCE,
-    lpParam: ?LPVOID,
-) callconv(WINAPI) ?HWND;
-
-pub extern "user32" fn DestroyWindow(hWnd: HWND) BOOL;
-
-pub extern "user32" fn PostQuitMessage(nExitCode: i32) callconv(WINAPI) void;
-
-pub extern "user32" fn DefWindowProcA(
+pub const MSG = extern struct {
     hWnd: HWND,
-    Msg: UINT,
+    message: u32,
     wParam: WPARAM,
     lParam: LPARAM,
-) callconv(WINAPI) LRESULT;
+    time: DWORD,
+    pt: POINT,
+};
+pub const LPMSG = *MSG;
 
-pub const PM_NOREMOVE = 0x0000;
-pub const PM_REMOVE = 0x0001;
-pub const PM_NOYIELD = 0x0002;
+pub const WNDCLASSEXW = extern struct {
+    cbSize: u32 = @sizeOf(@This()),
+    style: u32,
+    lpfnWndProc: ?WNDPROC,
+    cbClsExtra: i32,
+    cbWndExtra: i32,
+    hInstance: ?HINSTANCE,
+    hIcon: ?HICON,
+    hCursor: ?HCURSOR,
+    hbrBackground: ?HBRUSH,
+    lpszMenuName: ?LPCWSTR,
+    lpszClassName: ?LPCWSTR,
+    hIconSm: ?HICON,
+};
 
-pub extern "user32" fn PeekMessageA(
-    lpMsg: *MSG,
-    hWnd: ?HWND,
-    wMsgFilterMin: UINT,
-    wMsgFilterMax: UINT,
-    wRemoveMsg: UINT,
-) callconv(WINAPI) BOOL;
+pub const WINDOWPOS = extern struct {
+    hwnd: HWND,
+    hwndInsertAfter: ?HWND,
+    x: i32,
+    y: i32,
+    cx: i32,
+    cy: i32,
+    flags: u32,
+};
 
-pub extern "user32" fn DispatchMessageA(lpMsg: *const MSG) callconv(WINAPI) LRESULT;
+pub const WINDOWPLACEMENT = extern struct {
+    length: u32,
+    flags: u32,
+    showCmd: u32,
+    ptMinPosition: POINT,
+    ptMaxPosition: POINT,
+    rcNormalPosition: RECT,
+    rcDevice: RECT,
+};
 
-pub extern "user32" fn TranslateMessage(lpMsg: *const MSG) callconv(WINAPI) BOOL;
-
-pub const MB_OK = 0x00000000;
-pub const MB_ICONHAND = 0x00000010;
-pub const MB_ICONERROR = MB_ICONHAND;
-
-pub extern "user32" fn MessageBoxA(
-    hWnd: ?HWND,
-    lpText: LPCSTR,
-    lpCaption: LPCSTR,
-    uType: UINT,
-) callconv(WINAPI) i32;
-
-pub const KNOWNFOLDERID = GUID;
-
-pub const FOLDERID_LocalAppData = GUID.parse("{F1B32785-6FBA-4FCF-9D55-7B8E7F157091}");
-pub const FOLDERID_ProgramFiles = GUID.parse("{905e63b6-c1bf-494e-b29c-65b732d3d21a}");
-
-pub const KF_FLAG_DEFAULT = 0;
-pub const KF_FLAG_NO_APPCONTAINER_REDIRECTION = 65536;
-pub const KF_FLAG_CREATE = 32768;
-pub const KF_FLAG_DONT_VERIFY = 16384;
-pub const KF_FLAG_DONT_UNEXPAND = 8192;
-pub const KF_FLAG_NO_ALIAS = 4096;
-pub const KF_FLAG_INIT = 2048;
-pub const KF_FLAG_DEFAULT_PATH = 1024;
-pub const KF_FLAG_NOT_PARENT_RELATIVE = 512;
-pub const KF_FLAG_SIMPLE_IDLIST = 256;
-pub const KF_FLAG_ALIAS_ONLY = -2147483648;
-
-pub extern "shell32" fn SHGetKnownFolderPath(
-    rfid: *const KNOWNFOLDERID,
+pub const MONITORINFO = extern struct {
+    cbSize: DWORD = @sizeOf(@This()),
+    rcMonitor: RECT,
+    rcWork: RECT,
     dwFlags: DWORD,
-    hToken: ?HANDLE,
-    ppszPath: *[*:0]WCHAR,
-) callconv(WINAPI) HRESULT;
+};
+pub const LPMONITORINFO = *MONITORINFO;
 
-pub const WS_EX_APPWINDOW = 0x00040000;
-pub const WS_EX_WINDOWEDGE = 0x00000100;
+pub const TRACKMOUSEEVENT = extern struct {
+    cbSize: DWORD = @sizeOf(@This()),
+    dwFlags: DWORD,
+    hWndTrack: HWND,
+    dwHoverTime: DWORD,
+};
+pub const LPTRACKMOUSEEVENT = *TRACKMOUSEEVENT;
 
-pub const WS_BORDER = 0x00800000;
-pub const WS_OVERLAPPED = 0x00000000;
-pub const WS_SYSMENU = 0x00080000;
-pub const WS_DLGFRAME = 0x00400000;
-pub const WS_CAPTION = WS_BORDER | WS_DLGFRAME;
-pub const WS_MINIMIZEBOX = 0x00020000;
-pub const WS_MAXIMIZEBOX = 0x00010000;
-pub const WS_THICKFRAME = 0x00040000;
-pub const WS_OVERLAPPEDWINDOW = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
-pub const WS_VISIBLE = 0x10000000;
+pub const WNDPROC = *const fn (hWnd: HWND, uMsg: u32, wParam: WPARAM, lParam: LPARAM) callconv(.winapi) LRESULT;
 
+pub const ERROR_SUCCESS: DWORD = 0;
+
+pub const WM_NULL = 0x0000;
+pub const WM_CREATE = 0x0001;
+pub const WM_DESTROY = 0x0002;
+pub const WM_MOVE = 0x0003;
+pub const WM_SIZE = 0x0005;
+pub const WM_ACTIVATE = 0x0006;
+pub const WM_SETFOCUS = 0x0007;
+pub const WM_KILLFOCUS = 0x0008;
+pub const WM_ENABLE = 0x000a;
+pub const WM_SETREDRAW = 0x000b;
+pub const WM_SETTEXT = 0x000c;
+pub const WM_GETTEXT = 0x000d;
+pub const WM_GETTEXTLENGTH = 0x000e;
+pub const WM_PAINT = 0x000f;
+pub const WM_CLOSE = 0x0010;
+pub const WM_QUERYENDSESSION = 0x0011;
+pub const WM_QUIT = 0x0012;
+pub const WM_QUERYOPEN = 0x0013;
+pub const WM_ERASEBKGND = 0x0014;
+pub const WM_SYSCOLORCHANGE = 0x0015;
+pub const WM_ENDSESSION = 0x0016;
+pub const WM_SHOWWINDOW = 0x0018;
+pub const WM_WININICHANGE = 0x001a;
+pub const WM_SETTINGCHANGE = WM_WININICHANGE;
+pub const WM_DEVMODECHANGE = 0x001b;
+pub const WM_ACTIVATEAPP = 0x001c;
+pub const WM_FONTCHANGE = 0x001d;
+pub const WM_TIMECHANGE = 0x001e;
+pub const WM_CANCELMODE = 0x001f;
 pub const WM_SETCURSOR = 0x0020;
+pub const WM_MOUSEACTIVATE = 0x0021;
+pub const WM_CHILDACTIVATE = 0x0022;
+pub const WM_QUEUESYNC = 0x0023;
+pub const WM_GETMINMAXINFO = 0x0024;
+pub const WM_PAINTICON = 0x0026;
+pub const WM_ICONERASEBKGND = 0x0027;
+pub const WM_NEXTDLGCTL = 0x0028;
+pub const WM_SPOOLERSTATUS = 0x002a;
+pub const WM_DRAWITEM = 0x002b;
+pub const WM_MEASUREITEM = 0x002c;
+pub const WM_DELETEITEM = 0x002d;
+pub const WM_VKEYTOITEM = 0x002e;
+pub const WM_CHARTOITEM = 0x002f;
+pub const WM_SETFONT = 0x0030;
+pub const WM_GETFONT = 0x0031;
+pub const WM_SETHOTKEY = 0x0032;
+pub const WM_GETHOTKEY = 0x0033;
+pub const WM_QUERYDRAGICON = 0x0037;
+pub const WM_COMPAREITEM = 0x0039;
+pub const WM_GETOBJECT = 0x003d;
+pub const WM_COMPACTING = 0x0041;
+pub const WM_COMMNOTIFY = 0x0044;
+pub const WM_WINDOWPOSCHANGING = 0x0046;
+pub const WM_WINDOWPOSCHANGED = 0x0047;
+pub const WM_POWER = 0x0048;
+pub const WM_COPYDATA = 0x004a;
+pub const WM_CANCELJOURNAL = 0x004b;
+pub const WM_NOTIFY = 0x004e;
+pub const WM_INPUTLANGCHANGEREQUEST = 0x0050;
+pub const WM_INPUTLANGCHANGE = 0x0051;
+pub const WM_TCARD = 0x0052;
+pub const WM_HELP = 0x0053;
+pub const WM_USERCHANGED = 0x0054;
+pub const WM_NOTIFYFORMAT = 0x0055;
+pub const WM_CONTEXTMENU = 0x007b;
+pub const WM_STYLECHANGING = 0x007c;
+pub const WM_STYLECHANGED = 0x007d;
+pub const WM_DISPLAYCHANGE = 0x007e;
+pub const WM_GETICON = 0x007f;
+pub const WM_SETICON = 0x0080;
+pub const WM_NCCREATE = 0x0081;
+pub const WM_NCDESTROY = 0x0082;
+pub const WM_NCCALCSIZE = 0x0083;
+pub const WM_NCHITTEST = 0x0084;
+pub const WM_NCPAINT = 0x0085;
+pub const WM_NCACTIVATE = 0x0086;
+pub const WM_GETDLGCODE = 0x0087;
+pub const WM_SYNCPAINT = 0x0088;
+pub const WM_NCMOUSEMOVE = 0x00a0;
+pub const WM_NCLBUTTONDOWN = 0x00a1;
+pub const WM_NCLBUTTONUP = 0x00a2;
+pub const WM_NCLBUTTONDBLCLK = 0x00a3;
+pub const WM_NCRBUTTONDOWN = 0x00a4;
+pub const WM_NCRBUTTONUP = 0x00a5;
+pub const WM_NCRBUTTONDBLCLK = 0x00a6;
+pub const WM_NCMBUTTONDOWN = 0x00a7;
+pub const WM_NCMBUTTONUP = 0x00a8;
+pub const WM_NCMBUTTONDBLCLK = 0x00a9;
+pub const WM_NCXBUTTONDOWN = 0x00ab;
+pub const WM_NCXBUTTONUP = 0x00ac;
+pub const WM_NCXBUTTONDBLCLK = 0x00ad;
+pub const WM_INPUT_DEVICE_CHANGE = 0x00fe;
+pub const WM_INPUT = 0x00ff;
+pub const WM_KEYDOWN = 0x0100;
+pub const WM_KEYUP = 0x0101;
+pub const WM_CHAR = 0x0102;
+pub const WM_DEADCHAR = 0x0103;
+pub const WM_SYSKEYDOWN = 0x0104;
+pub const WM_SYSKEYUP = 0x0105;
+pub const WM_SYSCHAR = 0x0106;
+pub const WM_SYSDEADCHAR = 0x0107;
+pub const WM_UNICHAR = 0x0109;
+pub const WM_IME_STARTCOMPOSITION = 0x010d;
+pub const WM_IME_ENDCOMPOSITION = 0x010e;
+pub const WM_IME_COMPOSITION = 0x010f;
+pub const WM_INITDIALOG = 0x0110;
+pub const WM_COMMAND = 0x0111;
+pub const WM_SYSCOMMAND = 0x0112;
+pub const WM_TIMER = 0x0113;
+pub const WM_HSCROLL = 0x0114;
+pub const WM_VSCROLL = 0x0115;
+pub const WM_INITMENU = 0x0116;
+pub const WM_INITMENUPOPUP = 0x0117;
+pub const WM_GESTURE = 0x0119;
+pub const WM_GESTURENOTIFY = 0x011A;
+pub const WM_MENUSELECT = 0x011F;
+pub const WM_MENUCHAR = 0x0120;
+pub const WM_ENTERIDLE = 0x0121;
+pub const WM_MENURBUTTONUP = 0x0122;
+pub const WM_MENUDRAG = 0x0123;
+pub const WM_MENUGETOBJECT = 0x0124;
+pub const WM_UNINITMENUPOPUP = 0x0125;
+pub const WM_MENUCOMMAND = 0x0126;
+pub const WM_CHANGEUISTATE = 0x0127;
+pub const WM_UPDATEUISTATE = 0x0128;
+pub const WM_QUERYUISTATE = 0x0129;
+pub const WM_CTLCOLORMSGBOX = 0x0132;
+pub const WM_CTLCOLOREDIT = 0x0133;
+pub const WM_CTLCOLORLISTBOX = 0x0134;
+pub const WM_CTLCOLORBTN = 0x0135;
+pub const WM_CTLCOLORDLG = 0x0136;
+pub const WM_CTLCOLORSCROLLBAR = 0x0137;
+pub const WM_CTLCOLORSTATIC = 0x0138;
 pub const WM_MOUSEMOVE = 0x0200;
 pub const WM_LBUTTONDOWN = 0x0201;
 pub const WM_LBUTTONUP = 0x0202;
@@ -298,293 +246,216 @@ pub const WM_MBUTTONDOWN = 0x0207;
 pub const WM_MBUTTONUP = 0x0208;
 pub const WM_MBUTTONDBLCLK = 0x0209;
 pub const WM_MOUSEWHEEL = 0x020A;
+pub const WM_XBUTTONDOWN = 0x020B;
+pub const WM_XBUTTONUP = 0x020C;
+pub const WM_XBUTTONDBLCLK = 0x020D;
+pub const WM_MOUSEHWHEEL = 0x020E;
+pub const WM_PARENTNOTIFY = 0x0210;
+pub const WM_ENTERMENULOOP = 0x0211;
+pub const WM_EXITMENULOOP = 0x0212;
+pub const WM_NEXTMENU = 0x0213;
+pub const WM_SIZING = 0x0214;
+pub const WM_CAPTURECHANGED = 0x0215;
+pub const WM_MOVING = 0x0216;
+pub const WM_POWERBROADCAST = 0x0218;
+pub const WM_DEVICECHANGE = 0x0219;
+pub const WM_MDICREATE = 0x0220;
+pub const WM_MDIDESTROY = 0x0221;
+pub const WM_MDIACTIVATE = 0x0222;
+pub const WM_MDIRESTORE = 0x0223;
+pub const WM_MDINEXT = 0x0224;
+pub const WM_MDIMAXIMIZE = 0x0225;
+pub const WM_MDITILE = 0x0226;
+pub const WM_MDICASCADE = 0x0227;
+pub const WM_MDIICONARRANGE = 0x0228;
+pub const WM_MDIGETACTIVE = 0x0229;
+pub const WM_MDISETMENU = 0x0230;
+pub const WM_ENTERSIZEMOVE = 0x0231;
+pub const WM_EXITSIZEMOVE = 0x0232;
+pub const WM_DROPFILES = 0x0233;
+pub const WM_MDIREFRESHMENU = 0x0234;
+pub const WM_POINTERDEVICECHANGE = 0x0238;
+pub const WM_POINTERDEVICEINRANGE = 0x0239;
+pub const WM_POINTERDEVICEOUTOFRANGE = 0x023a;
+pub const WM_TOUCH = 0x0240;
+pub const WM_NCPOINTERUPDATE = 0x0241;
+pub const WM_NCPOINTERDOWN = 0x0242;
+pub const WM_NCPOINTERUP = 0x0243;
+pub const WM_POINTERUPDATE = 0x0245;
+pub const WM_POINTERDOWN = 0x0246;
+pub const WM_POINTERUP = 0x0247;
+pub const WM_POINTERENTER = 0x0249;
+pub const WM_POINTERLEAVE = 0x024a;
+pub const WM_POINTERACTIVATE = 0x024b;
+pub const WM_POINTERCAPTURECHANGED = 0x024c;
+pub const WM_TOUCHHITTESTING = 0x024d;
+pub const WM_POINTERWHEEL = 0x024e;
+pub const WM_POINTERHWHEEL = 0x024f;
+pub const DM_POINTERHITTEST = 0x0250;
+pub const WM_POINTERROUTEDTO = 0x0251;
+pub const WM_POINTERROUTEDAWAY = 0x0252;
+pub const WM_POINTERROUTEDRELEASED = 0x0253;
+pub const WM_IME_SETCONTEXT = 0x0281;
+pub const WM_IME_NOTIFY = 0x0282;
+pub const WM_IME_CONTROL = 0x0283;
+pub const WM_IME_COMPOSITIONFULL = 0x0284;
+pub const WM_IME_SELECT = 0x0285;
+pub const WM_IME_CHAR = 0x0286;
+pub const WM_IME_REQUEST = 0x0288;
+pub const WM_IME_KEYDOWN = 0x0290;
+pub const WM_IME_KEYUP = 0x0291;
+pub const WM_NCMOUSEHOVER = 0x02A0;
+pub const WM_MOUSEHOVER = 0x02A1;
 pub const WM_MOUSELEAVE = 0x02A3;
-pub const WM_INPUT = 0x00FF;
-pub const WM_KEYDOWN = 0x0100;
-pub const WM_KEYUP = 0x0101;
-pub const WM_CHAR = 0x0102;
-pub const WM_SYSKEYDOWN = 0x0104;
-pub const WM_SYSKEYUP = 0x0105;
-pub const WM_SETFOCUS = 0x0007;
-pub const WM_KILLFOCUS = 0x0008;
-pub const WM_CREATE = 0x0001;
-pub const WM_DESTROY = 0x0002;
-pub const WM_MOVE = 0x0003;
-pub const WM_SIZE = 0x0005;
-pub const WM_ACTIVATE = 0x0006;
-pub const WM_ENABLE = 0x000A;
-pub const WM_PAINT = 0x000F;
-pub const WM_CLOSE = 0x0010;
-pub const WM_QUIT = 0x0012;
-pub const WM_GETMINMAXINFO = 0x0024;
+pub const WM_NCMOUSELEAVE = 0x02A2;
+pub const WM_WTSSESSION_CHANGE = 0x02B1;
+pub const WM_DPICHANGED = 0x02e0;
+pub const WM_DPICHANGED_BEFOREPARENT = 0x02e2;
+pub const WM_DPICHANGED_AFTERPARENT = 0x02e3;
+pub const WM_GETDPISCALEDSIZE = 0x02e4;
+pub const WM_CUT = 0x0300;
+pub const WM_COPY = 0x0301;
+pub const WM_PASTE = 0x0302;
+pub const WM_CLEAR = 0x0303;
+pub const WM_UNDO = 0x0304;
+pub const WM_RENDERFORMAT = 0x0305;
+pub const WM_RENDERALLFORMATS = 0x0306;
+pub const WM_DESTROYCLIPBOARD = 0x0307;
+pub const WM_DRAWCLIPBOARD = 0x0308;
+pub const WM_PAINTCLIPBOARD = 0x0309;
+pub const WM_VSCROLLCLIPBOARD = 0x030A;
+pub const WM_SIZECLIPBOARD = 0x030B;
+pub const WM_ASKCBFORMATNAME = 0x030C;
+pub const WM_CHANGECBCHAIN = 0x030D;
+pub const WM_HSCROLLCLIPBOARD = 0x030E;
+pub const WM_QUERYNEWPALETTE = 0x030F;
+pub const WM_PALETTEISCHANGING = 0x0310;
+pub const WM_PALETTECHANGED = 0x0311;
+pub const WM_HOTKEY = 0x0312;
+pub const WM_PRINT = 0x0317;
+pub const WM_PRINTCLIENT = 0x0318;
+pub const WM_APPCOMMAND = 0x0319;
+pub const WM_THEMECHANGED = 0x031A;
+pub const WM_CLIPBOARDUPDATE = 0x031D;
+pub const WM_DWMCOMPOSITIONCHANGED = 0x031E;
+pub const WM_DWMNCRENDERINGCHANGED = 0x031F;
+pub const WM_DWMCOLORIZATIONCOLORCHANGED = 0x0320;
+pub const WM_DWMWINDOWMAXIMIZEDCHANGE = 0x0321;
+pub const WM_DWMSENDICONICTHUMBNAIL = 0x0323;
+pub const WM_DWMSENDICONICLIVEPREVIEWBITMAP = 0x0326;
+pub const WM_GETTITLEBARINFOEX = 0x033F;
+pub const WM_USER = 0x0400;
+pub const WM_APP = 0x8000;
 
-pub const SIZE_MAXHIDE = 4;
-pub const SIZE_MAXIMIZED = 2;
-pub const SIZE_MAXSHOW = 3;
-pub const SIZE_MINIMIZED = 1;
-pub const SIZE_RESTORED = 0;
+pub const WA_INACTIVE = 0;
+pub const WA_ACTIVE = 1;
+pub const WA_CLICKACTIVE = 2;
 
-pub extern "kernel32" fn GetModuleHandleA(lpModuleName: ?LPCSTR) callconv(WINAPI) ?HMODULE;
+pub const IDC_ARROW: LPCWSTR = @ptrFromInt(32512);
+pub const IDC_IBEAM: LPCWSTR = @ptrFromInt(32513);
+pub const IDC_WAIT: LPCWSTR = @ptrFromInt(32514);
+pub const IDC_CROSS: LPCWSTR = @ptrFromInt(32515);
+pub const IDC_UPARROW: LPCWSTR = @ptrFromInt(32516);
+pub const IDC_PEN: LPCWSTR = @ptrFromInt(32631);
+pub const IDC_SIZE: LPCWSTR = @ptrFromInt(32640);
+pub const IDC_ICON: LPCWSTR = @ptrFromInt(32641);
+pub const IDC_SIZENWSE: LPCWSTR = @ptrFromInt(32642);
+pub const IDC_SIZENESW: LPCWSTR = @ptrFromInt(32643);
+pub const IDC_SIZEWE: LPCWSTR = @ptrFromInt(32644);
+pub const IDC_SIZENS: LPCWSTR = @ptrFromInt(32645);
+pub const IDC_SIZEALL: LPCWSTR = @ptrFromInt(32646);
+pub const IDC_NO: LPCWSTR = @ptrFromInt(32648);
+pub const IDC_HAND: LPCWSTR = @ptrFromInt(32649);
+pub const IDC_APPSTARTING: LPCWSTR = @ptrFromInt(32650);
+pub const IDC_HELP: LPCWSTR = @ptrFromInt(32651);
 
-pub extern "kernel32" fn LoadLibraryA(lpLibFileName: LPCSTR) callconv(WINAPI) ?HMODULE;
+pub const IMAGE_BITMAP = 0;
+pub const IMAGE_ICON = 1;
+pub const IMAGE_CURSOR = 2;
+pub const IMAGE_ENHMETAFILE = 3;
 
-pub extern "kernel32" fn GetProcAddress(hModule: HMODULE, lpProcName: LPCSTR) callconv(WINAPI) ?FARPROC;
+pub const LR_DEFAULTCOLOR = 0x0000;
+pub const LR_MONOCHROME = 0x0001;
+pub const LR_COLOR = 0x0002;
+pub const LR_COPYRETURNORG = 0x0004;
+pub const LR_COPYDELETEORG = 0x0008;
+pub const LR_LOADFROMFILE = 0x0010;
+pub const LR_LOADTRANSPARENT = 0x0020;
+pub const LR_DEFAULTSIZE = 0x0040;
+pub const LR_VGACOLOR = 0x0080;
+pub const LR_LOADMAP3DCOLORS = 0x1000;
+pub const LR_CREATEDIBSECTION = 0x2000;
+pub const LR_COPYFROMRESOURCE = 0x4000;
+pub const LR_SHARED = 0x8000;
 
-pub extern "kernel32" fn FreeLibrary(hModule: HMODULE) callconv(WINAPI) BOOL;
+pub const PM_NOREMOVE = 0x0000;
+pub const PM_REMOVE = 0x0001;
+pub const PM_NOYIELD = 0x0002;
 
-pub extern "kernel32" fn ExitProcess(exit_code: UINT) callconv(WINAPI) noreturn;
+pub const CW_USEDEFAULT: i32 = @bitCast(@as(u32, 0x80000000));
 
-pub const PTHREAD_START_ROUTINE = *const fn (LPVOID) callconv(.C) DWORD;
-pub const LPTHREAD_START_ROUTINE = PTHREAD_START_ROUTINE;
+pub const WS_OVERLAPPED: LONG = 0x00000000;
+pub const WS_POPUP: LONG = 0x80000000;
+pub const WS_CHILD: LONG = 0x40000000;
+pub const WS_MINIMIZE: LONG = 0x20000000;
+pub const WS_VISIBLE: LONG = 0x10000000;
+pub const WS_DISABLED: LONG = 0x08000000;
+pub const WS_CLIPSIBLINGS: LONG = 0x04000000;
+pub const WS_CLIPCHILDREN: LONG = 0x02000000;
+pub const WS_MAXIMIZE: LONG = 0x01000000;
+pub const WS_BORDER: LONG = 0x00800000;
+pub const WS_DLGFRAME: LONG = 0x00400000;
+pub const WS_VSCROLL: LONG = 0x00200000;
+pub const WS_HSCROLL: LONG = 0x00100000;
+pub const WS_SYSMENU: LONG = 0x00080000;
+pub const WS_THICKFRAME: LONG = 0x00040000;
+pub const WS_GROUP: LONG = 0x00020000;
+pub const WS_TABSTOP: LONG = 0x00010000;
+pub const WS_MINIMIZEBOX: LONG = 0x00020000;
+pub const WS_MAXIMIZEBOX: LONG = 0x00010000;
+pub const WS_CAPTION: LONG = WS_BORDER | WS_DLGFRAME;
+pub const WS_TILED: LONG = WS_OVERLAPPED;
+pub const WS_ICONIC: LONG = WS_MINIMIZE;
+pub const WS_SIZEBOX: LONG = WS_THICKFRAME;
+pub const WS_OVERLAPPEDWINDOW: LONG = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
+pub const WS_POPUPWINDOW: LONG = WS_POPUP | WS_BORDER | WS_SYSMENU;
+pub const WS_CHILDWINDOW: LONG = WS_CHILD;
+pub const WS_TILEDWINDOW: LONG = WS_OVERLAPPEDWINDOW;
 
-pub extern "kernel32" fn CreateThread(
-    lpThreadAttributes: ?*SECURITY_ATTRIBUTES,
-    dwStackSize: SIZE_T,
-    lpStartAddress: LPTHREAD_START_ROUTINE,
-    lpParameter: ?LPVOID,
-    dwCreationFlags: DWORD,
-    lpThreadId: ?*DWORD,
-) callconv(WINAPI) ?HANDLE;
-
-pub extern "kernel32" fn CreateEventExA(
-    lpEventAttributes: ?*SECURITY_ATTRIBUTES,
-    lpName: LPCSTR,
-    dwFlags: DWORD,
-    dwDesiredAccess: DWORD,
-) callconv(WINAPI) ?HANDLE;
-
-pub extern "kernel32" fn InitializeCriticalSection(lpCriticalSection: *CRITICAL_SECTION) callconv(WINAPI) void;
-pub extern "kernel32" fn EnterCriticalSection(lpCriticalSection: *CRITICAL_SECTION) callconv(WINAPI) void;
-pub extern "kernel32" fn LeaveCriticalSection(lpCriticalSection: *CRITICAL_SECTION) callconv(WINAPI) void;
-pub extern "kernel32" fn DeleteCriticalSection(lpCriticalSection: *CRITICAL_SECTION) callconv(WINAPI) void;
-
-pub extern "kernel32" fn Sleep(dwMilliseconds: DWORD) void;
-
-pub extern "ntdll" fn RtlGetVersion(lpVersionInformation: *OSVERSIONINFOW) callconv(WINAPI) NTSTATUS;
-
-pub const WNDPROC = *const fn (hwnd: HWND, uMsg: UINT, wParam: WPARAM, lParam: LPARAM) callconv(WINAPI) LRESULT;
-
-pub const MSG = extern struct {
-    hWnd: ?HWND,
-    message: UINT,
-    wParam: WPARAM,
-    lParam: LPARAM,
-    time: DWORD,
-    pt: POINT,
-    lPrivate: DWORD,
-};
-
-pub const WNDCLASSEXA = extern struct {
-    cbSize: UINT = @sizeOf(WNDCLASSEXA),
-    style: UINT = 0,
-    lpfnWndProc: WNDPROC,
-    cbClsExtra: i32 = 0,
-    cbWndExtra: i32 = 0,
-    hInstance: ?HINSTANCE,
-    hIcon: ?HICON = null,
-    hCursor: ?HCURSOR = null,
-    hbrBackground: ?HBRUSH = null,
-    lpszMenuName: ?LPCSTR = null,
-    lpszClassName: LPCSTR,
-    hIconSm: ?HICON = null,
-};
-
-pub const OSVERSIONINFOW = extern struct {
-    dwOSVersionInfoSize: ULONG,
-    dwMajorVersion: ULONG,
-    dwMinorVersion: ULONG,
-    dwBuildNumber: ULONG,
-    dwPlatformId: ULONG,
-    szCSDVersion: [128]WCHAR,
-};
-
-pub const INT8 = i8;
-pub const UINT8 = u8;
-pub const UINT16 = c_ushort;
-pub const UINT32 = c_uint;
-pub const UINT64 = c_ulonglong;
-pub const HMONITOR = HANDLE;
-pub const REFERENCE_TIME = c_longlong;
-pub const LUID = extern struct {
-    LowPart: DWORD,
-    HighPart: LONG,
-};
-
-pub const VT_UI4 = 19;
-pub const VT_I8 = 20;
-pub const VT_UI8 = 21;
-pub const VT_INT = 22;
-pub const VT_UINT = 23;
-
-pub const VARTYPE = u16;
-
-pub const PROPVARIANT = extern struct {
-    vt: VARTYPE,
-    wReserved1: WORD = 0,
-    wReserved2: WORD = 0,
-    wReserved3: WORD = 0,
-    u: extern union {
-        intVal: i32,
-        uintVal: u32,
-        hVal: i64,
-    },
-    decVal: u64 = 0,
-};
-comptime {
-    std.debug.assert(@sizeOf(PROPVARIANT) == 24);
-}
-
-pub const WHEEL_DELTA = 120;
-
-pub inline fn GET_WHEEL_DELTA_WPARAM(wparam: WPARAM) i16 {
-    return @as(i16, @bitCast(@as(u16, @intCast((wparam >> 16) & 0xffff))));
-}
-
-pub inline fn GET_X_LPARAM(lparam: LPARAM) i32 {
-    return @as(i32, @intCast(@as(i16, @bitCast(@as(u16, @intCast(lparam & 0xffff))))));
-}
-
-pub inline fn GET_Y_LPARAM(lparam: LPARAM) i32 {
-    return @as(i32, @intCast(@as(i16, @bitCast(@as(u16, @intCast((lparam >> 16) & 0xffff))))));
-}
-
-pub inline fn LOWORD(dword: anytype) WORD {
-    return @as(WORD, @bitCast(@as(u16, @intCast(dword & 0xffff))));
-}
-
-pub inline fn HIWORD(dword: anytype) WORD {
-    return @as(WORD, @bitCast(@as(u16, @intCast((dword >> 16) & 0xffff))));
-}
-
-pub const IID_IUnknown = GUID.parse("{00000000-0000-0000-C000-000000000046}");
-pub const IUnknown = extern struct {
-    __v: *const VTable,
-
-    pub usingnamespace Methods(@This());
-
-    pub fn Methods(comptime T: type) type {
-        return extern struct {
-            pub inline fn QueryInterface(self: *T, guid: *const GUID, outobj: ?*?*anyopaque) HRESULT {
-                return @as(*const IUnknown.VTable, @ptrCast(self.__v))
-                    .QueryInterface(@as(*IUnknown, @ptrCast(self)), guid, outobj);
-            }
-            pub inline fn AddRef(self: *T) ULONG {
-                return @as(*const IUnknown.VTable, @ptrCast(self.__v)).AddRef(@as(*IUnknown, @ptrCast(self)));
-            }
-            pub inline fn Release(self: *T) ULONG {
-                return @as(*const IUnknown.VTable, @ptrCast(self.__v)).Release(@as(*IUnknown, @ptrCast(self)));
-            }
-        };
-    }
-
-    pub const VTable = extern struct {
-        QueryInterface: *const fn (*IUnknown, *const GUID, ?*?*anyopaque) callconv(WINAPI) HRESULT,
-        AddRef: *const fn (*IUnknown) callconv(WINAPI) ULONG,
-        Release: *const fn (*IUnknown) callconv(WINAPI) ULONG,
-    };
-};
-
-pub extern "kernel32" fn ExitThread(DWORD) callconv(WINAPI) void;
-pub extern "kernel32" fn TerminateThread(HANDLE, DWORD) callconv(WINAPI) BOOL;
-
-pub const CLSCTX_INPROC_SERVER = 0x1;
-
-pub extern "ole32" fn CoCreateInstance(
-    rclsid: *const GUID,
-    pUnkOuter: ?*IUnknown,
-    dwClsContext: DWORD,
-    riid: *const GUID,
-    ppv: *?*anyopaque,
-) callconv(WINAPI) HRESULT;
-
-pub const VK_LBUTTON = 0x01;
-pub const VK_RBUTTON = 0x02;
-pub const VK_TAB = 0x09;
-pub const VK_ESCAPE = 0x1B;
-pub const VK_LEFT = 0x25;
-pub const VK_UP = 0x26;
-pub const VK_RIGHT = 0x27;
-pub const VK_DOWN = 0x28;
-pub const VK_PRIOR = 0x21;
-pub const VK_NEXT = 0x22;
-pub const VK_END = 0x23;
-pub const VK_HOME = 0x24;
-pub const VK_DELETE = 0x2E;
-pub const VK_BACK = 0x08;
-pub const VK_RETURN = 0x0D;
-pub const VK_CONTROL = 0x11;
-pub const VK_SHIFT = 0x10;
-pub const VK_MENU = 0x12;
-pub const VK_SPACE = 0x20;
-pub const VK_INSERT = 0x2D;
-pub const VK_LSHIFT = 0xA0;
-pub const VK_RSHIFT = 0xA1;
-pub const VK_LCONTROL = 0xA2;
-pub const VK_RCONTROL = 0xA3;
-pub const VK_LMENU = 0xA4;
-pub const VK_RMENU = 0xA5;
-pub const VK_LWIN = 0x5B;
-pub const VK_RWIN = 0x5C;
-pub const VK_APPS = 0x5D;
-pub const VK_OEM_1 = 0xBA;
-pub const VK_OEM_PLUS = 0xBB;
-pub const VK_OEM_COMMA = 0xBC;
-pub const VK_OEM_MINUS = 0xBD;
-pub const VK_OEM_PERIOD = 0xBE;
-pub const VK_OEM_2 = 0xBF;
-pub const VK_OEM_3 = 0xC0;
-pub const VK_OEM_4 = 0xDB;
-pub const VK_OEM_5 = 0xDC;
-pub const VK_OEM_6 = 0xDD;
-pub const VK_OEM_7 = 0xDE;
-pub const VK_CAPITAL = 0x14;
-pub const VK_SCROLL = 0x91;
-pub const VK_NUMLOCK = 0x90;
-pub const VK_SNAPSHOT = 0x2C;
-pub const VK_PAUSE = 0x13;
-pub const VK_NUMPAD0 = 0x60;
-pub const VK_NUMPAD1 = 0x61;
-pub const VK_NUMPAD2 = 0x62;
-pub const VK_NUMPAD3 = 0x63;
-pub const VK_NUMPAD4 = 0x64;
-pub const VK_NUMPAD5 = 0x65;
-pub const VK_NUMPAD6 = 0x66;
-pub const VK_NUMPAD7 = 0x67;
-pub const VK_NUMPAD8 = 0x68;
-pub const VK_NUMPAD9 = 0x69;
-pub const VK_MULTIPLY = 0x6A;
-pub const VK_ADD = 0x6B;
-pub const VK_SEPARATOR = 0x6C;
-pub const VK_SUBTRACT = 0x6D;
-pub const VK_DECIMAL = 0x6E;
-pub const VK_DIVIDE = 0x6F;
-pub const VK_F1 = 0x70;
-pub const VK_F2 = 0x71;
-pub const VK_F3 = 0x72;
-pub const VK_F4 = 0x73;
-pub const VK_F5 = 0x74;
-pub const VK_F6 = 0x75;
-pub const VK_F7 = 0x76;
-pub const VK_F8 = 0x77;
-pub const VK_F9 = 0x78;
-pub const VK_F10 = 0x79;
-pub const VK_F11 = 0x7A;
-pub const VK_F12 = 0x7B;
-
-pub const IM_VK_KEYPAD_ENTER = VK_RETURN + 256;
-
-pub const KF_EXTENDED = 0x0100;
-
-pub const GUID_NULL = GUID.parse("{00000000-0000-0000-0000-000000000000}");
-
-pub const GWLP_USERDATA: i32 = -21;
+pub const WS_EX_DLGMODALFRAME: LONG = 0x00000001;
+pub const WS_EX_NOPARENTNOTIFY: LONG = 0x00000004;
+pub const WS_EX_TOPMOST: LONG = 0x00000008;
+pub const WS_EX_ACCEPTFILES: LONG = 0x00000010;
+pub const WS_EX_TRANSPARENT: LONG = 0x00000020;
+pub const WS_EX_MDICHILD: LONG = 0x00000040;
+pub const WS_EX_TOOLWINDOW: LONG = 0x00000080;
+pub const WS_EX_WINDOWEDGE: LONG = 0x00000100;
+pub const WS_EX_CLIENTEDGE: LONG = 0x00000200;
+pub const WS_EX_CONTEXTHELP: LONG = 0x00000400;
+pub const WS_EX_RIGHT: LONG = 0x00001000;
+pub const WS_EX_LEFT: LONG = 0x00000000;
+pub const WS_EX_RTLREADING: LONG = 0x00002000;
+pub const WS_EX_LTRREADING: LONG = 0x00000000;
+pub const WS_EX_LEFTSCROLLBAR: LONG = 0x00004000;
+pub const WS_EX_RIGHTSCROLLBAR: LONG = 0x00000000;
+pub const WS_EX_CONTROLPARENT: LONG = 0x00010000;
+pub const WS_EX_STATICEDGE: LONG = 0x00020000;
+pub const WS_EX_APPWINDOW: LONG = 0x00040000;
+pub const WS_EX_LAYERED: LONG = 0x00080000;
+pub const WS_EX_NOINHERITLAYOUT: LONG = 0x00100000;
+pub const WS_EX_NOREDIRECTIONBITMAP: LONG = 0x00200000;
+pub const WS_EX_LAYOUTRTL: LONG = 0x00400000;
+pub const WS_EX_COMPOSITED: LONG = 0x02000000;
+pub const WS_EX_NOACTIVATE: LONG = 0x08000000;
+pub const WS_EX_OVERLAPPEDWINDOW: LONG = WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE;
+pub const WS_EX_PALETTEWINDOW: LONG = WS_EX_WINDOWEDGE | WS_EX_TOOLWINDOW | WS_EX_TOPMOST;
 
 pub const SW_HIDE = 0;
 pub const SW_SHOWNORMAL = 1;
-pub const SW_NORMAL = 1;
+pub const SW_NORMAL = SW_SHOWNORMAL;
 pub const SW_SHOWMINIMIZED = 2;
 pub const SW_SHOWMAXIMIZED = 3;
-pub const SW_MAXIMIZE = 3;
+pub const SW_MAXIMIZE = SW_SHOWMAXIMIZED;
 pub const SW_SHOWNOACTIVATE = 4;
 pub const SW_SHOW = 5;
 pub const SW_MINIMIZE = 6;
@@ -594,150 +465,534 @@ pub const SW_RESTORE = 9;
 pub const SW_SHOWDEFAULT = 10;
 pub const SW_FORCEMINIMIZE = 11;
 
-pub extern "user32" fn ShowWindow(hWnd: ?HWND, nCmdShow: u32) callconv(WINAPI) BOOL;
+pub const SWP_NOSIZE = 0x0001;
+pub const SWP_NOMOVE = 0x0002;
+pub const SWP_NOZORDER = 0x0004;
+pub const SWP_NOREDRAW = 0x0008;
+pub const SWP_NOACTIVATE = 0x0010;
+pub const SWP_FRAMECHANGED = 0x0020;
+pub const SWP_SHOWWINDOW = 0x0040;
+pub const SWP_HIDEWINDOW = 0x0080;
+pub const SWP_NOCOPYBITS = 0x0100;
+pub const SWP_NOOWNERZORDER = 0x0200;
+pub const SWP_DRAWFRAME = SWP_FRAMECHANGED;
+pub const SWP_NOREPOSITION = SWP_NOOWNERZORDER;
+pub const SWP_NOSENDCHANGING = 0x0400;
+pub const SWP_DEFERERASE = 0x2000;
+pub const SWP_ASYNCWINDOWPOS = 0x4000;
 
-pub extern "user32" fn GetWindowRect(hWnd: ?HWND, lpRect: *RECT) callconv(WINAPI) BOOL;
+pub const SIZE_RESTORED = 0;
+pub const SIZE_MINIMIZED = 1;
+pub const SIZE_MAXIMIZED = 2;
+pub const SIZE_MAXSHOW = 3;
+pub const SIZE_MAXHIDE = 4;
 
-pub const DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
-pub const DWMWA_WINDOW_CORNER_PREFERENCE = 33;
+pub const MONITOR_DEFAULTTONULL = 0;
+pub const MONITOR_DEFAULTTOPRIMARY = 1;
+pub const MONITOR_DEFAULTTONEAREST = 2;
 
-pub extern "dwmapi" fn DwmSetWindowAttribute(hwnd: ?HWND, dwAttribute: DWORD, pvAttribute: LPCVOID, cbAttribute: DWORD) callconv(WINAPI) HRESULT;
+pub const GWL_STYLE = -16;
+pub const GWL_EXSTYLE = -20;
 
-pub const IDI_WINLOGO: LPCSTR = @ptrFromInt(32517);
+pub const HWND_TOP: ?HWND = null;
+pub const HWND_BOTTOM: HWND = @ptrFromInt(@as(usize, 1));
+pub const HWND_TOPMOST: HWND = @ptrFromInt(@as(usize, -1));
+pub const HWND_NOTOPMOST: HWND = @ptrFromInt(@as(usize, -2));
+pub const HWND_MESSAGE: HWND = @ptrFromInt(@as(usize, -3));
 
-pub const IDC_ARROW: LPCSTR = @ptrFromInt(32512);
-pub const IDC_IBEAM: LPCSTR = @ptrFromInt(32513);
-pub const IDC_WAIT: LPCSTR = @ptrFromInt(32514);
-pub const IDC_CROSS: LPCSTR = @ptrFromInt(32515);
-pub const IDC_UPARROW: LPCSTR = @ptrFromInt(32516);
-pub const IDC_SIZE: LPCSTR = @ptrFromInt(32640);
-pub const IDC_ICON: LPCSTR = @ptrFromInt(32641);
-pub const IDC_SIZENWSE: LPCSTR = @ptrFromInt(32642);
-pub const IDC_SIZENESW: LPCSTR = @ptrFromInt(32643);
-pub const IDC_SIZEWE: LPCSTR = @ptrFromInt(32644);
-pub const IDC_SIZENS: LPCSTR = @ptrFromInt(32645);
-pub const IDC_SIZEALL: LPCSTR = @ptrFromInt(32646);
-pub const IDC_NO: LPCSTR = @ptrFromInt(32648);
-pub const IDC_HAND: LPCSTR = @ptrFromInt(32649);
-pub const IDC_APPSTARTING: LPCSTR = @ptrFromInt(32650);
-pub const IDC_HELP: LPCSTR = @ptrFromInt(32651);
-pub const IDC_PIN: LPCSTR = @ptrFromInt(32671);
-pub const IDC_PERSON: LPCSTR = @ptrFromInt(32672);
+pub const TME_HOVER = 0x00000001;
+pub const TME_LEAVE = 0x00000002;
+pub const TME_NONCLIENT = 0x00000010;
+pub const TME_QUERY = 0x40000000;
+pub const TME_CANCEL = 0x80000000;
 
-pub extern "user32" fn SetCursor(hCursor: ?HCURSOR) callconv(WINAPI) HCURSOR;
+pub const VK_LBUTTON = 0x01; // Left mouse button
+pub const VK_RBUTTON = 0x02; // Right mouse button
+pub const VK_CANCEL = 0x03; // Control-break processing
+pub const VK_MBUTTON = 0x04; // Middle mouse button
+pub const VK_XBUTTON1 = 0x05; // X1 mouse button
+pub const VK_XBUTTON2 = 0x06; // X2 mouse button
+pub const VK_BACK = 0x08; // Backspace key
+pub const VK_TAB = 0x09; // Tab key
+pub const VK_CLEAR = 0x0C; // Clear key
+pub const VK_RETURN = 0x0D; // Enter key
+pub const VK_SHIFT = 0x10; // Shift key
+pub const VK_CONTROL = 0x11; // Ctrl key
+pub const VK_MENU = 0x12; // Alt key
+pub const VK_PAUSE = 0x13; // Pause key
+pub const VK_CAPITAL = 0x14; // Caps lock key
+pub const VK_KANA = 0x15; // IME Kana mode
+pub const VK_HANGUL = 0x15; // IME Hangul mode
+pub const VK_IME_ON = 0x16; // IME On
+pub const VK_JUNJA = 0x17; // IME Junja mode
+pub const VK_FINAL = 0x18; // IME final mode
+pub const VK_HANJA = 0x19; // IME Hanja mode
+pub const VK_KANJI = 0x19; // IME Kanji mode
+pub const VK_IME_OFF = 0x1A; // IME Off
+pub const VK_ESCAPE = 0x1B; // Esc key
+pub const VK_CONVERT = 0x1C; // IME convert
+pub const VK_NONCONVERT = 0x1D; // IME nonconvert
+pub const VK_ACCEPT = 0x1E; // IME accept
+pub const VK_MODECHANGE = 0x1F; // IME mode change request
+pub const VK_SPACE = 0x20; // Spacebar key
+pub const VK_PRIOR = 0x21; // Page up key
+pub const VK_NEXT = 0x22; // Page down key
+pub const VK_END = 0x23; // End key
+pub const VK_HOME = 0x24; // Home key
+pub const VK_LEFT = 0x25; // Left arrow key
+pub const VK_UP = 0x26; // Up arrow key
+pub const VK_RIGHT = 0x27; // Right arrow key
+pub const VK_DOWN = 0x28; // Down arrow key
+pub const VK_SELECT = 0x29; // Select key
+pub const VK_PRINT = 0x2A; // Print key
+pub const VK_EXECUTE = 0x2B; // Execute key
+pub const VK_SNAPSHOT = 0x2C; // Print screen key
+pub const VK_INSERT = 0x2D; // Insert key
+pub const VK_DELETE = 0x2E; // Delete key
+pub const VK_HELP = 0x2F; // Help key
+pub const VK_0 = 0x30; // 0 key
+pub const VK_1 = 0x31; // 1 key
+pub const VK_2 = 0x32; // 2 key
+pub const VK_3 = 0x33; // 3 key
+pub const VK_4 = 0x34; // 4 key
+pub const VK_5 = 0x35; // 5 key
+pub const VK_6 = 0x36; // 6 key
+pub const VK_7 = 0x37; // 7 key
+pub const VK_8 = 0x38; // 8 key
+pub const VK_9 = 0x39; // 9 key
+pub const VK_A = 0x41; // A key
+pub const VK_B = 0x42; // B key
+pub const VK_C = 0x43; // C key
+pub const VK_D = 0x44; // D key
+pub const VK_E = 0x45; // E key
+pub const VK_F = 0x46; // F key
+pub const VK_G = 0x47; // G key
+pub const VK_H = 0x48; // H key
+pub const VK_I = 0x49; // I key
+pub const VK_J = 0x4A; // J key
+pub const VK_K = 0x4B; // K key
+pub const VK_L = 0x4C; // L key
+pub const VK_M = 0x4D; // M key
+pub const VK_N = 0x4E; // N key
+pub const VK_O = 0x4F; // O key
+pub const VK_P = 0x50; // P key
+pub const VK_Q = 0x51; // Q key
+pub const VK_R = 0x52; // R key
+pub const VK_S = 0x53; // S key
+pub const VK_T = 0x54; // T key
+pub const VK_U = 0x55; // U key
+pub const VK_V = 0x56; // V key
+pub const VK_W = 0x57; // W key
+pub const VK_X = 0x58; // X key
+pub const VK_Y = 0x59; // Y key
+pub const VK_Z = 0x5A; // Z key
+pub const VK_LWIN = 0x5B; // Left Windows logo key
+pub const VK_RWIN = 0x5C; // Right Windows logo key
+pub const VK_APPS = 0x5D; // Application key
+pub const VK_SLEEP = 0x5F; // Computer Sleep key
+pub const VK_NUMPAD0 = 0x60; // Numeric keypad 0 key
+pub const VK_NUMPAD1 = 0x61; // Numeric keypad 1 key
+pub const VK_NUMPAD2 = 0x62; // Numeric keypad 2 key
+pub const VK_NUMPAD3 = 0x63; // Numeric keypad 3 key
+pub const VK_NUMPAD4 = 0x64; // Numeric keypad 4 key
+pub const VK_NUMPAD5 = 0x65; // Numeric keypad 5 key
+pub const VK_NUMPAD6 = 0x66; // Numeric keypad 6 key
+pub const VK_NUMPAD7 = 0x67; // Numeric keypad 7 key
+pub const VK_NUMPAD8 = 0x68; // Numeric keypad 8 key
+pub const VK_NUMPAD9 = 0x69; // Numeric keypad 9 key
+pub const VK_MULTIPLY = 0x6A; // Multiply key
+pub const VK_ADD = 0x6B; // Add key
+pub const VK_SEPARATOR = 0x6C; // Separator key
+pub const VK_SUBTRACT = 0x6D; // Subtract key
+pub const VK_DECIMAL = 0x6E; // Decimal key
+pub const VK_DIVIDE = 0x6F; // Divide key
+pub const VK_F1 = 0x70; // F1 key
+pub const VK_F2 = 0x71; // F2 key
+pub const VK_F3 = 0x72; // F3 key
+pub const VK_F4 = 0x73; // F4 key
+pub const VK_F5 = 0x74; // F5 key
+pub const VK_F6 = 0x75; // F6 key
+pub const VK_F7 = 0x76; // F7 key
+pub const VK_F8 = 0x77; // F8 key
+pub const VK_F9 = 0x78; // F9 key
+pub const VK_F10 = 0x79; // F10 key
+pub const VK_F11 = 0x7A; // F11 key
+pub const VK_F12 = 0x7B; // F12 key
+pub const VK_F13 = 0x7C; // F13 key
+pub const VK_F14 = 0x7D; // F14 key
+pub const VK_F15 = 0x7E; // F15 key
+pub const VK_F16 = 0x7F; // F16 key
+pub const VK_F17 = 0x80; // F17 key
+pub const VK_F18 = 0x81; // F18 key
+pub const VK_F19 = 0x82; // F19 key
+pub const VK_F20 = 0x83; // F20 key
+pub const VK_F21 = 0x84; // F21 key
+pub const VK_F22 = 0x85; // F22 key
+pub const VK_F23 = 0x86; // F23 key
+pub const VK_F24 = 0x87; // F24 key
+pub const VK_NUMLOCK = 0x90; // Num lock key
+pub const VK_SCROLL = 0x91; // Scroll lock key
+pub const VK_LSHIFT = 0xA0; // Left Shift key
+pub const VK_RSHIFT = 0xA1; // Right Shift key
+pub const VK_LCONTROL = 0xA2; // Left Ctrl key
+pub const VK_RCONTROL = 0xA3; // Right Ctrl key
+pub const VK_LMENU = 0xA4; // Left Alt key
+pub const VK_RMENU = 0xA5; // Right Alt key
+pub const VK_BROWSER_BACK = 0xA6; // Browser Back key
+pub const VK_BROWSER_FORWARD = 0xA7; // Browser Forward key
+pub const VK_BROWSER_REFRESH = 0xA8; // Browser Refresh key
+pub const VK_BROWSER_STOP = 0xA9; // Browser Stop key
+pub const VK_BROWSER_SEARCH = 0xAA; // Browser Search key
+pub const VK_BROWSER_FAVORITES = 0xAB; // Browser Favorites key
+pub const VK_BROWSER_HOME = 0xAC; // Browser Start and Home key
+pub const VK_VOLUME_MUTE = 0xAD; // Volume Mute key
+pub const VK_VOLUME_DOWN = 0xAE; // Volume Down key
+pub const VK_VOLUME_UP = 0xAF; // Volume Up key
+pub const VK_MEDIA_NEXT_TRACK = 0xB0; // Next Track key
+pub const VK_MEDIA_PREV_TRACK = 0xB1; // Previous Track key
+pub const VK_MEDIA_STOP = 0xB2; // Stop Media key
+pub const VK_MEDIA_PLAY_PAUSE = 0xB3; // Play/Pause Media key
+pub const VK_LAUNCH_MAIL = 0xB4; // Start Mail key
+pub const VK_LAUNCH_MEDIA_SELECT = 0xB5; // Select Media key
+pub const VK_LAUNCH_APP1 = 0xB6; // Start Application 1 key
+pub const VK_LAUNCH_APP2 = 0xB7; // Start Application 2 key
+pub const VK_OEM_1 = 0xBA; // Used for miscellaneous characters; it can vary by keyboard. For the US standard keyboard, the ;: key
+pub const VK_OEM_PLUS = 0xBB; // For any country/region, the + key
+pub const VK_OEM_COMMA = 0xBC; // For any country/region, the , key
+pub const VK_OEM_MINUS = 0xBD; // For any country/region, the - key
+pub const VK_OEM_PERIOD = 0xBE; // For any country/region, the . key
+pub const VK_OEM_2 = 0xBF; // Used for miscellaneous characters; it can vary by keyboard. For the US standard keyboard, the /? key
+pub const VK_OEM_3 = 0xC0; // Used for miscellaneous characters; it can vary by keyboard. For the US standard keyboard, the `~ key
+pub const VK_OEM_4 = 0xDB; // Used for miscellaneous characters; it can vary by keyboard. For the US standard keyboard, the [{ key
+pub const VK_OEM_5 = 0xDC; // Used for miscellaneous characters; it can vary by keyboard. For the US standard keyboard, the \\| key
+pub const VK_OEM_6 = 0xDD; // Used for miscellaneous characters; it can vary by keyboard. For the US standard keyboard, the ]} key
+pub const VK_OEM_7 = 0xDE; // Used for miscellaneous characters; it can vary by keyboard. For the US standard keyboard, the '" key
+pub const VK_OEM_8 = 0xDF; // Used for miscellaneous characters; it can vary by keyboard.
+pub const VK_OEM_102 = 0xE2; // The <> keys on the US standard keyboard, or the \\| key on the non-US 102-key keyboard
+pub const VK_PROCESSKEY = 0xE5; // IME PROCESS key
+pub const VK_PACKET = 0xE7; // Used to pass Unicode characters as if they were keystrokes. The VK_PACKET key is the low word of a 32-bit Virtual Key value used for non-keyboard input methods. For more information, see Remark in KEYBDINPUT, SendInput, WM_KEYDOWN, and WM_KEYUP
+pub const VK_ATTN = 0xF6; // Attn key
+pub const VK_CRSEL = 0xF7; // CrSel key
+pub const VK_EXSEL = 0xF8; // ExSel key
+pub const VK_EREOF = 0xF9; // Erase EOF key
+pub const VK_PLAY = 0xFA; // Play key
+pub const VK_ZOOM = 0xFB; // Zoom key
+pub const VK_NONAME = 0xFC; // Reserved
+pub const VK_PA1 = 0xFD; // PA1 key
+pub const VK_OEM_CLEAR = 0xFE; // Clear key
 
-pub const HTCLIENT = 1;
+pub const CF_TEXT = 1; // ANSI
+pub const CF_UNICODETEXT = 13; // UTF16 (and technically also CR+LF line endings)
 
-pub extern "user32" fn LoadIconA(hInstance: ?HINSTANCE, lpIconName: LPCSTR) callconv(WINAPI) HICON;
+pub const GMEM_FIXED: UINT = 0x0000;
+pub const GMEM_MOVEABLE: UINT = 0x0002;
+pub const GMEM_ZEROINIT: UINT = 0x0040;
+pub const GPTR: UINT = 0x0040; // GMEM_FIXED | GMEM_ZEROINIT
+pub const GHND: UINT = 0x0042; // GMEM_MOVEABLE | GMEM_ZEROINIT
 
-pub const BITMAPV5HEADER = extern struct {
-    bV5Size: DWORD = @sizeOf(BITMAPV5HEADER),
-    bV5Width: LONG = 0,
-    bV5Height: LONG = 0,
-    bV5Planes: WORD = 0,
-    bV5BitCount: WORD = 0,
-    bV5Compression: DWORD = 0,
-    bV5SizeImage: DWORD = 0,
-    bV5XPelsPerMeter: LONG = 0,
-    bV5YPelsPerMeter: LONG = 0,
-    bV5ClrUsed: DWORD = 0,
-    bV5ClrImportant: DWORD = 0,
-    bV5RedMask: DWORD = 0,
-    bV5GreenMask: DWORD = 0,
-    bV5BlueMask: DWORD = 0,
-    bV5AlphaMask: DWORD = 0,
-    bV5CSType: DWORD = 0,
-    bV5Endpoints: CIEXYZTRIPLE = .{},
-    bV5GammaRed: DWORD = 0,
-    bV5GammaGreen: DWORD = 0,
-    bV5GammaBlue: DWORD = 0,
-    bV5Intent: DWORD = 0,
-    bV5ProfileData: DWORD = 0,
-    bV5ProfileSize: DWORD = 0,
-    bV5Reserved: DWORD = 0,
+pub extern "user32" fn GetLastError() callconv(.winapi) DWORD;
+pub extern "user32" fn RegisterClassExW(class: *const WNDCLASSEXW) callconv(.winapi) u16;
+pub extern "user32" fn UnregisterClassW(lpClassName: LPCWSTR, hInstance: ?HINSTANCE) callconv(.winapi) BOOL;
+pub extern "user32" fn AdjustWindowRectEx(lpRect: LPRECT, dwStyle: DWORD, bMenu: BOOL, dwExStyle: DWORD) callconv(.winapi) BOOL;
+pub extern "user32" fn CreateWindowExW(dwExStyle: DWORD, lpClassName: ?LPCWSTR, lpWindowName: ?LPCWSTR, dwStyle: DWORD, x: i32, y: i32, nWidth: i32, nHeight: i32, hWndParent: ?HWND, hMenu: ?HMENU, hInstance: ?HINSTANCE, lpParam: ?LPVOID) callconv(.winapi) ?HWND;
+pub extern "user32" fn DestroyWindow(hWnd: HWND) callconv(.winapi) BOOL;
+pub extern "user32" fn ShowWindow(hWnd: HWND, nCmdShow: i32) callconv(.winapi) BOOL;
+pub extern "user32" fn UpdateWindow(hWnd: HWND) callconv(.winapi) BOOL;
+pub extern "user32" fn PeekMessageW(lpMsg: LPMSG, hWnd: HWND, wMsgFilterMin: u32, wMsgFilterMax: i32, wRemoveMsg: u32) callconv(.winapi) BOOL;
+pub extern "user32" fn TranslateMessage(lpMsg: *const MSG) callconv(.winapi) BOOL;
+pub extern "user32" fn DispatchMessageW(lpMsg: *const MSG) callconv(.winapi) LRESULT;
+pub extern "user32" fn DefWindowProcW(hWnd: HWND, msg: u32, wParam: WPARAM, lParam: LPARAM) callconv(.winapi) LRESULT;
+pub extern "user32" fn LoadCursorW(hInstance: ?HINSTANCE, lpCursorName: LPCWSTR) callconv(.winapi) ?HCURSOR;
+pub extern "user32" fn LoadImageW(hInstance: ?HINSTANCE, name: LPCWSTR, type: u32, cx: i32, cy: i32, fuLoad: u32) callconv(.winapi) ?HANDLE;
+pub extern "user32" fn GetWindowLongW(hWnd: HWND, nIndex: i32) callconv(.winapi) LONG;
+pub extern "user32" fn SetWindowLongW(hWnd: HWND, nIndex: i32, dwNewLong: LONG) callconv(.winapi) LONG;
+pub extern "user32" fn GetWindowPlacement(hWnd: HWND, lpwndpl: *WINDOWPLACEMENT) callconv(.winapi) BOOL;
+pub extern "user32" fn SetWindowPlacement(hWnd: HWND, lpwndpl: *const WINDOWPLACEMENT) callconv(.winapi) BOOL;
+pub extern "user32" fn SetWindowPos(hWnd: HWND, hWndInsertAfter: ?HWND, x: i32, y: i32, cx: i32, cy: i32, uFlags: u32) callconv(.winapi) BOOL;
+pub extern "user32" fn GetMonitorInfoW(hMonitor: HMONITOR, lpmi: LPMONITORINFO) callconv(.winapi) BOOL;
+pub extern "user32" fn MonitorFromWindow(hWnd: HWND, dwFlags: DWORD) callconv(.winapi) HMONITOR;
+pub extern "user32" fn TrackMouseEvent(lpEventTrack: LPTRACKMOUSEEVENT) callconv(.winapi) BOOL;
+pub extern "user32" fn OpenClipboard(hWndNewOwner: ?HWND) callconv(.winapi) BOOL;
+pub extern "user32" fn CloseClipboard() callconv(.winapi) BOOL;
+pub extern "user32" fn EnumClipboardFormats(format: UINT) callconv(.winapi) UINT;
+pub extern "user32" fn EmptyClipboard() callconv(.winapi) BOOL;
+pub extern "user32" fn GetClipboardData(uFormat: UINT) callconv(.winapi) ?HGLOBAL;
+pub extern "user32" fn SetClipboardData(uFormat: UINT, hMem: HGLOBAL) callconv(.winapi) ?HGLOBAL;
+pub extern "user32" fn GlobalLock(hMem: HGLOBAL) callconv(.winapi) ?LPVOID;
+pub extern "user32" fn GlobalUnlock(hMem: HGLOBAL) callconv(.winapi) BOOL;
+pub extern "user32" fn GlobalAlloc(uFlags: UINT, dwBytes: SIZE_T) callconv(.winapi) ?HGLOBAL;
+pub extern "user32" fn GlobalFree(hMem: HGLOBAL) callconv(.winapi) ?HGLOBAL;
+
+pub const GetModuleHandleW = os.kernel32.GetModuleHandleW;
+
+pub const IID_IUnknown = GUID.parse("{00000000-0000-0000-C000-000000000046}");
+pub const IUnknown = extern struct {
+    vtable: *const VTable,
+
+    pub const VTable = extern struct {
+        query_interface: *const fn (*IUnknown, *const GUID, ?*?*anyopaque) callconv(.winapi) HRESULT,
+        add_ref: *const fn (*IUnknown) callconv(.winapi) ULONG,
+        release: *const fn (*IUnknown) callconv(.winapi) ULONG,
+    };
 };
 
-pub const CIEXYZTRIPLE = extern struct {
-    ciexyzRed: CIEXYZ = .{},
-    ciexyzGreen: CIEXYZ = .{},
-    ciexyzBlue: CIEXYZ = .{},
+pub const IObject = extern struct {
+    vtable: *const VTable,
+
+    pub const VTable = extern struct {
+        base: IUnknown.VTable,
+        get_private_data: *anyopaque,
+        set_private_data: *anyopaque,
+        set_private_data_interface: *anyopaque,
+        set_name: *anyopaque,
+    };
 };
 
-pub const CIEXYZ = extern struct {
-    ciexyzX: FXPT2DOT30 = 0,
-    ciexyzY: FXPT2DOT30 = 0,
-    ciexyzZ: FXPT2DOT30 = 0,
-};
-
-pub const FXPT2DOT30 = c_long;
-
-pub const BI_RGB = 0x0000;
-pub const BI_RLE8 = 0x0001;
-pub const BI_RLE4 = 0x0002;
-pub const BI_BITFIELDS = 0x0003;
-pub const BI_JPEG = 0x0004;
-pub const BI_PNG = 0x0005;
-pub const BI_CMYK = 0x000B;
-pub const BI_CMYKRLE8 = 0x000C;
-pub const BI_CMYKRLE4 = 0x000D;
-
-pub extern "user32" fn GetDC(hwnd: ?HWND) callconv(WINAPI) HDC;
-
-pub extern "gdi32" fn CreateDIBSection(hdc: HDC, pbmi: *const BITMAPINFO, usage: UINT, ppvBits: *?*anyopaque, hSection: ?HANDLE, offset: DWORD) callconv(WINAPI) ?HBITMAP;
-
-pub const BITMAPINFO = extern struct {
-    bmiHeader: BITMAPINFOHEADER,
-    bmiColors: [1]RGBQUAD,
-};
-
-pub const BITMAPINFOHEADER = extern struct {
-    biSize: u32,
-    biWidth: i32,
-    biHeight: i32,
-    biPlanes: u16,
-    biBitCount: u16,
-    biCompression: u32,
-    biSizeImage: u32,
-    biXPelsPerMeter: i32,
-    biYPelsPerMeter: i32,
-    biClrUsed: u32,
-    biClrImportant: u32,
-};
-
-pub const RGBQUAD = extern struct {
-    rgbBlue: u8,
-    rgbGreen: u8,
-    rgbRed: u8,
-    rgbReserved: u8,
-};
-
-pub const DIB_RGB_COLORS = 0;
-pub const DIB_PAL_COLORS = 1;
-
-pub extern "gdi32" fn CreateBitmap(nWidth: i32, nHeight: i32, nPlanes: u32, nBitCount: u32, lpBits: ?*const anyopaque) callconv(WINAPI) ?HBITMAP;
-
-pub const ICONINFO = extern struct {
-    fIcon: BOOL,
-    xHotspot: u32,
-    yHotspot: u32,
-    hbmMask: ?HBITMAP,
-    hbmColor: ?HBITMAP,
-};
-
-pub extern "user32" fn CreateIconIndirect(piconinfo: ?*ICONINFO) callconv(WINAPI) ?HICON;
-
-pub extern "gdi32" fn DeleteObject(ho: ?*anyopaque) callconv(WINAPI) BOOL;
-
-pub extern "user32" fn ReleaseDC(hWnd: ?HWND, hDC: ?HDC) callconv(WINAPI) c_int;
-
-pub extern "user32" fn SetClassLongPtrA(hWnd: ?HWND, nIndex: i32, dwNewLong: LONG_PTR) callconv(WINAPI) ULONG_PTR;
-
-pub extern "user32" fn DestroyIcon(hIcon: HICON) callconv(WINAPI) BOOL;
-
-pub const GCLP_MENUNAME = -8;
-pub const GCLP_HBRBACKGROUND = -10;
-pub const GCLP_HCURSOR = -12;
-pub const GCLP_HICON = -14;
-pub const GCLP_HMODULE = -16;
-pub const GCLP_WNDPROC = -24;
-pub const GCLP_HICONSM = -34;
+pub fn msgToStr(msg: u32, buf: *[6]u8) []const u8 {
+    return switch (msg) {
+        WM_NULL => "NULL",
+        WM_CREATE => "CREATE",
+        WM_DESTROY => "DESTROY",
+        WM_MOVE => "MOVE",
+        WM_SIZE => "SIZE",
+        WM_ACTIVATE => "ACTIVATE",
+        WM_SETFOCUS => "SETFOCUS",
+        WM_KILLFOCUS => "KILLFOCUS",
+        WM_ENABLE => "ENABLE",
+        WM_SETREDRAW => "SETREDRAW",
+        WM_SETTEXT => "SETTEXT",
+        WM_GETTEXT => "GETTEXT",
+        WM_GETTEXTLENGTH => "GETTEXTLENGTH",
+        WM_PAINT => "PAINT",
+        WM_CLOSE => "CLOSE",
+        WM_QUERYENDSESSION => "QUERYENDSESSION",
+        WM_QUIT => "QUIT",
+        WM_QUERYOPEN => "QUERYOPEN",
+        WM_ERASEBKGND => "ERASEBKGND",
+        WM_SYSCOLORCHANGE => "SYSCOLORCHANGE",
+        WM_ENDSESSION => "ENDSESSION",
+        WM_SHOWWINDOW => "SHOWWINDOW",
+        WM_SETTINGCHANGE => "SETTINGCHANGE",
+        WM_DEVMODECHANGE => "DEVMODECHANGE",
+        WM_ACTIVATEAPP => "ACTIVATEAPP",
+        WM_FONTCHANGE => "FONTCHANGE",
+        WM_TIMECHANGE => "TIMECHANGE",
+        WM_CANCELMODE => "CANCELMODE",
+        WM_SETCURSOR => "SETCURSOR",
+        WM_MOUSEACTIVATE => "MOUSEACTIVATE",
+        WM_CHILDACTIVATE => "CHILDACTIVATE",
+        WM_QUEUESYNC => "QUEUESYNC",
+        WM_GETMINMAXINFO => "GETMINMAXINFO",
+        WM_PAINTICON => "PAINTICON",
+        WM_ICONERASEBKGND => "ICONERASEBKGND",
+        WM_NEXTDLGCTL => "NEXTDLGCTL",
+        WM_SPOOLERSTATUS => "SPOOLERSTATUS",
+        WM_DRAWITEM => "DRAWITEM",
+        WM_MEASUREITEM => "MEASUREITEM",
+        WM_DELETEITEM => "DELETEITEM",
+        WM_VKEYTOITEM => "VKEYTOITEM",
+        WM_CHARTOITEM => "CHARTOITEM",
+        WM_SETFONT => "SETFONT",
+        WM_GETFONT => "GETFONT",
+        WM_SETHOTKEY => "SETHOTKEY",
+        WM_GETHOTKEY => "GETHOTKEY",
+        WM_QUERYDRAGICON => "QUERYDRAGICON",
+        WM_COMPAREITEM => "COMPAREITEM",
+        WM_GETOBJECT => "GETOBJECT",
+        WM_COMPACTING => "COMPACTING",
+        WM_COMMNOTIFY => "COMMNOTIFY",
+        WM_WINDOWPOSCHANGING => "WINDOWPOSCHANGING",
+        WM_WINDOWPOSCHANGED => "WINDOWPOSCHANGED",
+        WM_POWER => "POWER",
+        WM_COPYDATA => "COPYDATA",
+        WM_CANCELJOURNAL => "CANCELJOURNAL",
+        WM_NOTIFY => "NOTIFY",
+        WM_INPUTLANGCHANGEREQUEST => "INPUTLANGCHANGEREQUEST",
+        WM_INPUTLANGCHANGE => "INPUTLANGCHANGE",
+        WM_TCARD => "TCARD",
+        WM_HELP => "HELP",
+        WM_USERCHANGED => "USERCHANGED",
+        WM_NOTIFYFORMAT => "NOTIFYFORMAT",
+        WM_CONTEXTMENU => "CONTEXTMENU",
+        WM_STYLECHANGING => "STYLECHANGING",
+        WM_STYLECHANGED => "STYLECHANGED",
+        WM_DISPLAYCHANGE => "DISPLAYCHANGE",
+        WM_GETICON => "GETICON",
+        WM_SETICON => "SETICON",
+        WM_NCCREATE => "NCCREATE",
+        WM_NCDESTROY => "NCDESTROY",
+        WM_NCCALCSIZE => "NCCALCSIZE",
+        WM_NCHITTEST => "NCHITTEST",
+        WM_NCPAINT => "NCPAINT",
+        WM_NCACTIVATE => "NCACTIVATE",
+        WM_GETDLGCODE => "GETDLGCODE",
+        WM_SYNCPAINT => "SYNCPAINT",
+        WM_NCMOUSEMOVE => "NCMOUSEMOVE",
+        WM_NCLBUTTONDOWN => "NCLBUTTONDOWN",
+        WM_NCLBUTTONUP => "NCLBUTTONUP",
+        WM_NCLBUTTONDBLCLK => "NCLBUTTONDBLCLK",
+        WM_NCRBUTTONDOWN => "NCRBUTTONDOWN",
+        WM_NCRBUTTONUP => "NCRBUTTONUP",
+        WM_NCRBUTTONDBLCLK => "NCRBUTTONDBLCLK",
+        WM_NCMBUTTONDOWN => "NCMBUTTONDOWN",
+        WM_NCMBUTTONUP => "NCMBUTTONUP",
+        WM_NCMBUTTONDBLCLK => "NCMBUTTONDBLCLK",
+        WM_NCXBUTTONDOWN => "NCXBUTTONDOWN",
+        WM_NCXBUTTONUP => "NCXBUTTONUP",
+        WM_NCXBUTTONDBLCLK => "NCXBUTTONDBLCLK",
+        WM_INPUT_DEVICE_CHANGE => "INPUT_DEVICE_CHANGE",
+        WM_INPUT => "INPUT",
+        WM_KEYDOWN => "KEYDOWN",
+        WM_KEYUP => "KEYUP",
+        WM_CHAR => "CHAR",
+        WM_DEADCHAR => "DEADCHAR",
+        WM_SYSKEYDOWN => "SYSKEYDOWN",
+        WM_SYSKEYUP => "SYSKEYUP",
+        WM_SYSCHAR => "SYSCHAR",
+        WM_SYSDEADCHAR => "SYSDEADCHAR",
+        WM_UNICHAR => "UNICHAR",
+        WM_IME_STARTCOMPOSITION => "IME_STARTCOMPOSITION",
+        WM_IME_ENDCOMPOSITION => "IME_ENDCOMPOSITION",
+        WM_IME_COMPOSITION => "IME_COMPOSITION",
+        WM_INITDIALOG => "INITDIALOG",
+        WM_COMMAND => "COMMAND",
+        WM_SYSCOMMAND => "SYSCOMMAND",
+        WM_TIMER => "TIMER",
+        WM_HSCROLL => "HSCROLL",
+        WM_VSCROLL => "VSCROLL",
+        WM_INITMENU => "INITMENU",
+        WM_INITMENUPOPUP => "INITMENUPOPUP",
+        WM_GESTURE => "GESTURE",
+        WM_GESTURENOTIFY => "GESTURENOTIFY",
+        WM_MENUSELECT => "MENUSELECT",
+        WM_MENUCHAR => "MENUCHAR",
+        WM_ENTERIDLE => "ENTERIDLE",
+        WM_MENURBUTTONUP => "MENURBUTTONUP",
+        WM_MENUDRAG => "MENUDRAG",
+        WM_MENUGETOBJECT => "MENUGETOBJECT",
+        WM_UNINITMENUPOPUP => "UNINITMENUPOPUP",
+        WM_MENUCOMMAND => "MENUCOMMAND",
+        WM_CHANGEUISTATE => "CHANGEUISTATE",
+        WM_UPDATEUISTATE => "UPDATEUISTATE",
+        WM_QUERYUISTATE => "QUERYUISTATE",
+        WM_CTLCOLORMSGBOX => "CTLCOLORMSGBOX",
+        WM_CTLCOLOREDIT => "CTLCOLOREDIT",
+        WM_CTLCOLORLISTBOX => "CTLCOLORLISTBOX",
+        WM_CTLCOLORBTN => "CTLCOLORBTN",
+        WM_CTLCOLORDLG => "CTLCOLORDLG",
+        WM_CTLCOLORSCROLLBAR => "CTLCOLORSCROLLBAR",
+        WM_CTLCOLORSTATIC => "CTLCOLORSTATIC",
+        WM_MOUSEMOVE => "MOUSEMOVE",
+        WM_LBUTTONDOWN => "LBUTTONDOWN",
+        WM_LBUTTONUP => "LBUTTONUP",
+        WM_LBUTTONDBLCLK => "LBUTTONDBLCLK",
+        WM_RBUTTONDOWN => "RBUTTONDOWN",
+        WM_RBUTTONUP => "RBUTTONUP",
+        WM_RBUTTONDBLCLK => "RBUTTONDBLCLK",
+        WM_MBUTTONDOWN => "MBUTTONDOWN",
+        WM_MBUTTONUP => "MBUTTONUP",
+        WM_MBUTTONDBLCLK => "MBUTTONDBLCLK",
+        WM_MOUSEWHEEL => "MOUSEWHEEL",
+        WM_XBUTTONDOWN => "XBUTTONDOWN",
+        WM_XBUTTONUP => "XBUTTONUP",
+        WM_XBUTTONDBLCLK => "XBUTTONDBLCLK",
+        WM_MOUSEHWHEEL => "MOUSEHWHEEL",
+        WM_PARENTNOTIFY => "PARENTNOTIFY",
+        WM_ENTERMENULOOP => "ENTERMENULOOP",
+        WM_EXITMENULOOP => "EXITMENULOOP",
+        WM_NEXTMENU => "NEXTMENU",
+        WM_SIZING => "SIZING",
+        WM_CAPTURECHANGED => "CAPTURECHANGED",
+        WM_MOVING => "MOVING",
+        WM_POWERBROADCAST => "POWERBROADCAST",
+        WM_DEVICECHANGE => "DEVICECHANGE",
+        WM_MDICREATE => "MDICREATE",
+        WM_MDIDESTROY => "MDIDESTROY",
+        WM_MDIACTIVATE => "MDIACTIVATE",
+        WM_MDIRESTORE => "MDIRESTORE",
+        WM_MDINEXT => "MDINEXT",
+        WM_MDIMAXIMIZE => "MDIMAXIMIZE",
+        WM_MDITILE => "MDITILE",
+        WM_MDICASCADE => "MDICASCADE",
+        WM_MDIICONARRANGE => "MDIICONARRANGE",
+        WM_MDIGETACTIVE => "MDIGETACTIVE",
+        WM_MDISETMENU => "MDISETMENU",
+        WM_ENTERSIZEMOVE => "ENTERSIZEMOVE",
+        WM_EXITSIZEMOVE => "EXITSIZEMOVE",
+        WM_DROPFILES => "DROPFILES",
+        WM_MDIREFRESHMENU => "MDIREFRESHMENU",
+        WM_POINTERDEVICECHANGE => "POINTERDEVICECHANGE",
+        WM_POINTERDEVICEINRANGE => "POINTERDEVICEINRANGE",
+        WM_POINTERDEVICEOUTOFRANGE => "POINTERDEVICEOUTOFRANGE",
+        WM_TOUCH => "TOUCH",
+        WM_NCPOINTERUPDATE => "NCPOINTERUPDATE",
+        WM_NCPOINTERDOWN => "NCPOINTERDOWN",
+        WM_NCPOINTERUP => "NCPOINTERUP",
+        WM_POINTERUPDATE => "POINTERUPDATE",
+        WM_POINTERDOWN => "POINTERDOWN",
+        WM_POINTERUP => "POINTERUP",
+        WM_POINTERENTER => "POINTERENTER",
+        WM_POINTERLEAVE => "POINTERLEAVE",
+        WM_POINTERACTIVATE => "POINTERACTIVATE",
+        WM_POINTERCAPTURECHANGED => "POINTERCAPTURECHANGED",
+        WM_TOUCHHITTESTING => "TOUCHHITTESTING",
+        WM_POINTERWHEEL => "POINTERWHEEL",
+        WM_POINTERHWHEEL => "POINTERHWHEEL",
+        DM_POINTERHITTEST => "POINTERHITTEST",
+        WM_POINTERROUTEDTO => "POINTERROUTEDTO",
+        WM_POINTERROUTEDAWAY => "POINTERROUTEDAWAY",
+        WM_POINTERROUTEDRELEASED => "POINTERROUTEDRELEASED",
+        WM_IME_SETCONTEXT => "IME_SETCONTEXT",
+        WM_IME_NOTIFY => "IME_NOTIFY",
+        WM_IME_CONTROL => "IME_CONTROL",
+        WM_IME_COMPOSITIONFULL => "IME_COMPOSITIONFULL",
+        WM_IME_SELECT => "IME_SELECT",
+        WM_IME_CHAR => "IME_CHAR",
+        WM_IME_REQUEST => "IME_REQUEST",
+        WM_IME_KEYDOWN => "IME_KEYDOWN",
+        WM_IME_KEYUP => "IME_KEYUP",
+        WM_NCMOUSEHOVER => "NCMOUSEHOVER",
+        WM_MOUSEHOVER => "MOUSEHOVER",
+        WM_MOUSELEAVE => "MOUSELEAVE",
+        WM_NCMOUSELEAVE => "NCMOUSELEAVE",
+        WM_WTSSESSION_CHANGE => "WTSSESSION_CHANGE",
+        WM_DPICHANGED => "DPICHANGED",
+        WM_DPICHANGED_BEFOREPARENT => "DPICHANGED_BEFOREPARENT",
+        WM_DPICHANGED_AFTERPARENT => "DPICHANGED_AFTERPARENT",
+        WM_GETDPISCALEDSIZE => "GETDPISCALEDSIZE",
+        WM_CUT => "CUT",
+        WM_COPY => "COPY",
+        WM_PASTE => "PASTE",
+        WM_CLEAR => "CLEAR",
+        WM_UNDO => "UNDO",
+        WM_RENDERFORMAT => "RENDERFORMAT",
+        WM_RENDERALLFORMATS => "RENDERALLFORMATS",
+        WM_DESTROYCLIPBOARD => "DESTROYCLIPBOARD",
+        WM_DRAWCLIPBOARD => "DRAWCLIPBOARD",
+        WM_PAINTCLIPBOARD => "PAINTCLIPBOARD",
+        WM_VSCROLLCLIPBOARD => "VSCROLLCLIPBOARD",
+        WM_SIZECLIPBOARD => "SIZECLIPBOARD",
+        WM_ASKCBFORMATNAME => "ASKCBFORMATNAME",
+        WM_CHANGECBCHAIN => "CHANGECBCHAIN",
+        WM_HSCROLLCLIPBOARD => "HSCROLLCLIPBOARD",
+        WM_QUERYNEWPALETTE => "QUERYNEWPALETTE",
+        WM_PALETTEISCHANGING => "PALETTEISCHANGING",
+        WM_PALETTECHANGED => "PALETTECHANGED",
+        WM_HOTKEY => "HOTKEY",
+        WM_PRINT => "PRINT",
+        WM_PRINTCLIENT => "PRINTCLIENT",
+        WM_APPCOMMAND => "APPCOMMAND",
+        WM_THEMECHANGED => "THEMECHANGED",
+        WM_CLIPBOARDUPDATE => "CLIPBOARDUPDATE",
+        WM_DWMCOMPOSITIONCHANGED => "DWMCOMPOSITIONCHANGED",
+        WM_DWMNCRENDERINGCHANGED => "DWMNCRENDERINGCHANGED",
+        WM_DWMCOLORIZATIONCOLORCHANGED => "DWMCOLORIZATIONCOLORCHANGED",
+        WM_DWMWINDOWMAXIMIZEDCHANGE => "DWMWINDOWMAXIMIZEDCHANGE",
+        WM_DWMSENDICONICTHUMBNAIL => "DWMSENDICONICTHUMBNAIL",
+        WM_DWMSENDICONICLIVEPREVIEWBITMAP => "DWMSENDICONICLIVEPREVIEWBITMAP",
+        WM_GETTITLEBARINFOEX => "GETTITLEBARINFOEX",
+        WM_USER => "USER",
+        WM_APP => "APP",
+        else => std.fmt.bufPrint(buf, "0x{x:04}", .{msg}) catch unreachable,
+    };
+}

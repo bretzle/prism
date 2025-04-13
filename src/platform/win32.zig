@@ -1,187 +1,198 @@
 const std = @import("std");
-const w32 = @import("w32");
+const builtin = @import("builtin");
 const prism = @import("../prism.zig");
-const math = @import("../math.zig");
-const input = @import("../input.zig");
+const platform = @import("platform.zig");
+const w32 = @import("w32");
+const util = @import("../util.zig");
 
-const Icon = prism.Icon;
-const Config = prism.Config;
-const Parent = prism.Application;
+const allocator = prism.allocator;
+const window_class_name = std.unicode.utf8ToUtf16LeStringLiteral("prism");
 
-pub const Application = struct {
-    const Self = @This();
-    const class_name = "prism.zig";
+var __context: *Context = undefined;
+var __event_level: u32 = 0;
 
-    hwnd: w32.HWND,
-    cursor: ?w32.HCURSOR,
+pub const Context = struct {
+    hinstance: w32.HINSTANCE,
+    windows: std.ArrayListUnmanaged(*Window),
 
-    pub fn init(self: *Self) !void {
-        const parent = self.getParent();
-        const config = parent.config;
+    pub fn create() !platform.Context {
+        const self = try allocator.create(Context);
+        errdefer allocator.destroy(self);
 
-        const instance = w32.GetModuleHandleA(null).?;
-        const class = w32.WNDCLASSEXA{
-            .cbWndExtra = 8,
-            .lpfnWndProc = windowProc,
-            .hInstance = @ptrCast(instance),
-            .hCursor = w32.LoadCursorA(null, w32.IDC_ARROW),
-            .hIcon = w32.LoadIconA(null, w32.IDI_WINLOGO),
-            .lpszClassName = class_name,
+        const hinstance: w32.HINSTANCE = @ptrCast(w32.GetModuleHandleW(null) orelse return error.NoInstance);
+        const wnd_class = w32.WNDCLASSEXW{
+            .style = 0,
+            .lpfnWndProc = &wndProcCallback,
+            .cbClsExtra = 0,
+            .cbWndExtra = 0,
+            .hInstance = hinstance,
+            .hIcon = null,
+            .hCursor = @ptrCast(w32.LoadImageW(null, w32.IDC_ARROW, w32.IMAGE_CURSOR, 0, 0, w32.LR_DEFAULTSIZE | w32.LR_SHARED)),
+            .hbrBackground = null,
+            .lpszMenuName = null,
+            .lpszClassName = window_class_name,
+            .hIconSm = null,
         };
 
-        _ = w32.RegisterClassExA(&class);
-
-        const ex_style = w32.WS_EX_APPWINDOW | w32.WS_EX_WINDOWEDGE;
-        var style: u32 = w32.WS_OVERLAPPEDWINDOW;
-        if (!config.resizable) style ^= w32.WS_THICKFRAME | w32.WS_MAXIMIZEBOX;
-        const size = clientToWindow(config.size, style, ex_style);
-        const hwnd = w32.CreateWindowExA(
-            ex_style,
-            class_name,
-            config.title,
-            style,
-            w32.CW_USEDEFAULT,
-            w32.SW_HIDE,
-            size.x,
-            size.y,
-            null,
-            null,
-            @ptrCast(w32.GetModuleHandleA(null)),
-            parent,
-        ).?;
-
-        if (config.fullscreen) {
-            // TODO
-        }
-
-        if (config.enable_clipboard) {
-            // TODO
-        }
-
-        if (config.enable_dragndrop) {
-            // TODO
-        }
-
-        if (config.image) |image| {
-            const icon = createIconFromImage(image);
-            defer _ = w32.DestroyIcon(icon);
-            _ = w32.SetClassLongPtrA(hwnd, w32.GCLP_HICON, @bitCast(@intFromPtr(icon)));
-        }
-
-        // set dark mode
-        _ = w32.DwmSetWindowAttribute(hwnd, w32.DWMWA_USE_IMMERSIVE_DARK_MODE, &@as(i32, 1), @sizeOf(i32));
-        _ = w32.DwmSetWindowAttribute(hwnd, w32.DWMWA_WINDOW_CORNER_PREFERENCE, &@as(i32, 3), @sizeOf(i32));
-
-        _ = w32.SetWindowLongPtrA(hwnd, w32.GWLP_USERDATA, parent);
+        _ = w32.RegisterClassExW(&wnd_class);
+        errdefer _ = w32.UnregisterClassW(window_class_name, hinstance);
 
         self.* = .{
-            .hwnd = hwnd,
-            .cursor = class.hCursor,
+            .hinstance = hinstance,
+            .windows = .empty,
+        };
+
+        __context = self;
+
+        return platform.Context{
+            .ptr = self,
+            .vtable = .{
+                .destroy = util.vcast(Context.destroy),
+                .create_window = util.vcast(Context.createWindow),
+            },
         };
     }
 
-    pub fn ready(self: *Self) void {
-        _ = w32.ShowWindow(self.hwnd, w32.SW_RESTORE);
+    pub fn destroy(self: *Context) void {
+        std.debug.assert(self.windows.items.len == 0);
+        _ = w32.UnregisterClassW(window_class_name, self.hinstance);
+        self.windows.deinit(allocator);
     }
 
-    pub fn step(_: *Self) void {
+    fn createWindow(self: *Context, title: []const u8, width: u32, height: u32) anyerror!platform.Window {
+        return try Window.create(self, title, width, height);
+    }
+};
+
+pub const Window = struct {
+    const EventList = std.ArrayListUnmanaged(platform.Event);
+
+    ctx: *Context,
+    width: u32,
+    height: u32,
+    title: []const u8,
+    hwnd: w32.HWND,
+
+    events: [2]EventList,
+    front: *EventList,
+    back: *EventList,
+
+    fn create(ctx: *Context, title: []const u8, width: u32, height: u32) !platform.Window {
+        const self = try allocator.create(Window);
+        errdefer allocator.destroy(self);
+
+        var rect = w32.RECT{ .left = 0, .top = 0, .right = @intCast(width), .bottom = @intCast(height) };
+        _ = w32.AdjustWindowRectEx(&rect, w32.WS_OVERLAPPEDWINDOW, 0, 0);
+
+        const title16 = try std.unicode.utf8ToUtf16LeAllocZ(allocator, title);
+        defer allocator.free(title16);
+
+        const hwnd = w32.CreateWindowExW(
+            0,
+            window_class_name,
+            title16,
+            w32.WS_OVERLAPPEDWINDOW,
+            w32.CW_USEDEFAULT,
+            w32.CW_USEDEFAULT,
+            @intCast(rect.right - rect.left),
+            @intCast(rect.bottom - rect.top),
+            null,
+            null,
+            ctx.hinstance,
+            null,
+        ) orelse return error.CreateWindowFailed;
+        errdefer _ = w32.DestroyWindow(hwnd);
+
+        try ctx.windows.append(allocator, self);
+        self.* = .{
+            .ctx = ctx,
+            .width = width,
+            .height = height,
+            .title = title,
+            .hwnd = hwnd,
+            .events = .{ .empty, .empty },
+            .front = &self.events[0],
+            .back = &self.events[1],
+        };
+
+        _ = w32.ShowWindow(hwnd, w32.SW_NORMAL);
+
+        return platform.Window{
+            .ptr = self,
+            .vtable = .{
+                .destroy = util.vcast(Window.destroy),
+                .get_events = util.vcast(Window.getEvents),
+            },
+        };
+    }
+
+    // vtable implementations
+    // ----------------------
+
+    fn destroy(self: *Window) void {
+        for (self.ctx.windows.items, 0..) |window, i| {
+            if (window == self) {
+                _ = self.ctx.windows.swapRemove(i);
+                break;
+            }
+        } else unreachable;
+
+        _ = w32.DestroyWindow(self.hwnd);
+        allocator.destroy(self);
+    }
+
+    fn getEvents(self: *Window) anyerror![]const platform.Event {
         var msg: w32.MSG = undefined;
-        while (w32.PeekMessageA(&msg, null, 0, 0, w32.PM_REMOVE) != 0) {
+        while (w32.PeekMessageW(&msg, self.hwnd, 0, 0, w32.PM_REMOVE) != 0) {
             _ = w32.TranslateMessage(&msg);
-            _ = w32.DispatchMessageA(&msg);
+            _ = w32.DispatchMessageW(&msg);
         }
+
+        const back = self.back;
+        self.back = self.front;
+        self.front = back;
+        self.back.clearRetainingCapacity();
+
+        return self.front.items;
     }
 
-    pub fn getSize(self: *const Self) math.Point {
-        var rect: w32.RECT = undefined;
-        _ = w32.GetWindowRect(self.hwnd, &rect);
-        return .{ .x = rect.right - rect.left, .y = rect.bottom - rect.top };
-    }
+    // private implementations
+    // -----------------------
 
-    inline fn getParent(self: *Self) *Parent {
-        return @fieldParentPtr("impl", self);
-    }
-
-    fn windowProc(hwnd: w32.HWND, msg: u32, wparam: w32.WPARAM, lparam: w32.LPARAM) callconv(.c) w32.LRESULT {
-        const ptr = w32.GetWindowLongPtrA(hwnd, w32.GWLP_USERDATA) orelse return w32.DefWindowProcA(hwnd, msg, wparam, lparam);
-        const parent: *Parent = @alignCast(@ptrCast(ptr));
-        const self: *Self = &parent.impl;
+    fn processEvent(self: *Window, msg: u32, wparam: w32.WPARAM, lparam: w32.LPARAM) !w32.LRESULT {
+        if (builtin.mode == .Debug) {
+            for (0..__event_level) |_| {
+                std.debug.print("  ", .{});
+            }
+            var buf = [_]u8{0} ** 6;
+            const msg_str = w32.msgToStr(msg, &buf);
+            std.debug.print("{s}\n", .{msg_str});
+            __event_level += 1;
+            defer __event_level -= 1;
+        }
 
         switch (msg) {
-            w32.WM_DESTROY => w32.PostQuitMessage(0),
-            w32.WM_CLOSE => parent.exit(),
-            w32.WM_SETCURSOR => {
-                if (w32.LOWORD(lparam) == w32.HTCLIENT) {
-                    _ = w32.SetCursor(self.cursor);
-                    return 1;
-                } else {
-                    return w32.DefWindowProcA(hwnd, msg, wparam, lparam);
-                }
-            },
-            w32.WM_SIZE => parent.is_minimized = wparam == w32.SIZE_MINIMIZED,
-            w32.WM_LBUTTONDOWN, w32.WM_LBUTTONUP, w32.WM_RBUTTONDOWN, w32.WM_RBUTTONUP, w32.WM_MBUTTONDOWN, w32.WM_MBUTTONUP => {
-                const button: input.MouseButton = switch (msg) {
-                    w32.WM_LBUTTONDOWN, w32.WM_LBUTTONUP => .left,
-                    w32.WM_RBUTTONDOWN, w32.WM_RBUTTONUP => .right,
-                    w32.WM_MBUTTONDOWN, w32.WM_MBUTTONUP => .middle,
-                    else => unreachable,
-                };
-
-                switch (msg) {
-                    w32.WM_LBUTTONDOWN, w32.WM_RBUTTONDOWN, w32.WM_MBUTTONDOWN => parent.input.state.mouse.onPress(button),
-                    w32.WM_LBUTTONUP, w32.WM_RBUTTONUP, w32.WM_MBUTTONUP => parent.input.state.mouse.onRelease(button),
-                    else => unreachable,
-                }
-            },
-            w32.WM_MOUSEMOVE => {
-                parent.input.state.mouse.onMove(@floatFromInt(w32.LOWORD(lparam)), @floatFromInt(w32.HIWORD(lparam)));
-            },
-            else => return w32.DefWindowProcA(hwnd, msg, wparam, lparam),
+            w32.WM_CLOSE => try self.addEvent(.window_close),
+            w32.WM_SIZE => {}, // TODO
+            else => return w32.DefWindowProcW(self.hwnd, msg, wparam, lparam),
         }
 
         return 0;
     }
+
+    inline fn addEvent(self: *Window, event: platform.Event) !void {
+        try self.back.append(allocator, event);
+    }
 };
 
-fn clientToWindow(size: math.Point, style: u32, ex_style: u32) math.Point {
-    var rect = w32.RECT{ .left = 0, .top = 0, .right = size.x, .bottom = size.y };
-    _ = w32.AdjustWindowRectEx(&rect, style, 0, ex_style);
-    return .{ .x = rect.right - rect.left, .y = rect.bottom - rect.top };
-}
-
-fn createIconFromImage(desc: Icon) w32.HICON {
-    const bi = w32.BITMAPV5HEADER{
-        .bV5Width = desc.width,
-        .bV5Height = -@as(i32, desc.height), // NOTE the '-' here to indicate that origin is top-left
-        .bV5Planes = 1,
-        .bV5BitCount = 32,
-        .bV5Compression = w32.BI_BITFIELDS,
-        .bV5RedMask = 0x00FF0000,
-        .bV5GreenMask = 0x0000FF00,
-        .bV5BlueMask = 0x000000FF,
-        .bV5AlphaMask = 0xFF000000,
+fn wndProcCallback(hwnd: w32.HWND, msg: u32, wparam: w32.WPARAM, lparam: w32.LPARAM) callconv(.winapi) w32.LRESULT {
+    const window = blk: {
+        for (__context.windows.items) |window| {
+            if (window.hwnd == hwnd) break :blk window;
+        } else return w32.DefWindowProcW(hwnd, msg, wparam, lparam);
     };
 
-    var target: [*c]u8 = null;
-
-    const dc = w32.GetDC(null);
-    defer _ = w32.ReleaseDC(null, dc);
-
-    const color = w32.CreateDIBSection(dc, @ptrCast(&bi), w32.DIB_RGB_COLORS, &target, null, 0);
-    defer _ = w32.DeleteObject(color);
-
-    const mask = w32.CreateBitmap(desc.width, desc.height, 1, 1, null);
-    defer _ = w32.DeleteObject(mask);
-
-    @memcpy(target[0..desc.pixels.len], desc.pixels);
-
-    var info = w32.ICONINFO{
-        .fIcon = 1,
-        .xHotspot = 0,
-        .yHotspot = 0,
-        .hbmMask = mask,
-        .hbmColor = color,
+    return window.processEvent(msg, wparam, lparam) catch |err| {
+        std.debug.panic("error while handling event: {}", .{err});
     };
-
-    return w32.CreateIconIndirect(&info).?;
 }

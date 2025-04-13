@@ -5,6 +5,8 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     const truetype = b.dependency("truetype", .{});
+    // const vulkan_headers = b.dependency("vulkan_headers", .{});
+    // const vulkan = b.dependency("vulkan", .{ .registry = vulkan_headers.path("registry/vk.xml") });
 
     const pool_mod = b.addModule("pool", .{
         .root_source_file = b.path("deps/pool.zig"),
@@ -30,9 +32,9 @@ pub fn build(b: *std.Build) void {
     });
 
     const exe = b.addExecutable(.{
-        .name = "example - simple",
+        .name = "example - hello",
         .root_module = b.createModule(.{
-            .root_source_file = b.path("examples/simple.zig"),
+            .root_source_file = b.path("examples/hello.zig"),
             .target = target,
             .optimize = optimize,
             .imports = &.{
