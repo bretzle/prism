@@ -18,6 +18,7 @@ pub const Prism = struct {
 
     pub fn destroy(self: *Prism) void {
         if (self.ctx) |ctx| ctx.destroy();
+        if (self.backend) |_| self.backend.?.destroy();
     }
 
     pub fn createWindow(self: *Prism, width: u32, height: u32, title: []const u8) !*platform.Window {
@@ -46,5 +47,10 @@ pub const GPUDevice = struct {
     pub fn destroy(self: *GPUDevice) void {
         self.backend.destroy();
         allocator.destroy(self);
+    }
+
+    pub fn acquireCommandBuffer(self: *GPUDevice) !*backend.CommandBuffer {
+        _ = self; // autofix
+        unreachable;
     }
 };

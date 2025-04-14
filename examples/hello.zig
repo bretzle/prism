@@ -14,5 +14,8 @@ pub fn main() !void {
         for (try window.getEvents()) |*event| {
             if (event.* == .window_close) break :loop;
         }
+
+        const cmds = try device.acquireCommandBuffer();
+        _ = cmds; // autofix
     }
 }

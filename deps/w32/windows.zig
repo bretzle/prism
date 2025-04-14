@@ -1,6 +1,9 @@
 const std = @import("std");
 const os = std.os.windows;
 
+pub const dxgi = @import("dxgi.zig");
+pub const d3d12 = @import("d3d12.zig");
+
 pub const BOOL = os.BOOL;
 pub const UINT = os.UINT;
 pub const INT = os.INT;
@@ -28,6 +31,11 @@ pub const HGLOBAL = *opaque {};
 pub const GUID = os.GUID;
 pub const HRESULT = os.HRESULT;
 pub const ULONG = os.ULONG;
+
+pub const LUID = extern struct {
+    LowPart: DWORD,
+    HighPart: LONG,
+};
 
 pub const RECT = extern struct {
     left: LONG,
@@ -995,4 +1003,12 @@ pub fn msgToStr(msg: u32, buf: *[6]u8) []const u8 {
         WM_APP => "APP",
         else => std.fmt.bufPrint(buf, "0x{x:04}", .{msg}) catch unreachable,
     };
+}
+
+pub inline fn LOWORD(dword: anytype) WORD {
+    return @as(WORD, @bitCast(@as(u16, @intCast(dword & 0xffff))));
+}
+
+pub inline fn HIWORD(dword: anytype) WORD {
+    return @as(WORD, @bitCast(@as(u16, @intCast((dword >> 16) & 0xffff))));
 }

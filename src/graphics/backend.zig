@@ -2,6 +2,8 @@ const std = @import("std");
 const prism = @import("../prism.zig");
 const platform = @import("../platform/platform.zig");
 
+const d3d12 = @import("d3d12.zig");
+
 const allocator = prism.allocator;
 
 pub const Implementation = enum { d3d12 };
@@ -14,8 +16,9 @@ pub const Backend = struct {
     },
 
     pub fn create(comptime impl: Implementation) !Backend {
-        _ = impl; // autofix
-        unreachable;
+        switch (impl) {
+            .d3d12 => return try d3d12.Backend.create(),
+        }
     }
 
     pub fn destroy(self: *Backend) void {
@@ -31,9 +34,16 @@ pub const Device = struct {
     ptr: *anyopaque,
     vtable: struct {
         destroy: *const fn (*anyopaque) void,
+        acquire_command_buffer: *const fn (*anyopaque) anyerror!*CommandBuffer,
     },
 
     pub fn destroy(self: *Device) void {
         (self.vtable.destroy)(self.ptr);
     }
+
+    pub fn acquireCommandBuffer(self: *Device) !*CommandBuffer {
+        return try (self.vtable.acquire_command_buffer)(self.ptr);
+    }
 };
+
+pub const CommandBuffer = opaque {};
