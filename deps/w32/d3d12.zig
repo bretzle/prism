@@ -714,12 +714,11 @@ pub const IBlob = extern struct {
         get_buffer_size: *const fn (*IBlob) callconv(.winapi) SIZE_T,
     };
 
-    // IBlob methods
     pub fn getBufferPointer(self: *IBlob) *anyopaque {
-        return (@as(*const IBlob.VTable, @ptrCast(self.vtable)).get_buffer_pointer)(@ptrCast(self));
+        return (self.vtable.get_buffer_pointer)(self);
     }
     pub fn getBufferSize(self: *IBlob) SIZE_T {
-        return (@as(*const IBlob.VTable, @ptrCast(self.vtable)).get_buffer_size)(@ptrCast(self));
+        return (self.vtable.get_buffer_size)(self);
     }
     // IUnknown methods
     pub fn queryInterface(self: *IBlob, riid: *const GUID, out: *?*anyopaque) HRESULT {
@@ -743,9 +742,8 @@ pub const IDeviceChild = extern struct {
         get_device: *const fn (*IDeviceChild, riid: *const GUID, device: *?*anyopaque) callconv(.winapi) HRESULT,
     };
 
-    // IDeviceChild methods
     pub fn getDevice(self: *IDeviceChild, riid: *const GUID, device: *?*anyopaque) HRESULT {
-        return (@as(*const IDeviceChild.VTable, @ptrCast(self.vtable)).get_device)(@ptrCast(self), riid, device);
+        return (self.vtable.get_device)(self, riid, device);
     }
     // IObject methods
     pub fn getPrivateData(self: *IDeviceChild) noreturn {
@@ -773,14 +771,13 @@ pub const IDeviceChild = extern struct {
 };
 
 pub const IPageable = extern struct {
-    pub const IID = GUID.parse("{63ee58fb-1268-4835-86da-f008ce62f0d6}");
+    pub const IID = GUID.parse("{63EE58FB-1268-4835-86DA-F008CE62F0D6}");
 
     vtable: *const VTable,
 
     const VTable = extern struct {
         base: IDeviceChild.VTable,
     };
-
     // IDeviceChild methods
     pub fn getDevice(self: *IPageable, riid: *const GUID, device: *?*anyopaque) HRESULT {
         return (@as(*const IDeviceChild.VTable, @ptrCast(self.vtable)).get_device)(@ptrCast(self), riid, device);
@@ -820,9 +817,8 @@ pub const IDebug = extern struct {
         enable_debug_layer: *const fn (*IDebug) callconv(.winapi) void,
     };
 
-    // IDebug methods
     pub fn enableDebugLayer(self: *IDebug) void {
-        return (@as(*const IDebug.VTable, @ptrCast(self.vtable)).enable_debug_layer)(@ptrCast(self));
+        return (self.vtable.enable_debug_layer)(self);
     }
     // IUnknown methods
     pub fn queryInterface(self: *IDebug, riid: *const GUID, out: *?*anyopaque) HRESULT {
@@ -845,7 +841,7 @@ pub const IDevice = extern struct {
         base: IObject.VTable,
         get_node_count: *const fn (*IDevice) callconv(.winapi) noreturn,
         create_command_queue: *const fn (*IDevice, desc: *const COMMAND_QUEUE_DESC, riid: *const GUID, command_queue: *?*anyopaque) callconv(.winapi) HRESULT,
-        create_command_allocator: *const fn (*IDevice, cmdlist_type: COMMAND_LIST_TYPE, guid: *const GUID, obj: *?*anyopaque) callconv(.winapi) HRESULT,
+        create_command_allocator: *const fn (*IDevice,  cmdlist_type: COMMAND_LIST_TYPE, guid: *const GUID, obj: *?*anyopaque) callconv(.winapi) HRESULT,
         create_graphics_pipeline_state: *const fn (*IDevice) callconv(.winapi) noreturn,
         create_compute_pipeline_state: *const fn (*IDevice) callconv(.winapi) noreturn,
         create_command_list: *const fn (*IDevice, node_mask: UINT, cmdlist_type: COMMAND_LIST_TYPE, cmdalloc: *ICommandAllocator, initial_state: ?*IPipelineState, guid: *const GUID, cmdlist: *?*anyopaque) callconv(.winapi) HRESULT,
@@ -882,117 +878,116 @@ pub const IDevice = extern struct {
         get_adapter_luid: *const fn (*IDevice) callconv(.winapi) noreturn,
     };
 
-    // IDevice methods
     pub fn getNodeCount(self: *IDevice) noreturn {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).get_node_count)(@ptrCast(self));
+        return (self.vtable.get_node_count)(self);
     }
     pub fn createCommandQueue(self: *IDevice, desc: *const COMMAND_QUEUE_DESC, riid: *const GUID, command_queue: *?*anyopaque) HRESULT {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).create_command_queue)(@ptrCast(self), desc, riid, command_queue);
+        return (self.vtable.create_command_queue)(self, desc, riid, command_queue);
     }
-    pub fn createCommandAllocator(self: *IDevice, cmdlist_type: COMMAND_LIST_TYPE, guid: *const GUID, obj: *?*anyopaque) HRESULT {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).create_command_allocator)(@ptrCast(self), cmdlist_type, guid, obj);
+    pub fn createCommandAllocator(self: *IDevice,  cmdlist_type: COMMAND_LIST_TYPE, guid: *const GUID, obj: *?*anyopaque) HRESULT {
+        return (self.vtable.create_command_allocator)(self,  cmdlist_type, guid, obj);
     }
     pub fn createGraphicsPipelineState(self: *IDevice) noreturn {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).create_graphics_pipeline_state)(@ptrCast(self));
+        return (self.vtable.create_graphics_pipeline_state)(self);
     }
     pub fn createComputePipelineState(self: *IDevice) noreturn {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).create_compute_pipeline_state)(@ptrCast(self));
+        return (self.vtable.create_compute_pipeline_state)(self);
     }
     pub fn createCommandList(self: *IDevice, node_mask: UINT, cmdlist_type: COMMAND_LIST_TYPE, cmdalloc: *ICommandAllocator, initial_state: ?*IPipelineState, guid: *const GUID, cmdlist: *?*anyopaque) HRESULT {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).create_command_list)(@ptrCast(self), node_mask, cmdlist_type, cmdalloc, initial_state, guid, cmdlist);
+        return (self.vtable.create_command_list)(self, node_mask, cmdlist_type, cmdalloc, initial_state, guid, cmdlist);
     }
     pub fn checkFeatureSupport(self: *IDevice, feature: FEATURE, data: *anyopaque, size: UINT) HRESULT {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).check_feature_support)(@ptrCast(self), feature, data, size);
+        return (self.vtable.check_feature_support)(self, feature, data, size);
     }
     pub fn createDescriptorHeap(self: *IDevice) noreturn {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).create_descriptor_heap)(@ptrCast(self));
+        return (self.vtable.create_descriptor_heap)(self);
     }
     pub fn getDescriptorHandleIncrementSize(self: *IDevice) noreturn {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).get_descriptor_handle_increment_size)(@ptrCast(self));
+        return (self.vtable.get_descriptor_handle_increment_size)(self);
     }
     pub fn createRootSignature(self: *IDevice) noreturn {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).create_root_signature)(@ptrCast(self));
+        return (self.vtable.create_root_signature)(self);
     }
     pub fn createConstantBufferView(self: *IDevice) noreturn {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).create_constant_buffer_view)(@ptrCast(self));
+        return (self.vtable.create_constant_buffer_view)(self);
     }
     pub fn createShaderResourceView(self: *IDevice) noreturn {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).create_shader_resource_view)(@ptrCast(self));
+        return (self.vtable.create_shader_resource_view)(self);
     }
     pub fn createUnorderedAccessView(self: *IDevice) noreturn {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).create_unordered_access_view)(@ptrCast(self));
+        return (self.vtable.create_unordered_access_view)(self);
     }
     pub fn createRenderTargetView(self: *IDevice) noreturn {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).create_render_target_view)(@ptrCast(self));
+        return (self.vtable.create_render_target_view)(self);
     }
     pub fn createDepthStencilView(self: *IDevice) noreturn {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).create_depth_stencil_view)(@ptrCast(self));
+        return (self.vtable.create_depth_stencil_view)(self);
     }
     pub fn createSampler(self: *IDevice) noreturn {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).create_sampler)(@ptrCast(self));
+        return (self.vtable.create_sampler)(self);
     }
     pub fn copyDescriptors(self: *IDevice) noreturn {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).copy_descriptors)(@ptrCast(self));
+        return (self.vtable.copy_descriptors)(self);
     }
     pub fn copyDescriptorsSimple(self: *IDevice) noreturn {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).copy_descriptors_simple)(@ptrCast(self));
+        return (self.vtable.copy_descriptors_simple)(self);
     }
     pub fn getResourceAllocationInfo(self: *IDevice) noreturn {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).get_resource_allocation_info)(@ptrCast(self));
+        return (self.vtable.get_resource_allocation_info)(self);
     }
     pub fn getCustomHeapProperties(self: *IDevice) noreturn {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).get_custom_heap_properties)(@ptrCast(self));
+        return (self.vtable.get_custom_heap_properties)(self);
     }
     pub fn createCommittedResource(self: *IDevice) noreturn {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).create_committed_resource)(@ptrCast(self));
+        return (self.vtable.create_committed_resource)(self);
     }
     pub fn createHeap(self: *IDevice) noreturn {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).create_heap)(@ptrCast(self));
+        return (self.vtable.create_heap)(self);
     }
     pub fn createPlacedResource(self: *IDevice) noreturn {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).create_placed_resource)(@ptrCast(self));
+        return (self.vtable.create_placed_resource)(self);
     }
     pub fn createReservedResource(self: *IDevice) noreturn {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).create_reserved_resource)(@ptrCast(self));
+        return (self.vtable.create_reserved_resource)(self);
     }
     pub fn createSharedHandle(self: *IDevice) noreturn {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).create_shared_handle)(@ptrCast(self));
+        return (self.vtable.create_shared_handle)(self);
     }
     pub fn openSharedHandle(self: *IDevice) noreturn {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).open_shared_handle)(@ptrCast(self));
+        return (self.vtable.open_shared_handle)(self);
     }
     pub fn openSharedHandleByName(self: *IDevice) noreturn {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).open_shared_handle_by_name)(@ptrCast(self));
+        return (self.vtable.open_shared_handle_by_name)(self);
     }
     pub fn makeResident(self: *IDevice) noreturn {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).make_resident)(@ptrCast(self));
+        return (self.vtable.make_resident)(self);
     }
     pub fn evict(self: *IDevice) noreturn {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).evict)(@ptrCast(self));
+        return (self.vtable.evict)(self);
     }
     pub fn createFence(self: *IDevice) noreturn {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).create_fence)(@ptrCast(self));
+        return (self.vtable.create_fence)(self);
     }
     pub fn getDeviceRemovedReason(self: *IDevice) noreturn {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).get_device_removed_reason)(@ptrCast(self));
+        return (self.vtable.get_device_removed_reason)(self);
     }
     pub fn getCopyableFootprints(self: *IDevice) noreturn {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).get_copyable_footprints)(@ptrCast(self));
+        return (self.vtable.get_copyable_footprints)(self);
     }
     pub fn createQueryHeap(self: *IDevice) noreturn {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).create_query_heap)(@ptrCast(self));
+        return (self.vtable.create_query_heap)(self);
     }
     pub fn setStablePowerState(self: *IDevice) noreturn {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).set_stable_power_state)(@ptrCast(self));
+        return (self.vtable.set_stable_power_state)(self);
     }
     pub fn createCommandSignature(self: *IDevice, desc: *const COMMAND_SIGNATURE_DESC, root_signature: ?*IRootSignature, riid: *const GUID, signature: ?*?*anyopaque) HRESULT {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).create_command_signature)(@ptrCast(self), desc, root_signature, riid, signature);
+        return (self.vtable.create_command_signature)(self, desc, root_signature, riid, signature);
     }
     pub fn getResourceTiling(self: *IDevice) noreturn {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).get_resource_tiling)(@ptrCast(self));
+        return (self.vtable.get_resource_tiling)(self);
     }
     pub fn getAdapterLuid(self: *IDevice) noreturn {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).get_adapter_luid)(@ptrCast(self));
+        return (self.vtable.get_adapter_luid)(self);
     }
     // IObject methods
     pub fn getPrivateData(self: *IDevice) noreturn {
@@ -1039,40 +1034,40 @@ pub const ICommandQueue = extern struct {
         get_desc: *const fn (*ICommandQueue) callconv(.winapi) noreturn,
     };
 
-    // ICommandQueue methods
     pub fn updateTileMappings(self: *ICommandQueue) noreturn {
-        return (@as(*const ICommandQueue.VTable, @ptrCast(self.vtable)).update_tile_mappings)(@ptrCast(self));
+        return (self.vtable.update_tile_mappings)(self);
     }
     pub fn copyTileMappings(self: *ICommandQueue) noreturn {
-        return (@as(*const ICommandQueue.VTable, @ptrCast(self.vtable)).copy_tile_mappings)(@ptrCast(self));
+        return (self.vtable.copy_tile_mappings)(self);
     }
     pub fn executeCommandLists(self: *ICommandQueue) noreturn {
-        return (@as(*const ICommandQueue.VTable, @ptrCast(self.vtable)).execute_command_lists)(@ptrCast(self));
+        return (self.vtable.execute_command_lists)(self);
     }
     pub fn setMarker(self: *ICommandQueue) noreturn {
-        return (@as(*const ICommandQueue.VTable, @ptrCast(self.vtable)).set_marker)(@ptrCast(self));
+        return (self.vtable.set_marker)(self);
     }
     pub fn beginEvent(self: *ICommandQueue) noreturn {
-        return (@as(*const ICommandQueue.VTable, @ptrCast(self.vtable)).begin_event)(@ptrCast(self));
+        return (self.vtable.begin_event)(self);
     }
     pub fn endEvent(self: *ICommandQueue) noreturn {
-        return (@as(*const ICommandQueue.VTable, @ptrCast(self.vtable)).end_event)(@ptrCast(self));
+        return (self.vtable.end_event)(self);
     }
     pub fn signal(self: *ICommandQueue) noreturn {
-        return (@as(*const ICommandQueue.VTable, @ptrCast(self.vtable)).signal)(@ptrCast(self));
+        return (self.vtable.signal)(self);
     }
     pub fn wait(self: *ICommandQueue) noreturn {
-        return (@as(*const ICommandQueue.VTable, @ptrCast(self.vtable)).wait)(@ptrCast(self));
+        return (self.vtable.wait)(self);
     }
     pub fn getTimestampFrequency(self: *ICommandQueue) noreturn {
-        return (@as(*const ICommandQueue.VTable, @ptrCast(self.vtable)).get_timestamp_frequency)(@ptrCast(self));
+        return (self.vtable.get_timestamp_frequency)(self);
     }
     pub fn getClockCalibration(self: *ICommandQueue) noreturn {
-        return (@as(*const ICommandQueue.VTable, @ptrCast(self.vtable)).get_clock_calibration)(@ptrCast(self));
+        return (self.vtable.get_clock_calibration)(self);
     }
     pub fn getDesc(self: *ICommandQueue) noreturn {
-        return (@as(*const ICommandQueue.VTable, @ptrCast(self.vtable)).get_desc)(@ptrCast(self));
+        return (self.vtable.get_desc)(self);
     }
+    // IPageable methods
     // IDeviceChild methods
     pub fn getDevice(self: *ICommandQueue, riid: *const GUID, device: *?*anyopaque) HRESULT {
         return (@as(*const IDeviceChild.VTable, @ptrCast(self.vtable)).get_device)(@ptrCast(self), riid, device);
@@ -1110,7 +1105,7 @@ pub const ICommandSignature = extern struct {
     const VTable = extern struct {
         base: IPageable.VTable,
     };
-
+    // IPageable methods
     // IDeviceChild methods
     pub fn getDevice(self: *ICommandSignature, riid: *const GUID, device: *?*anyopaque) HRESULT {
         return (@as(*const IDeviceChild.VTable, @ptrCast(self.vtable)).get_device)(@ptrCast(self), riid, device);
@@ -1148,7 +1143,6 @@ pub const IRootSignature = extern struct {
     const VTable = extern struct {
         base: IDeviceChild.VTable,
     };
-
     // IDeviceChild methods
     pub fn getDevice(self: *IRootSignature, riid: *const GUID, device: *?*anyopaque) HRESULT {
         return (@as(*const IDeviceChild.VTable, @ptrCast(self.vtable)).get_device)(@ptrCast(self), riid, device);
@@ -1194,28 +1188,28 @@ pub const IResource = extern struct {
         get_heap_properties: *const fn (*IResource, properties: ?*HEAP_PROPERTIES, flags: ?*HEAP_FLAGS) callconv(.winapi) HRESULT,
     };
 
-    // IResource methods
     pub fn map(self: *IResource, subresource: UINT, read_range: ?*const RANGE, data: *?*anyopaque) HRESULT {
-        return (@as(*const IResource.VTable, @ptrCast(self.vtable)).map)(@ptrCast(self), subresource, read_range, data);
+        return (self.vtable.map)(self, subresource, read_range, data);
     }
     pub fn unmap(self: *IResource, subresource: UINT, read_range: ?*const RANGE) void {
-        return (@as(*const IResource.VTable, @ptrCast(self.vtable)).unmap)(@ptrCast(self), subresource, read_range);
+        return (self.vtable.unmap)(self, subresource, read_range);
     }
     pub fn getDesc(self: *IResource, desc: *RESOURCE_DESC) HRESULT {
-        return (@as(*const IResource.VTable, @ptrCast(self.vtable)).get_desc)(@ptrCast(self), desc);
+        return (self.vtable.get_desc)(self, desc);
     }
     pub fn getGpuVirtualAddress(self: *IResource) GPU_VIRTUAL_ADDRESS {
-        return (@as(*const IResource.VTable, @ptrCast(self.vtable)).get_gpu_virtual_address)(@ptrCast(self));
+        return (self.vtable.get_gpu_virtual_address)(self);
     }
     pub fn writeToSubresource(self: *IResource, dst_subresource: UINT, dst_box: ?*const BOX, src_data: *const anyopaque, src_row_pitch: UINT, src_depth_pitch: UINT) HRESULT {
-        return (@as(*const IResource.VTable, @ptrCast(self.vtable)).write_to_subresource)(@ptrCast(self), dst_subresource, dst_box, src_data, src_row_pitch, src_depth_pitch);
+        return (self.vtable.write_to_subresource)(self, dst_subresource, dst_box, src_data, src_row_pitch, src_depth_pitch);
     }
     pub fn readFromSubresource(self: *IResource, dst_data: *anyopaque, dst_row_pitch: UINT, dst_depth_pitch: UINT, src_subresource: UINT, src_box: ?*const BOX) HRESULT {
-        return (@as(*const IResource.VTable, @ptrCast(self.vtable)).read_from_subresource)(@ptrCast(self), dst_data, dst_row_pitch, dst_depth_pitch, src_subresource, src_box);
+        return (self.vtable.read_from_subresource)(self, dst_data, dst_row_pitch, dst_depth_pitch, src_subresource, src_box);
     }
     pub fn getHeapProperties(self: *IResource, properties: ?*HEAP_PROPERTIES, flags: ?*HEAP_FLAGS) HRESULT {
-        return (@as(*const IResource.VTable, @ptrCast(self.vtable)).get_heap_properties)(@ptrCast(self), properties, flags);
+        return (self.vtable.get_heap_properties)(self, properties, flags);
     }
+    // IPageable methods
     // IDeviceChild methods
     pub fn getDevice(self: *IResource, riid: *const GUID, device: *?*anyopaque) HRESULT {
         return (@as(*const IDeviceChild.VTable, @ptrCast(self.vtable)).get_device)(@ptrCast(self), riid, device);
@@ -1255,10 +1249,10 @@ pub const ICommandAllocator = extern struct {
         reset: *const fn (*ICommandAllocator) callconv(.winapi) HRESULT,
     };
 
-    // ICommandAllocator methods
     pub fn reset(self: *ICommandAllocator) HRESULT {
-        return (@as(*const ICommandAllocator.VTable, @ptrCast(self.vtable)).reset)(@ptrCast(self));
+        return (self.vtable.reset)(self);
     }
+    // IPageable methods
     // IDeviceChild methods
     pub fn getDevice(self: *ICommandAllocator, riid: *const GUID, device: *?*anyopaque) HRESULT {
         return (@as(*const IDeviceChild.VTable, @ptrCast(self.vtable)).get_device)(@ptrCast(self), riid, device);
@@ -1298,9 +1292,8 @@ pub const ICommandList = extern struct {
         get_type: *const fn (*ICommandList) callconv(.winapi) HRESULT,
     };
 
-    // ICommandList methods
     pub fn getType(self: *ICommandList) HRESULT {
-        return (@as(*const ICommandList.VTable, @ptrCast(self.vtable)).get_type)(@ptrCast(self));
+        return (self.vtable.get_type)(self);
     }
     // IDeviceChild methods
     pub fn getDevice(self: *ICommandList, riid: *const GUID, device: *?*anyopaque) HRESULT {
@@ -1356,7 +1349,7 @@ pub const IGraphicsCommandList = extern struct {
         om_set_stencil_ref: *const fn (*IGraphicsCommandList, stencil_ref: UINT) callconv(.winapi) void,
         set_pipeline_state: *const fn (*IGraphicsCommandList, pso: *IPipelineState) callconv(.winapi) void,
         resource_barrier: *const fn (*IGraphicsCommandList, num: UINT, barriers: [*]const RESOURCE_BARRIER) callconv(.winapi) void,
-        execute_bundle: *const fn (*IGraphicsCommandList, cmdlist: *IGraphicsCommandList) callconv(.winapi) void,
+        execute_bundle: *const fn (*IGraphicsCommandList, cmdlist: self) callconv(.winapi) void,
         set_descriptor_heaps: *const fn (*IGraphicsCommandList, num: UINT, heaps: [*]const *IDescriptorHeap) callconv(.winapi) void,
         set_compute_root_signature: *const fn (*IGraphicsCommandList, root_signature: ?*IRootSignature) callconv(.winapi) void,
         set_graphics_root_signature: *const fn (*IGraphicsCommandList, root_signature: ?*IRootSignature) callconv(.winapi) void,
@@ -1391,159 +1384,158 @@ pub const IGraphicsCommandList = extern struct {
         execute_indirect: *const fn (*IGraphicsCommandList, command_signature: *ICommandSignature, max_commend_count: UINT, arg_buffer: *IResource, arg_buffer_offset: UINT64, count_buffer: ?*IResource, count_buffer_offset: UINT64) callconv(.winapi) void,
     };
 
-    // IGraphicsCommandList methods
     pub fn close(self: *IGraphicsCommandList) HRESULT {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).close)(@ptrCast(self));
+        return (self.vtable.close)(self);
     }
     pub fn reset(self: *IGraphicsCommandList, allocator: *ICommandAllocator, initial_state: ?*IPipelineState) HRESULT {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).reset)(@ptrCast(self), allocator, initial_state);
+        return (self.vtable.reset)(self, allocator, initial_state);
     }
     pub fn clearState(self: *IGraphicsCommandList, state: ?*IPipelineState) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).clear_state)(@ptrCast(self), state);
+        return (self.vtable.clear_state)(self, state);
     }
     pub fn drawInstanced(self: *IGraphicsCommandList, vertex_count_per_instance: UINT, instance_count: UINT, start_vertex_location: UINT, start_index_location: UINT) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).draw_instanced)(@ptrCast(self), vertex_count_per_instance, instance_count, start_vertex_location, start_index_location);
+        return (self.vtable.draw_instanced)(self, vertex_count_per_instance, instance_count, start_vertex_location, start_index_location);
     }
     pub fn drawIndexedInstanced(self: *IGraphicsCommandList, index_count_per_instance: UINT, instance_count: UINT, start_index_location: UINT, base_vertex_location: INT, start_instance_location: UINT) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).draw_indexed_instanced)(@ptrCast(self), index_count_per_instance, instance_count, start_index_location, base_vertex_location, start_instance_location);
+        return (self.vtable.draw_indexed_instanced)(self, index_count_per_instance, instance_count, start_index_location, base_vertex_location, start_instance_location);
     }
     pub fn dispatch(self: *IGraphicsCommandList, x: UINT, y: UINT, z: UINT) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).dispatch)(@ptrCast(self), x, y, z);
+        return (self.vtable.dispatch)(self, x, y, z);
     }
     pub fn copyBufferRegion(self: *IGraphicsCommandList, dst_buffer: *IResource, dst_offset: UINT64, src_buffer: *IResource, src_offset: UINT64, num_bytes: UINT64) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).copy_buffer_region)(@ptrCast(self), dst_buffer, dst_offset, src_buffer, src_offset, num_bytes);
+        return (self.vtable.copy_buffer_region)(self, dst_buffer, dst_offset, src_buffer, src_offset, num_bytes);
     }
     pub fn copyTextureRegion(self: *IGraphicsCommandList, dst: *const TEXTURE_COPY_LOCATION, dst_x: UINT, dst_y: UINT, dst_z: UINT, src: *const TEXTURE_COPY_LOCATION, src_box: ?*const BOX) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).copy_texture_region)(@ptrCast(self), dst, dst_x, dst_y, dst_z, src, src_box);
+        return (self.vtable.copy_texture_region)(self, dst, dst_x, dst_y, dst_z, src, src_box);
     }
     pub fn copyResource(self: *IGraphicsCommandList, dst: *IResource, src: *IResource) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).copy_resource)(@ptrCast(self), dst, src);
+        return (self.vtable.copy_resource)(self, dst, src);
     }
     pub fn copyTiles(self: *IGraphicsCommandList, tiled_resource: *IResource, tile_region_start_coordinate: *const TILED_RESOURCE_COORDINATE, tile_region_size: *const TILE_REGION_SIZE, buffer: *IResource, buffer_start_offset_in_bytes: UINT64, flags: TILE_COPY_FLAGS) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).copy_tiles)(@ptrCast(self), tiled_resource, tile_region_start_coordinate, tile_region_size, buffer, buffer_start_offset_in_bytes, flags);
+        return (self.vtable.copy_tiles)(self, tiled_resource, tile_region_start_coordinate, tile_region_size, buffer, buffer_start_offset_in_bytes, flags);
     }
     pub fn resolveSubresource(self: *IGraphicsCommandList, dst_resource: *IResource, dst_subresource: UINT, src_resource: *IResource, src_subresource: UINT, format: dxgi.FORMAT) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).resolve_subresource)(@ptrCast(self), dst_resource, dst_subresource, src_resource, src_subresource, format);
+        return (self.vtable.resolve_subresource)(self, dst_resource, dst_subresource, src_resource, src_subresource, format);
     }
     pub fn iaSetPrimitiveTopology(self: *IGraphicsCommandList, topology: PRIMITIVE_TOPOLOGY) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).ia_set_primitive_topology)(@ptrCast(self), topology);
+        return (self.vtable.ia_set_primitive_topology)(self, topology);
     }
     pub fn rsSetViewports(self: *IGraphicsCommandList, num: UINT, viewports: [*]const VIEWPORT) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).rs_set_viewports)(@ptrCast(self), num, viewports);
+        return (self.vtable.rs_set_viewports)(self, num, viewports);
     }
     pub fn rsSetScissorRects(self: *IGraphicsCommandList, num: UINT, rects: [*]const RECT) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).rs_set_scissor_rects)(@ptrCast(self), num, rects);
+        return (self.vtable.rs_set_scissor_rects)(self, num, rects);
     }
     pub fn omSetBlendFactor(self: *IGraphicsCommandList, blend_factor: *const [4]FLOAT) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).om_set_blend_factor)(@ptrCast(self), blend_factor);
+        return (self.vtable.om_set_blend_factor)(self, blend_factor);
     }
     pub fn omSetStencilRef(self: *IGraphicsCommandList, stencil_ref: UINT) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).om_set_stencil_ref)(@ptrCast(self), stencil_ref);
+        return (self.vtable.om_set_stencil_ref)(self, stencil_ref);
     }
     pub fn setPipelineState(self: *IGraphicsCommandList, pso: *IPipelineState) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).set_pipeline_state)(@ptrCast(self), pso);
+        return (self.vtable.set_pipeline_state)(self, pso);
     }
     pub fn resourceBarrier(self: *IGraphicsCommandList, num: UINT, barriers: [*]const RESOURCE_BARRIER) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).resource_barrier)(@ptrCast(self), num, barriers);
+        return (self.vtable.resource_barrier)(self, num, barriers);
     }
-    pub fn executeBundle(self: *IGraphicsCommandList, cmdlist: *IGraphicsCommandList) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).execute_bundle)(@ptrCast(self), cmdlist);
+    pub fn executeBundle(self: *IGraphicsCommandList, cmdlist: self) void {
+        return (self.vtable.execute_bundle)(self, cmdlist);
     }
     pub fn setDescriptorHeaps(self: *IGraphicsCommandList, num: UINT, heaps: [*]const *IDescriptorHeap) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).set_descriptor_heaps)(@ptrCast(self), num, heaps);
+        return (self.vtable.set_descriptor_heaps)(self, num, heaps);
     }
     pub fn setComputeRootSignature(self: *IGraphicsCommandList, root_signature: ?*IRootSignature) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).set_compute_root_signature)(@ptrCast(self), root_signature);
+        return (self.vtable.set_compute_root_signature)(self, root_signature);
     }
     pub fn setGraphicsRootSignature(self: *IGraphicsCommandList, root_signature: ?*IRootSignature) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).set_graphics_root_signature)(@ptrCast(self), root_signature);
+        return (self.vtable.set_graphics_root_signature)(self, root_signature);
     }
     pub fn setComputeRootDescriptorTable(self: *IGraphicsCommandList, root_index: UINT, base_descriptor: GPU_DESCRIPTOR_HANDLE) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).set_compute_root_descriptor_table)(@ptrCast(self), root_index, base_descriptor);
+        return (self.vtable.set_compute_root_descriptor_table)(self, root_index, base_descriptor);
     }
     pub fn setGraphicsRootDescriptorTable(self: *IGraphicsCommandList, root_index: UINT, base_descriptor: GPU_DESCRIPTOR_HANDLE) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).set_graphics_root_descriptor_table)(@ptrCast(self), root_index, base_descriptor);
+        return (self.vtable.set_graphics_root_descriptor_table)(self, root_index, base_descriptor);
     }
     pub fn setComputeRoot32BitConstant(self: *IGraphicsCommandList, index: UINT, data: UINT, offset: UINT) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).set_compute_root32_bit_constant)(@ptrCast(self), index, data, offset);
+        return (self.vtable.set_compute_root32_bit_constant)(self, index, data, offset);
     }
     pub fn setGraphicsRoot32BitConstant(self: *IGraphicsCommandList, index: UINT, data: UINT, offset: UINT) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).set_graphics_root32_bit_constant)(@ptrCast(self), index, data, offset);
+        return (self.vtable.set_graphics_root32_bit_constant)(self, index, data, offset);
     }
     pub fn setComputeRoot32BitConstants(self: *IGraphicsCommandList, root_index: UINT, num: UINT, data: *const anyopaque, offset: UINT) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).set_compute_root32_bit_constants)(@ptrCast(self), root_index, num, data, offset);
+        return (self.vtable.set_compute_root32_bit_constants)(self, root_index, num, data, offset);
     }
     pub fn setGraphicsRoot32BitConstants(self: *IGraphicsCommandList, root_index: UINT, num: UINT, data: *const anyopaque, offset: UINT) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).set_graphics_root32_bit_constants)(@ptrCast(self), root_index, num, data, offset);
+        return (self.vtable.set_graphics_root32_bit_constants)(self, root_index, num, data, offset);
     }
     pub fn setComputeRootConstantBufferView(self: *IGraphicsCommandList, index: UINT, buffer_location: GPU_VIRTUAL_ADDRESS) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).set_compute_root_constant_buffer_view)(@ptrCast(self), index, buffer_location);
+        return (self.vtable.set_compute_root_constant_buffer_view)(self, index, buffer_location);
     }
     pub fn setGraphicsRootConstantBufferView(self: *IGraphicsCommandList, index: UINT, buffer_location: GPU_VIRTUAL_ADDRESS) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).set_graphics_root_constant_buffer_view)(@ptrCast(self), index, buffer_location);
+        return (self.vtable.set_graphics_root_constant_buffer_view)(self, index, buffer_location);
     }
     pub fn setComputeRootShaderResourceView(self: *IGraphicsCommandList, index: UINT, buffer_location: GPU_VIRTUAL_ADDRESS) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).set_compute_root_shader_resource_view)(@ptrCast(self), index, buffer_location);
+        return (self.vtable.set_compute_root_shader_resource_view)(self, index, buffer_location);
     }
     pub fn setGraphicsRootShaderResourceView(self: *IGraphicsCommandList, index: UINT, buffer_location: GPU_VIRTUAL_ADDRESS) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).set_graphics_root_shader_resource_view)(@ptrCast(self), index, buffer_location);
+        return (self.vtable.set_graphics_root_shader_resource_view)(self, index, buffer_location);
     }
     pub fn setComputeRootUnorderedAccessView(self: *IGraphicsCommandList, index: UINT, buffer_location: GPU_VIRTUAL_ADDRESS) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).set_compute_root_unordered_access_view)(@ptrCast(self), index, buffer_location);
+        return (self.vtable.set_compute_root_unordered_access_view)(self, index, buffer_location);
     }
     pub fn setGraphicsRootUnorderedAccessView(self: *IGraphicsCommandList, index: UINT, buffer_location: GPU_VIRTUAL_ADDRESS) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).set_graphics_root_unordered_access_view)(@ptrCast(self), index, buffer_location);
+        return (self.vtable.set_graphics_root_unordered_access_view)(self, index, buffer_location);
     }
     pub fn iaSetIndexBuffer(self: *IGraphicsCommandList, view: ?*const INDEX_BUFFER_VIEW) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).ia_set_index_buffer)(@ptrCast(self), view);
+        return (self.vtable.ia_set_index_buffer)(self, view);
     }
     pub fn iaSetVertexBuffers(self: *IGraphicsCommandList, start_slot: UINT, num_views: UINT, views: ?[*]const VERTEX_BUFFER_VIEW) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).ia_set_vertex_buffers)(@ptrCast(self), start_slot, num_views, views);
+        return (self.vtable.ia_set_vertex_buffers)(self, start_slot, num_views, views);
     }
     pub fn soSetTargets(self: *IGraphicsCommandList, start_slote: UINT, num_views: UINT, views: ?[*]const STREAM_OUTPUT_BUFFER_VIEW) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).so_set_targets)(@ptrCast(self), start_slote, num_views, views);
+        return (self.vtable.so_set_targets)(self, start_slote, num_views, views);
     }
     pub fn omSetRenderTargets(self: *IGraphicsCommandList, num_rt_descriptors: UINT, rt_descriptors: ?[*]const CPU_DESCRIPTOR_HANDLE, single_handle: BOOL, ds_descriptors: ?*const CPU_DESCRIPTOR_HANDLE) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).om_set_render_targets)(@ptrCast(self), num_rt_descriptors, rt_descriptors, single_handle, ds_descriptors);
+        return (self.vtable.om_set_render_targets)(self, num_rt_descriptors, rt_descriptors, single_handle, ds_descriptors);
     }
     pub fn clearDepthStencilView(self: *IGraphicsCommandList, ds_view: CPU_DESCRIPTOR_HANDLE, clear_flags: CLEAR_FLAGS, depth: FLOAT, stencil: UINT8, num_rects: UINT, rects: ?[*]const RECT) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).clear_depth_stencil_view)(@ptrCast(self), ds_view, clear_flags, depth, stencil, num_rects, rects);
+        return (self.vtable.clear_depth_stencil_view)(self, ds_view, clear_flags, depth, stencil, num_rects, rects);
     }
     pub fn clearRenderTargetView(self: *IGraphicsCommandList, rt_view: CPU_DESCRIPTOR_HANDLE, rgba: *const [4]FLOAT, num_rects: UINT, rects: ?[*]const RECT) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).clear_render_target_view)(@ptrCast(self), rt_view, rgba, num_rects, rects);
+        return (self.vtable.clear_render_target_view)(self, rt_view, rgba, num_rects, rects);
     }
     pub fn clearUnorderedAccessViewUint(self: *IGraphicsCommandList, gpu_view: GPU_DESCRIPTOR_HANDLE, cpu_view: CPU_DESCRIPTOR_HANDLE, resource: *IResource, values: *const [4]UINT, num_rects: UINT, rects: ?[*]const RECT) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).clear_unordered_access_view_uint)(@ptrCast(self), gpu_view, cpu_view, resource, values, num_rects, rects);
+        return (self.vtable.clear_unordered_access_view_uint)(self, gpu_view, cpu_view, resource, values, num_rects, rects);
     }
     pub fn clearUnorderedAccessViewFloat(self: *IGraphicsCommandList, gpu_view: GPU_DESCRIPTOR_HANDLE, cpu_view: CPU_DESCRIPTOR_HANDLE, resource: *IResource, values: *const [4]FLOAT, num_rects: UINT, rects: ?[*]const RECT) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).clear_unordered_access_view_float)(@ptrCast(self), gpu_view, cpu_view, resource, values, num_rects, rects);
+        return (self.vtable.clear_unordered_access_view_float)(self, gpu_view, cpu_view, resource, values, num_rects, rects);
     }
     pub fn discardResource(self: *IGraphicsCommandList, resource: *IResource, region: ?*const DISCARD_REGION) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).discard_resource)(@ptrCast(self), resource, region);
+        return (self.vtable.discard_resource)(self, resource, region);
     }
     pub fn beginQuery(self: *IGraphicsCommandList, query: *IQueryHeap, query_type: QUERY_TYPE, index: UINT) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).begin_query)(@ptrCast(self), query, query_type, index);
+        return (self.vtable.begin_query)(self, query, query_type, index);
     }
     pub fn endQuery(self: *IGraphicsCommandList, query: *IQueryHeap, query_type: QUERY_TYPE, index: UINT) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).end_query)(@ptrCast(self), query, query_type, index);
+        return (self.vtable.end_query)(self, query, query_type, index);
     }
     pub fn resolveQueryData(self: *IGraphicsCommandList, query: *IQueryHeap, query_type: QUERY_TYPE, start_index: UINT, num_queries: UINT, dst_resource: *IResource, buffer_offset: UINT64) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).resolve_query_data)(@ptrCast(self), query, query_type, start_index, num_queries, dst_resource, buffer_offset);
+        return (self.vtable.resolve_query_data)(self, query, query_type, start_index, num_queries, dst_resource, buffer_offset);
     }
     pub fn setPredication(self: *IGraphicsCommandList, buffer: ?*IResource, buffer_offset: UINT64, operation: PREDICATION_OP) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).set_predication)(@ptrCast(self), buffer, buffer_offset, operation);
+        return (self.vtable.set_predication)(self, buffer, buffer_offset, operation);
     }
     pub fn setMarker(self: *IGraphicsCommandList, metadata: UINT, data: ?*const anyopaque, size: UINT) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).set_marker)(@ptrCast(self), metadata, data, size);
+        return (self.vtable.set_marker)(self, metadata, data, size);
     }
     pub fn beginEvent(self: *IGraphicsCommandList, metadata: UINT, data: ?*const anyopaque, size: UINT) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).begin_event)(@ptrCast(self), metadata, data, size);
+        return (self.vtable.begin_event)(self, metadata, data, size);
     }
     pub fn endEvent(self: *IGraphicsCommandList) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).end_event)(@ptrCast(self));
+        return (self.vtable.end_event)(self);
     }
     pub fn executeIndirect(self: *IGraphicsCommandList, command_signature: *ICommandSignature, max_commend_count: UINT, arg_buffer: *IResource, arg_buffer_offset: UINT64, count_buffer: ?*IResource, count_buffer_offset: UINT64) void {
-        return (@as(*const IGraphicsCommandList.VTable, @ptrCast(self.vtable)).execute_indirect)(@ptrCast(self), command_signature, max_commend_count, arg_buffer, arg_buffer_offset, count_buffer, count_buffer_offset);
+        return (self.vtable.execute_indirect)(self, command_signature, max_commend_count, arg_buffer, arg_buffer_offset, count_buffer, count_buffer_offset);
     }
     // ICommandList methods
     pub fn getType(self: *IGraphicsCommandList) HRESULT {
@@ -1588,10 +1580,10 @@ pub const IPipelineState = extern struct {
         get_cached_blob: *const fn (*IPipelineState, blob: **IBlob) callconv(.winapi) HRESULT,
     };
 
-    // IPipelineState methods
     pub fn getCachedBlob(self: *IPipelineState, blob: **IBlob) HRESULT {
-        return (@as(*const IPipelineState.VTable, @ptrCast(self.vtable)).get_cached_blob)(@ptrCast(self), blob);
+        return (self.vtable.get_cached_blob)(self, blob);
     }
+    // IPageable methods
     // IDeviceChild methods
     pub fn getDevice(self: *IPipelineState, riid: *const GUID, device: *?*anyopaque) HRESULT {
         return (@as(*const IDeviceChild.VTable, @ptrCast(self.vtable)).get_device)(@ptrCast(self), riid, device);
@@ -1633,16 +1625,16 @@ pub const IDescriptorHeap = extern struct {
         get_gpu_descriptor_handle_for_heap_start: *const fn (*IDescriptorHeap, handle: *GPU_DESCRIPTOR_HANDLE) callconv(.winapi) HRESULT,
     };
 
-    // IDescriptorHeap methods
     pub fn getDesc(self: *IDescriptorHeap, desc: *DESCRIPTOR_HEAP_DESC) HRESULT {
-        return (@as(*const IDescriptorHeap.VTable, @ptrCast(self.vtable)).get_desc)(@ptrCast(self), desc);
+        return (self.vtable.get_desc)(self, desc);
     }
     pub fn getCpuDescriptorHandleForHeapStart(self: *IDescriptorHeap, handle: *CPU_DESCRIPTOR_HANDLE) HRESULT {
-        return (@as(*const IDescriptorHeap.VTable, @ptrCast(self.vtable)).get_cpu_descriptor_handle_for_heap_start)(@ptrCast(self), handle);
+        return (self.vtable.get_cpu_descriptor_handle_for_heap_start)(self, handle);
     }
     pub fn getGpuDescriptorHandleForHeapStart(self: *IDescriptorHeap, handle: *GPU_DESCRIPTOR_HANDLE) HRESULT {
-        return (@as(*const IDescriptorHeap.VTable, @ptrCast(self.vtable)).get_gpu_descriptor_handle_for_heap_start)(@ptrCast(self), handle);
+        return (self.vtable.get_gpu_descriptor_handle_for_heap_start)(self, handle);
     }
+    // IPageable methods
     // IDeviceChild methods
     pub fn getDevice(self: *IDescriptorHeap, riid: *const GUID, device: *?*anyopaque) HRESULT {
         return (@as(*const IDeviceChild.VTable, @ptrCast(self.vtable)).get_device)(@ptrCast(self), riid, device);
@@ -1680,7 +1672,7 @@ pub const IQueryHeap = extern struct {
     const VTable = extern struct {
         base: IPageable.VTable,
     };
-
+    // IPageable methods
     // IDeviceChild methods
     pub fn getDevice(self: *IQueryHeap, riid: *const GUID, device: *?*anyopaque) HRESULT {
         return (@as(*const IDeviceChild.VTable, @ptrCast(self.vtable)).get_device)(@ptrCast(self), riid, device);

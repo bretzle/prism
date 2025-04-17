@@ -515,42 +515,41 @@ pub const IOutput = extern struct {
         get_frame_statistics: *const fn (*IOutput, stats: *FRAME_STATISTICS) callconv(.winapi) HRESULT,
     };
 
-    // IOutput methods
     pub fn getDesc(self: *IOutput, desc: *OUTPUT_DESC) HRESULT {
-        return (@as(*const IOutput.VTable, @ptrCast(self.vtable)).get_desc)(@ptrCast(self), desc);
+        return (self.vtable.get_desc)(self, desc);
     }
     pub fn getDisplayModeList(self: *IOutput, format: FORMAT, flags: ENUM_MODES, num_modes: *UINT, desc: [*]MODE_DESC) HRESULT {
-        return (@as(*const IOutput.VTable, @ptrCast(self.vtable)).get_display_mode_list)(@ptrCast(self), format, flags, num_modes, desc);
+        return (self.vtable.get_display_mode_list)(self, format, flags, num_modes, desc);
     }
     pub fn findClosestMatchingMode(self: *IOutput, to_match: *const MODE_DESC, closet_match: *MODE_DESC, concerned_device: ?*IUnknown) HRESULT {
-        return (@as(*const IOutput.VTable, @ptrCast(self.vtable)).find_closest_matching_mode)(@ptrCast(self), to_match, closet_match, concerned_device);
+        return (self.vtable.find_closest_matching_mode)(self, to_match, closet_match, concerned_device);
     }
     pub fn waitForVBlank(self: *IOutput) HRESULT {
-        return (@as(*const IOutput.VTable, @ptrCast(self.vtable)).wait_for_v_blank)(@ptrCast(self));
+        return (self.vtable.wait_for_v_blank)(self);
     }
     pub fn takeOwnership(self: *IOutput, device: *IUnknown, exclusive: BOOL) HRESULT {
-        return (@as(*const IOutput.VTable, @ptrCast(self.vtable)).take_ownership)(@ptrCast(self), device, exclusive);
+        return (self.vtable.take_ownership)(self, device, exclusive);
     }
     pub fn releaseOwnership(self: *IOutput) void {
-        return (@as(*const IOutput.VTable, @ptrCast(self.vtable)).release_ownership)(@ptrCast(self));
+        return (self.vtable.release_ownership)(self);
     }
     pub fn getGammaControlCapabilities(self: *IOutput, gamma_caps: *GAMMA_CONTROL_CAPABILITIES) HRESULT {
-        return (@as(*const IOutput.VTable, @ptrCast(self.vtable)).get_gamma_control_capabilities)(@ptrCast(self), gamma_caps);
+        return (self.vtable.get_gamma_control_capabilities)(self, gamma_caps);
     }
     pub fn setGammaControl(self: *IOutput, array: *const GAMMA_CONTROL) HRESULT {
-        return (@as(*const IOutput.VTable, @ptrCast(self.vtable)).set_gamma_control)(@ptrCast(self), array);
+        return (self.vtable.set_gamma_control)(self, array);
     }
     pub fn getGammaControl(self: *IOutput, array: *GAMMA_CONTROL) HRESULT {
-        return (@as(*const IOutput.VTable, @ptrCast(self.vtable)).get_gamma_control)(@ptrCast(self), array);
+        return (self.vtable.get_gamma_control)(self, array);
     }
     pub fn setDisplaySurface(self: *IOutput, surface: *ISurface) HRESULT {
-        return (@as(*const IOutput.VTable, @ptrCast(self.vtable)).set_display_surface)(@ptrCast(self), surface);
+        return (self.vtable.set_display_surface)(self, surface);
     }
     pub fn getDisplaySurfaceData(self: *IOutput, surface: *ISurface) HRESULT {
-        return (@as(*const IOutput.VTable, @ptrCast(self.vtable)).get_display_surface_data)(@ptrCast(self), surface);
+        return (self.vtable.get_display_surface_data)(self, surface);
     }
     pub fn getFrameStatistics(self: *IOutput, stats: *FRAME_STATISTICS) HRESULT {
-        return (@as(*const IOutput.VTable, @ptrCast(self.vtable)).get_frame_statistics)(@ptrCast(self), stats);
+        return (self.vtable.get_frame_statistics)(self, stats);
     }
     // IObject methods
     pub fn getPrivateData(self: *IOutput) noreturn {
@@ -591,21 +590,20 @@ pub const IFactory = extern struct {
         create_software_adapter: *const fn (*IFactory, adapter: *?*IAdapter) callconv(.winapi) void,
     };
 
-    // IFactory methods
     pub fn enumAdapters(self: *IFactory, index: UINT, adapter: *?*IAdapter) HRESULT {
-        return (@as(*const IFactory.VTable, @ptrCast(self.vtable)).enum_adapters)(@ptrCast(self), index, adapter);
+        return (self.vtable.enum_adapters)(self, index, adapter);
     }
     pub fn makeWindowAssociation(self: *IFactory, window: HWND, flags: MWA_FLAGS) HRESULT {
-        return (@as(*const IFactory.VTable, @ptrCast(self.vtable)).make_window_association)(@ptrCast(self), window, flags);
+        return (self.vtable.make_window_association)(self, window, flags);
     }
     pub fn getWindowAssociation(self: *IFactory, window: *HWND) HRESULT {
-        return (@as(*const IFactory.VTable, @ptrCast(self.vtable)).get_window_association)(@ptrCast(self), window);
+        return (self.vtable.get_window_association)(self, window);
     }
     pub fn createSwapChain(self: *IFactory, device: *IUnknown, desc: *SWAP_CHAIN_DESC, swapchain: *?*ISwapChain) void {
-        return (@as(*const IFactory.VTable, @ptrCast(self.vtable)).create_swap_chain)(@ptrCast(self), device, desc, swapchain);
+        return (self.vtable.create_swap_chain)(self, device, desc, swapchain);
     }
     pub fn createSoftwareAdapter(self: *IFactory, adapter: *?*IAdapter) void {
-        return (@as(*const IFactory.VTable, @ptrCast(self.vtable)).create_software_adapter)(@ptrCast(self), adapter);
+        return (self.vtable.create_software_adapter)(self, adapter);
     }
     // IObject methods
     pub fn getPrivateData(self: *IFactory) noreturn {
@@ -643,12 +641,11 @@ pub const IFactory1 = extern struct {
         is_current: *const fn (*IFactory1) callconv(.winapi) BOOL,
     };
 
-    // IFactory1 methods
     pub fn enumAdapters1(self: *IFactory1, index: UINT, adapter: *?*IAdapter1) HRESULT {
-        return (@as(*const IFactory1.VTable, @ptrCast(self.vtable)).enum_adapters1)(@ptrCast(self), index, adapter);
+        return (self.vtable.enum_adapters1)(self, index, adapter);
     }
     pub fn isCurrent(self: *IFactory1) BOOL {
-        return (@as(*const IFactory1.VTable, @ptrCast(self.vtable)).is_current)(@ptrCast(self));
+        return (self.vtable.is_current)(self);
     }
     // IFactory methods
     pub fn enumAdapters(self: *IFactory1, index: UINT, adapter: *?*IAdapter) HRESULT {
@@ -711,39 +708,38 @@ pub const IFactory2 = extern struct {
         create_swap_chain_for_composition: *const fn (*IFactory2) callconv(.winapi) noreturn,
     };
 
-    // IFactory2 methods
     pub fn isWindowedStereoEnabled(self: *IFactory2) noreturn {
-        return (@as(*const IFactory2.VTable, @ptrCast(self.vtable)).is_windowed_stereo_enabled)(@ptrCast(self));
+        return (self.vtable.is_windowed_stereo_enabled)(self);
     }
     pub fn createSwapChainForHwnd(self: *IFactory2, pDevice: *IUnknown, hWnd: HWND, pDesc: *SWAP_CHAIN_DESC1, pFullscreenDesc: ?*SWAP_CHAIN_FULLSCREEN_DESC, pRestrictToOutput: ?*IOutput, swapchain: *?*ISwapChain1) HRESULT {
-        return (@as(*const IFactory2.VTable, @ptrCast(self.vtable)).create_swap_chain_for_hwnd)(@ptrCast(self), pDevice, hWnd, pDesc, pFullscreenDesc, pRestrictToOutput, swapchain);
+        return (self.vtable.create_swap_chain_for_hwnd)(self, pDevice, hWnd, pDesc, pFullscreenDesc, pRestrictToOutput, swapchain);
     }
     pub fn createSwapChainForCoreWindow(self: *IFactory2) noreturn {
-        return (@as(*const IFactory2.VTable, @ptrCast(self.vtable)).create_swap_chain_for_core_window)(@ptrCast(self));
+        return (self.vtable.create_swap_chain_for_core_window)(self);
     }
     pub fn getSharedResourceAdapterLuid(self: *IFactory2) noreturn {
-        return (@as(*const IFactory2.VTable, @ptrCast(self.vtable)).get_shared_resource_adapter_luid)(@ptrCast(self));
+        return (self.vtable.get_shared_resource_adapter_luid)(self);
     }
     pub fn registerStereoStatusWindow(self: *IFactory2) noreturn {
-        return (@as(*const IFactory2.VTable, @ptrCast(self.vtable)).register_stereo_status_window)(@ptrCast(self));
+        return (self.vtable.register_stereo_status_window)(self);
     }
     pub fn registerStereoStatusEvent(self: *IFactory2) noreturn {
-        return (@as(*const IFactory2.VTable, @ptrCast(self.vtable)).register_stereo_status_event)(@ptrCast(self));
+        return (self.vtable.register_stereo_status_event)(self);
     }
     pub fn unregisterStereoStatus(self: *IFactory2) noreturn {
-        return (@as(*const IFactory2.VTable, @ptrCast(self.vtable)).unregister_stereo_status)(@ptrCast(self));
+        return (self.vtable.unregister_stereo_status)(self);
     }
     pub fn registerOcclusionStatusWindow(self: *IFactory2) noreturn {
-        return (@as(*const IFactory2.VTable, @ptrCast(self.vtable)).register_occlusion_status_window)(@ptrCast(self));
+        return (self.vtable.register_occlusion_status_window)(self);
     }
     pub fn registerOcclusionStatusEvent(self: *IFactory2) noreturn {
-        return (@as(*const IFactory2.VTable, @ptrCast(self.vtable)).register_occlusion_status_event)(@ptrCast(self));
+        return (self.vtable.register_occlusion_status_event)(self);
     }
     pub fn unregisterOcclusionStatus(self: *IFactory2) noreturn {
-        return (@as(*const IFactory2.VTable, @ptrCast(self.vtable)).unregister_occlusion_status)(@ptrCast(self));
+        return (self.vtable.unregister_occlusion_status)(self);
     }
     pub fn createSwapChainForComposition(self: *IFactory2) noreturn {
-        return (@as(*const IFactory2.VTable, @ptrCast(self.vtable)).create_swap_chain_for_composition)(@ptrCast(self));
+        return (self.vtable.create_swap_chain_for_composition)(self);
     }
     // IFactory1 methods
     pub fn enumAdapters1(self: *IFactory2, index: UINT, adapter: *?*IAdapter1) HRESULT {
@@ -803,9 +799,8 @@ pub const IFactory3 = extern struct {
         get_creation_flags: *const fn (*IFactory3) callconv(.winapi) noreturn,
     };
 
-    // IFactory3 methods
     pub fn getCreationFlags(self: *IFactory3) noreturn {
-        return (@as(*const IFactory3.VTable, @ptrCast(self.vtable)).get_creation_flags)(@ptrCast(self));
+        return (self.vtable.get_creation_flags)(self);
     }
     // IFactory2 methods
     pub fn isWindowedStereoEnabled(self: *IFactory3) noreturn {
@@ -900,12 +895,11 @@ pub const IFactory4 = extern struct {
         enum_warp_adapter: *const fn (*IFactory4) callconv(.winapi) noreturn,
     };
 
-    // IFactory4 methods
     pub fn enumAdapterByLuid(self: *IFactory4) noreturn {
-        return (@as(*const IFactory4.VTable, @ptrCast(self.vtable)).enum_adapter_by_luid)(@ptrCast(self));
+        return (self.vtable.enum_adapter_by_luid)(self);
     }
     pub fn enumWarpAdapter(self: *IFactory4) noreturn {
-        return (@as(*const IFactory4.VTable, @ptrCast(self.vtable)).enum_warp_adapter)(@ptrCast(self));
+        return (self.vtable.enum_warp_adapter)(self);
     }
     // IFactory3 methods
     pub fn getCreationFlags(self: *IFactory4) noreturn {
@@ -1005,15 +999,14 @@ pub const IAdapter = extern struct {
         check_interface_support: *const fn (*IAdapter, riid: *const GUID, umd_version: *LARGE_INTEGER) callconv(.winapi) HRESULT,
     };
 
-    // IAdapter methods
     pub fn enumOutputs(self: *IAdapter, index: UINT, output: *?*IOutput) HRESULT {
-        return (@as(*const IAdapter.VTable, @ptrCast(self.vtable)).enum_outputs)(@ptrCast(self), index, output);
+        return (self.vtable.enum_outputs)(self, index, output);
     }
     pub fn getDesc(self: *IAdapter, desc: *ADAPTER_DESC) HRESULT {
-        return (@as(*const IAdapter.VTable, @ptrCast(self.vtable)).get_desc)(@ptrCast(self), desc);
+        return (self.vtable.get_desc)(self, desc);
     }
     pub fn checkInterfaceSupport(self: *IAdapter, riid: *const GUID, umd_version: *LARGE_INTEGER) HRESULT {
-        return (@as(*const IAdapter.VTable, @ptrCast(self.vtable)).check_interface_support)(@ptrCast(self), riid, umd_version);
+        return (self.vtable.check_interface_support)(self, riid, umd_version);
     }
     // IObject methods
     pub fn getPrivateData(self: *IAdapter) noreturn {
@@ -1050,9 +1043,8 @@ pub const IAdapter1 = extern struct {
         get_desc1: *const fn (*IAdapter1, desc: *ADAPTER_DESC1) callconv(.winapi) HRESULT,
     };
 
-    // IAdapter1 methods
     pub fn getDesc1(self: *IAdapter1, desc: *ADAPTER_DESC1) HRESULT {
-        return (@as(*const IAdapter1.VTable, @ptrCast(self.vtable)).get_desc1)(@ptrCast(self), desc);
+        return (self.vtable.get_desc1)(self, desc);
     }
     // IAdapter methods
     pub fn enumOutputs(self: *IAdapter1, index: UINT, output: *?*IOutput) HRESULT {
@@ -1101,15 +1093,14 @@ pub const ISurface = extern struct {
         unmap: *const fn (*ISurface) callconv(.winapi) HRESULT,
     };
 
-    // ISurface methods
     pub fn getDesc(self: *ISurface, desc: *SURFACE_DESC) HRESULT {
-        return (@as(*const ISurface.VTable, @ptrCast(self.vtable)).get_desc)(@ptrCast(self), desc);
+        return (self.vtable.get_desc)(self, desc);
     }
     pub fn map(self: *ISurface, locked_rect: *MAPPED_RECT, flags: MAP_FLAG) HRESULT {
-        return (@as(*const ISurface.VTable, @ptrCast(self.vtable)).map)(@ptrCast(self), locked_rect, flags);
+        return (self.vtable.map)(self, locked_rect, flags);
     }
     pub fn unmap(self: *ISurface) HRESULT {
-        return (@as(*const ISurface.VTable, @ptrCast(self.vtable)).unmap)(@ptrCast(self));
+        return (self.vtable.unmap)(self);
     }
     // IDeviceSubObject methods
     pub fn getDevice(self: *ISurface, riid: *const GUID, device: *?*anyopaque) HRESULT {
@@ -1159,36 +1150,35 @@ pub const ISwapChain = extern struct {
         get_last_present_count: *const fn (*ISwapChain, last_present_count: *UINT) callconv(.winapi) HRESULT,
     };
 
-    // ISwapChain methods
     pub fn present(self: *ISwapChain, interval: UINT, flags: PRESENT_FLAG) HRESULT {
-        return (@as(*const ISwapChain.VTable, @ptrCast(self.vtable)).present)(@ptrCast(self), interval, flags);
+        return (self.vtable.present)(self, interval, flags);
     }
     pub fn getBuffer(self: *ISwapChain, buffer: UINT, riid: *const GUID, surface: *?*anyopaque) HRESULT {
-        return (@as(*const ISwapChain.VTable, @ptrCast(self.vtable)).get_buffer)(@ptrCast(self), buffer, riid, surface);
+        return (self.vtable.get_buffer)(self, buffer, riid, surface);
     }
     pub fn setFullscreenState(self: *ISwapChain, fullscreen: BOOL, target: *IOutput) HRESULT {
-        return (@as(*const ISwapChain.VTable, @ptrCast(self.vtable)).set_fullscreen_state)(@ptrCast(self), fullscreen, target);
+        return (self.vtable.set_fullscreen_state)(self, fullscreen, target);
     }
     pub fn getFullscreenState(self: *ISwapChain, fullscreen: *BOOL, target: *?*IOutput) HRESULT {
-        return (@as(*const ISwapChain.VTable, @ptrCast(self.vtable)).get_fullscreen_state)(@ptrCast(self), fullscreen, target);
+        return (self.vtable.get_fullscreen_state)(self, fullscreen, target);
     }
     pub fn getDesc(self: *ISwapChain, desc: *SWAP_CHAIN_DESC) HRESULT {
-        return (@as(*const ISwapChain.VTable, @ptrCast(self.vtable)).get_desc)(@ptrCast(self), desc);
+        return (self.vtable.get_desc)(self, desc);
     }
     pub fn resizeBuffers(self: *ISwapChain, buffer_count: UINT, width: UINT, height: UINT, new_format: FORMAT, flags: SWAP_CHAIN_FLAG) HRESULT {
-        return (@as(*const ISwapChain.VTable, @ptrCast(self.vtable)).resize_buffers)(@ptrCast(self), buffer_count, width, height, new_format, flags);
+        return (self.vtable.resize_buffers)(self, buffer_count, width, height, new_format, flags);
     }
     pub fn resizeTarget(self: *ISwapChain, new_target_parameters: *const MODE_DESC) HRESULT {
-        return (@as(*const ISwapChain.VTable, @ptrCast(self.vtable)).resize_target)(@ptrCast(self), new_target_parameters);
+        return (self.vtable.resize_target)(self, new_target_parameters);
     }
     pub fn getContainingOutput(self: *ISwapChain, output: *?*IOutput) HRESULT {
-        return (@as(*const ISwapChain.VTable, @ptrCast(self.vtable)).get_containing_output)(@ptrCast(self), output);
+        return (self.vtable.get_containing_output)(self, output);
     }
     pub fn getFrameStatistics(self: *ISwapChain, stats: *FRAME_STATISTICS) HRESULT {
-        return (@as(*const ISwapChain.VTable, @ptrCast(self.vtable)).get_frame_statistics)(@ptrCast(self), stats);
+        return (self.vtable.get_frame_statistics)(self, stats);
     }
     pub fn getLastPresentCount(self: *ISwapChain, last_present_count: *UINT) HRESULT {
-        return (@as(*const ISwapChain.VTable, @ptrCast(self.vtable)).get_last_present_count)(@ptrCast(self), last_present_count);
+        return (self.vtable.get_last_present_count)(self, last_present_count);
     }
     // IDeviceSubObject methods
     pub fn getDevice(self: *ISwapChain, riid: *const GUID, device: *?*anyopaque) HRESULT {
@@ -1239,39 +1229,38 @@ pub const ISwapChain1 = extern struct {
         get_rotation: *const fn (*ISwapChain1, rotation: *MODE_ROTATION) callconv(.winapi) HRESULT,
     };
 
-    // ISwapChain1 methods
     pub fn getDesc1(self: *ISwapChain1, desc: *SWAP_CHAIN_DESC1) HRESULT {
-        return (@as(*const ISwapChain1.VTable, @ptrCast(self.vtable)).get_desc1)(@ptrCast(self), desc);
+        return (self.vtable.get_desc1)(self, desc);
     }
     pub fn getFullscreenDesc(self: *ISwapChain1, desc: *SWAP_CHAIN_FULLSCREEN_DESC) HRESULT {
-        return (@as(*const ISwapChain1.VTable, @ptrCast(self.vtable)).get_fullscreen_desc)(@ptrCast(self), desc);
+        return (self.vtable.get_fullscreen_desc)(self, desc);
     }
     pub fn getHwnd(self: *ISwapChain1, hwnd: *HWND) HRESULT {
-        return (@as(*const ISwapChain1.VTable, @ptrCast(self.vtable)).get_hwnd)(@ptrCast(self), hwnd);
+        return (self.vtable.get_hwnd)(self, hwnd);
     }
     pub fn getCoreWindow(self: *ISwapChain1, riid: *const GUID, unk: *?*anyopaque) HRESULT {
-        return (@as(*const ISwapChain1.VTable, @ptrCast(self.vtable)).get_core_window)(@ptrCast(self), riid, unk);
+        return (self.vtable.get_core_window)(self, riid, unk);
     }
     pub fn present1(self: *ISwapChain1, interval: UINT, flags: PRESENT_FLAG, present_parameters: *PRESENT_PARAMETERS) HRESULT {
-        return (@as(*const ISwapChain1.VTable, @ptrCast(self.vtable)).present1)(@ptrCast(self), interval, flags, present_parameters);
+        return (self.vtable.present1)(self, interval, flags, present_parameters);
     }
     pub fn isTemporaryMonoSupported(self: *ISwapChain1) BOOL {
-        return (@as(*const ISwapChain1.VTable, @ptrCast(self.vtable)).is_temporary_mono_supported)(@ptrCast(self));
+        return (self.vtable.is_temporary_mono_supported)(self);
     }
     pub fn getRestrictToOutput(self: *ISwapChain1, restrict_to_output: *?*IOutput) HRESULT {
-        return (@as(*const ISwapChain1.VTable, @ptrCast(self.vtable)).get_restrict_to_output)(@ptrCast(self), restrict_to_output);
+        return (self.vtable.get_restrict_to_output)(self, restrict_to_output);
     }
     pub fn setBackgroundColor(self: *ISwapChain1, color: *const D3DCOLORVALUE) HRESULT {
-        return (@as(*const ISwapChain1.VTable, @ptrCast(self.vtable)).set_background_color)(@ptrCast(self), color);
+        return (self.vtable.set_background_color)(self, color);
     }
     pub fn getBackgroundColor(self: *ISwapChain1, color: *D3DCOLORVALUE) HRESULT {
-        return (@as(*const ISwapChain1.VTable, @ptrCast(self.vtable)).get_background_color)(@ptrCast(self), color);
+        return (self.vtable.get_background_color)(self, color);
     }
     pub fn setRotation(self: *ISwapChain1, rotation: MODE_ROTATION) HRESULT {
-        return (@as(*const ISwapChain1.VTable, @ptrCast(self.vtable)).set_rotation)(@ptrCast(self), rotation);
+        return (self.vtable.set_rotation)(self, rotation);
     }
     pub fn getRotation(self: *ISwapChain1, rotation: *MODE_ROTATION) HRESULT {
-        return (@as(*const ISwapChain1.VTable, @ptrCast(self.vtable)).get_rotation)(@ptrCast(self), rotation);
+        return (self.vtable.get_rotation)(self, rotation);
     }
     // ISwapChain methods
     pub fn present(self: *ISwapChain1, interval: UINT, flags: PRESENT_FLAG) HRESULT {
@@ -1343,9 +1332,8 @@ pub const IDeviceSubObject = extern struct {
         get_device: *const fn (*IDeviceSubObject, riid: *const GUID, device: *?*anyopaque) callconv(.winapi) HRESULT,
     };
 
-    // IDeviceSubObject methods
     pub fn getDevice(self: *IDeviceSubObject, riid: *const GUID, device: *?*anyopaque) HRESULT {
-        return (@as(*const IDeviceSubObject.VTable, @ptrCast(self.vtable)).get_device)(@ptrCast(self), riid, device);
+        return (self.vtable.get_device)(self, riid, device);
     }
     // IObject methods
     pub fn getPrivateData(self: *IDeviceSubObject) noreturn {
@@ -1386,21 +1374,20 @@ pub const IDevice = extern struct {
         get_gpu_thread_priority: *const fn (*IDevice, priority: *INT) callconv(.winapi) HRESULT,
     };
 
-    // IDevice methods
     pub fn getAdapter(self: *IDevice, adapter: *?*IAdapter) HRESULT {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).get_adapter)(@ptrCast(self), adapter);
+        return (self.vtable.get_adapter)(self, adapter);
     }
     pub fn createSurface(self: *IDevice, desc: *const SURFACE_DESC, num_surfaces: UINT, usage: USAGE, shared_resource: ?*const SHARED_RESOURCE, surface: *?*ISurface) HRESULT {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).create_surface)(@ptrCast(self), desc, num_surfaces, usage, shared_resource, surface);
+        return (self.vtable.create_surface)(self, desc, num_surfaces, usage, shared_resource, surface);
     }
     pub fn queryResourceResidency(self: *IDevice, resources: [*]const *IUnknown, residency_status: [*]RESIDENCY, num_resources: UINT) HRESULT {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).query_resource_residency)(@ptrCast(self), resources, residency_status, num_resources);
+        return (self.vtable.query_resource_residency)(self, resources, residency_status, num_resources);
     }
     pub fn setGpuThreadPriority(self: *IDevice, priority: INT) HRESULT {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).set_gpu_thread_priority)(@ptrCast(self), priority);
+        return (self.vtable.set_gpu_thread_priority)(self, priority);
     }
     pub fn getGpuThreadPriority(self: *IDevice, priority: *INT) HRESULT {
-        return (@as(*const IDevice.VTable, @ptrCast(self.vtable)).get_gpu_thread_priority)(@ptrCast(self), priority);
+        return (self.vtable.get_gpu_thread_priority)(self, priority);
     }
     // IObject methods
     pub fn getPrivateData(self: *IDevice) noreturn {

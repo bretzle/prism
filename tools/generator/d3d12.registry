@@ -1,0 +1,203 @@
+common IUnknown {
+    iid = "00000000-0000-0000-C000-000000000046"
+
+    fn queryInterface(self, riid: *const GUID, out: *?*anyopaque) HRESULT
+    fn addRef(self) ULONG
+    fn release(self) ULONG
+}
+
+common IObject : IUnknown {
+    iid = "AEC22FB8-76F3-4639-9BE0-28EB43A67A2E"
+
+    fn getPrivateData(self) noreturn
+    fn setPrivateData(self) noreturn
+    fn setPrivateDataInterface(self) noreturn
+    fn setName(self) noreturn
+}
+
+define IBlob : IUnknown {
+    iid = "8BA5FB08-5195-40E2-AC58-0D989C3A0102"
+
+    fn getBufferPointer(self) *anyopaque
+    fn getBufferSize(self) SIZE_T
+}
+
+define IDeviceChild : IObject {
+    iid = "905DB94B-A00C-4140-9DF5-2B64CA9EA357"
+
+    fn getDevice(self, riid: *const GUID, device: *?*anyopaque) HRESULT
+}
+
+define IPageable : IDeviceChild {
+    iid = "63EE58FB-1268-4835-86DA-F008CE62F0D6"
+}
+
+define IDebug : IUnknown {
+    iid = "344488B7-6846-474B-B989-F027448245E0"
+
+    fn enableDebugLayer(self) void
+}
+
+define IDevice : IObject {
+    iid = "189819F1-1DB6-4B57-BE54-1821339B85F7"
+
+    fn getNodeCount(self) noreturn
+    fn createCommandQueue(self, desc: *const COMMAND_QUEUE_DESC, riid: *const GUID, command_queue: *?*anyopaque) HRESULT
+    fn createCommandAllocator(self,  cmdlist_type: COMMAND_LIST_TYPE, guid: *const GUID, obj: *?*anyopaque) HRESULT
+    fn createGraphicsPipelineState(self) noreturn
+    fn createComputePipelineState(self) noreturn
+    fn createCommandList(self, node_mask: UINT, cmdlist_type: COMMAND_LIST_TYPE, cmdalloc: *ICommandAllocator, initial_state: ?*IPipelineState, guid: *const GUID, cmdlist: *?*anyopaque) HRESULT
+    fn checkFeatureSupport(self, feature: FEATURE, data: *anyopaque, size: UINT) HRESULT
+    fn createDescriptorHeap(self) noreturn
+    fn getDescriptorHandleIncrementSize(self) noreturn
+    fn createRootSignature(self) noreturn
+    fn createConstantBufferView(self) noreturn
+    fn createShaderResourceView(self) noreturn
+    fn createUnorderedAccessView(self) noreturn
+    fn createRenderTargetView(self) noreturn
+    fn createDepthStencilView(self) noreturn
+    fn createSampler(self) noreturn
+    fn copyDescriptors(self) noreturn
+    fn copyDescriptorsSimple(self) noreturn
+    fn getResourceAllocationInfo(self) noreturn
+    fn getCustomHeapProperties(self) noreturn
+    fn createCommittedResource(self) noreturn
+    fn createHeap(self) noreturn
+    fn createPlacedResource(self) noreturn
+    fn createReservedResource(self) noreturn
+    fn createSharedHandle(self) noreturn
+    fn openSharedHandle(self) noreturn
+    fn openSharedHandleByName(self) noreturn
+    fn makeResident(self) noreturn
+    fn evict(self) noreturn
+    fn createFence(self) noreturn
+    fn getDeviceRemovedReason(self) noreturn
+    fn getCopyableFootprints(self) noreturn
+    fn createQueryHeap(self) noreturn
+    fn setStablePowerState(self) noreturn
+    fn createCommandSignature(self, desc: *const COMMAND_SIGNATURE_DESC, root_signature: ?*IRootSignature, riid: *const GUID, signature: ?*?*anyopaque) HRESULT
+    fn getResourceTiling(self) noreturn
+    fn getAdapterLuid(self) noreturn
+}
+
+define ICommandQueue : IPageable {
+    iid = "0EC870A6-5D7E-4C22-8CFC-5BAAE07616ED"
+
+    fn updateTileMappings(self) noreturn
+    fn copyTileMappings(self) noreturn
+    fn executeCommandLists(self) noreturn
+    fn setMarker(self) noreturn
+    fn beginEvent(self) noreturn
+    fn endEvent(self) noreturn
+    fn signal(self) noreturn
+    fn wait(self) noreturn
+    fn getTimestampFrequency(self) noreturn
+    fn getClockCalibration(self) noreturn
+    fn getDesc(self) noreturn
+}
+
+define ICommandSignature : IPageable {
+    iid = "C36A797C-EC80-4F0A-8985-A7B2475082D1"
+}
+
+define IRootSignature : IDeviceChild {
+    iid = "C54A6B66-72DF-4EE8-8BE5-A946A1429214"
+}
+
+define IResource : IPageable {
+    iid = "696442BE-A72E-4059-BC79-5B5C98040FAD"
+
+    fn map(self, subresource: UINT, read_range: ?*const RANGE, data: *?*anyopaque) HRESULT
+    fn unmap(self, subresource: UINT, read_range: ?*const RANGE) void
+    fn getDesc(self, desc: *RESOURCE_DESC) HRESULT
+    fn getGpuVirtualAddress(self) GPU_VIRTUAL_ADDRESS
+    fn writeToSubresource(self, dst_subresource: UINT, dst_box: ?*const BOX, src_data: *const anyopaque, src_row_pitch: UINT, src_depth_pitch: UINT) HRESULT
+    fn readFromSubresource(self, dst_data: *anyopaque, dst_row_pitch: UINT, dst_depth_pitch: UINT, src_subresource: UINT, src_box: ?*const BOX) HRESULT
+    fn getHeapProperties(self, properties: ?*HEAP_PROPERTIES, flags: ?*HEAP_FLAGS) HRESULT
+}
+
+define ICommandAllocator : IPageable {
+    iid = "6102DEE4-AF59-4B09-B999-B44D73F09B24"
+
+    fn reset(self) HRESULT
+}
+
+define ICommandList : IDeviceChild {
+    iid = "7116D91C-E7E4-47CE-B8C6-EC8168F437E5"
+
+    fn getType(self) HRESULT
+}
+
+define IGraphicsCommandList : ICommandList {
+    iid = "5B160D0F-AC1B-4185-8BA8-B3AE42A5A455"
+
+    fn close(self) HRESULT
+    fn reset(self, allocator: *ICommandAllocator, initial_state: ?*IPipelineState) HRESULT
+    fn clearState(self, state: ?*IPipelineState) void
+    fn drawInstanced(self, vertex_count_per_instance: UINT, instance_count: UINT, start_vertex_location: UINT, start_index_location: UINT) void
+    fn drawIndexedInstanced(self, index_count_per_instance: UINT, instance_count: UINT, start_index_location: UINT, base_vertex_location: INT, start_instance_location: UINT) void
+    fn dispatch(self, x: UINT, y: UINT, z: UINT) void
+    fn copyBufferRegion(self, dst_buffer: *IResource, dst_offset: UINT64, src_buffer: *IResource, src_offset: UINT64, num_bytes: UINT64) void
+    fn copyTextureRegion(self, dst: *const TEXTURE_COPY_LOCATION, dst_x: UINT, dst_y: UINT, dst_z: UINT, src: *const TEXTURE_COPY_LOCATION, src_box: ?*const BOX) void
+    fn copyResource(self, dst: *IResource, src: *IResource) void
+    fn copyTiles(self, tiled_resource: *IResource, tile_region_start_coordinate: *const TILED_RESOURCE_COORDINATE, tile_region_size: *const TILE_REGION_SIZE, buffer: *IResource, buffer_start_offset_in_bytes: UINT64, flags: TILE_COPY_FLAGS) void
+    fn resolveSubresource(self, dst_resource: *IResource, dst_subresource: UINT, src_resource: *IResource, src_subresource: UINT, format: dxgi.FORMAT) void
+    fn iaSetPrimitiveTopology(self, topology: PRIMITIVE_TOPOLOGY) void
+    fn rsSetViewports(self, num: UINT, viewports: [*]const VIEWPORT) void
+    fn rsSetScissorRects(self, num: UINT, rects: [*]const RECT) void
+    fn omSetBlendFactor(self, blend_factor: *const [4]FLOAT) void
+    fn omSetStencilRef(self, stencil_ref: UINT) void
+    fn setPipelineState(self, pso: *IPipelineState) void
+    fn resourceBarrier(self, num: UINT, barriers: [*]const RESOURCE_BARRIER) void
+    fn executeBundle(self, cmdlist: self) void
+    fn setDescriptorHeaps(self, num: UINT, heaps: [*]const *IDescriptorHeap) void
+    fn setComputeRootSignature(self, root_signature: ?*IRootSignature) void
+    fn setGraphicsRootSignature(self, root_signature: ?*IRootSignature) void
+    fn setComputeRootDescriptorTable(self, root_index: UINT, base_descriptor: GPU_DESCRIPTOR_HANDLE) void
+    fn setGraphicsRootDescriptorTable(self, root_index: UINT, base_descriptor: GPU_DESCRIPTOR_HANDLE) void
+    fn setComputeRoot32BitConstant(self, index: UINT, data: UINT, offset: UINT) void
+    fn setGraphicsRoot32BitConstant(self, index: UINT, data: UINT, offset: UINT) void
+    fn setComputeRoot32BitConstants(self, root_index: UINT, num: UINT, data: *const anyopaque, offset: UINT) void
+    fn setGraphicsRoot32BitConstants(self, root_index: UINT, num: UINT, data: *const anyopaque, offset: UINT) void
+    fn setComputeRootConstantBufferView(self, index: UINT, buffer_location: GPU_VIRTUAL_ADDRESS) void
+    fn setGraphicsRootConstantBufferView(self, index: UINT, buffer_location: GPU_VIRTUAL_ADDRESS) void
+    fn setComputeRootShaderResourceView(self, index: UINT, buffer_location: GPU_VIRTUAL_ADDRESS) void
+    fn setGraphicsRootShaderResourceView(self, index: UINT, buffer_location: GPU_VIRTUAL_ADDRESS) void
+    fn setComputeRootUnorderedAccessView(self, index: UINT, buffer_location: GPU_VIRTUAL_ADDRESS) void
+    fn setGraphicsRootUnorderedAccessView(self, index: UINT, buffer_location: GPU_VIRTUAL_ADDRESS) void
+    fn iaSetIndexBuffer(self, view: ?*const INDEX_BUFFER_VIEW) void
+    fn iaSetVertexBuffers(self, start_slot: UINT, num_views: UINT, views: ?[*]const VERTEX_BUFFER_VIEW) void
+    fn soSetTargets(self, start_slote: UINT, num_views: UINT, views: ?[*]const STREAM_OUTPUT_BUFFER_VIEW) void
+    fn omSetRenderTargets(self, num_rt_descriptors: UINT, rt_descriptors: ?[*]const CPU_DESCRIPTOR_HANDLE, single_handle: BOOL, ds_descriptors: ?*const CPU_DESCRIPTOR_HANDLE) void
+    fn clearDepthStencilView(self, ds_view: CPU_DESCRIPTOR_HANDLE, clear_flags: CLEAR_FLAGS, depth: FLOAT, stencil: UINT8, num_rects: UINT, rects: ?[*]const RECT) void
+    fn clearRenderTargetView(self, rt_view: CPU_DESCRIPTOR_HANDLE, rgba: *const [4]FLOAT, num_rects: UINT, rects: ?[*]const RECT) void
+    fn clearUnorderedAccessViewUint(self, gpu_view: GPU_DESCRIPTOR_HANDLE, cpu_view: CPU_DESCRIPTOR_HANDLE, resource: *IResource, values: *const [4]UINT, num_rects: UINT, rects: ?[*]const RECT) void
+    fn clearUnorderedAccessViewFloat(self, gpu_view: GPU_DESCRIPTOR_HANDLE, cpu_view: CPU_DESCRIPTOR_HANDLE, resource: *IResource, values: *const [4]FLOAT, num_rects: UINT, rects: ?[*]const RECT) void
+    fn discardResource(self, resource: *IResource, region: ?*const DISCARD_REGION) void
+    fn beginQuery(self, query: *IQueryHeap, query_type: QUERY_TYPE, index: UINT) void
+    fn endQuery(self, query: *IQueryHeap, query_type: QUERY_TYPE, index: UINT) void
+    fn resolveQueryData(self, query: *IQueryHeap, query_type: QUERY_TYPE, start_index: UINT, num_queries: UINT, dst_resource: *IResource, buffer_offset: UINT64) void
+    fn setPredication(self, buffer: ?*IResource, buffer_offset: UINT64, operation: PREDICATION_OP) void
+    fn setMarker(self, metadata: UINT, data: ?*const anyopaque, size: UINT) void
+    fn beginEvent(self, metadata: UINT, data: ?*const anyopaque, size: UINT) void
+    fn endEvent(self) void
+    fn executeIndirect(self, command_signature: *ICommandSignature, max_commend_count: UINT, arg_buffer: *IResource, arg_buffer_offset: UINT64, count_buffer: ?*IResource, count_buffer_offset: UINT64) void
+}
+
+define IPipelineState : IPageable {
+    iid = ""
+
+    fn getCachedBlob(self, blob: **IBlob) HRESULT
+}
+
+define IDescriptorHeap : IPageable {
+    iid = ""
+
+    fn getDesc(self, desc: *DESCRIPTOR_HEAP_DESC) HRESULT
+    fn getCpuDescriptorHandleForHeapStart(self, handle: *CPU_DESCRIPTOR_HANDLE) HRESULT
+    fn getGpuDescriptorHandleForHeapStart(self, handle: *GPU_DESCRIPTOR_HANDLE) HRESULT
+}
+
+define IQueryHeap : IPageable {
+    iid = ""
+}

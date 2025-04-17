@@ -1,0 +1,148 @@
+common IUnknown {
+    iid = "00000000-0000-0000-C000-000000000046"
+
+    fn queryInterface(self, riid: *const GUID, out: *?*anyopaque) HRESULT
+    fn addRef(self) ULONG
+    fn release(self) ULONG
+}
+
+common IObject : IUnknown {
+    iid = "AEC22FB8-76F3-4639-9BE0-28EB43A67A2E"
+
+    fn getPrivateData(self) noreturn
+    fn setPrivateData(self) noreturn
+    fn setPrivateDataInterface(self) noreturn
+    fn setName(self) noreturn
+}
+
+define IOutput : IObject {
+    iid = "AE02EEDB-C735-4690-8D52-5A8DC20213AA"
+
+    fn getDesc(self, desc: *OUTPUT_DESC) HRESULT
+    fn getDisplayModeList(self, format: FORMAT, flags: ENUM_MODES, num_modes: *UINT, desc: [*]MODE_DESC) HRESULT
+    fn findClosestMatchingMode(self, to_match: *const MODE_DESC, closet_match: *MODE_DESC, concerned_device: ?*IUnknown) HRESULT
+    fn waitForVBlank(self) HRESULT
+    fn takeOwnership(self, device: *IUnknown, exclusive: BOOL) HRESULT
+    fn releaseOwnership(self) void
+    fn getGammaControlCapabilities(self, gamma_caps: *GAMMA_CONTROL_CAPABILITIES) HRESULT
+    fn setGammaControl(self, array: *const GAMMA_CONTROL) HRESULT
+    fn getGammaControl(self, array: *GAMMA_CONTROL) HRESULT
+    fn setDisplaySurface(self, surface: *ISurface) HRESULT
+    fn getDisplaySurfaceData(self, surface: *ISurface) HRESULT
+    fn getFrameStatistics(self, stats: *FRAME_STATISTICS) HRESULT
+}
+
+define IFactory : IObject {
+    iid = "7B7166EC-21C7-44AE-B21A-C9AE321AE369"
+
+    fn enumAdapters(self, index: UINT, adapter: *?*IAdapter) HRESULT
+    fn makeWindowAssociation(self, window: HWND, flags: MWA_FLAGS) HRESULT
+    fn getWindowAssociation(self, window: *HWND) HRESULT
+    fn createSwapChain(self, device: *IUnknown, desc: *SWAP_CHAIN_DESC, swapchain: *?*ISwapChain) void
+    fn createSoftwareAdapter(self, adapter: *?*IAdapter) void
+}
+
+define IFactory1 : IFactory {
+    iid = "770AAE78-F26F-4DBA-A829-253C83D1B387"
+
+    fn enumAdapters1(self, index: UINT, adapter: *?*IAdapter1) HRESULT
+    fn isCurrent(self) BOOL
+}
+
+define IFactory2 : IFactory1 {
+    iid = "50C83A1C-E072-4C48-87B0-3630FA36A6D0"
+
+    fn isWindowedStereoEnabled(self) noreturn
+    fn createSwapChainForHwnd(self, pDevice: *IUnknown, hWnd: HWND, pDesc: *SWAP_CHAIN_DESC1, pFullscreenDesc: ?*SWAP_CHAIN_FULLSCREEN_DESC, pRestrictToOutput: ?*IOutput, swapchain: *?*ISwapChain1) HRESULT
+    fn createSwapChainForCoreWindow(self) noreturn
+    fn getSharedResourceAdapterLuid(self) noreturn
+    fn registerStereoStatusWindow(self) noreturn
+    fn registerStereoStatusEvent(self) noreturn
+    fn unregisterStereoStatus(self) noreturn
+    fn registerOcclusionStatusWindow(self) noreturn
+    fn registerOcclusionStatusEvent(self) noreturn
+    fn unregisterOcclusionStatus(self) noreturn
+    fn createSwapChainForComposition(self) noreturn
+}
+
+define IFactory3 : IFactory2 {
+    iid = "25483823-CD46-4C7D-86CA-47AA95B837BD"
+
+    fn getCreationFlags(self) noreturn
+}
+
+define IFactory4 : IFactory3 {
+    iid = "1BC6EA02-EF36-464F-BF0C-21CA39E5168A"
+
+    fn enumAdapterByLuid(self) noreturn
+    fn enumWarpAdapter(self) noreturn
+}
+
+define IAdapter : IObject {
+    iid = "2411E7E1-12AC-4CCF-BD14-9798E8534DC0"
+
+    fn enumOutputs(self, index: UINT, output: *?*IOutput) HRESULT
+    fn getDesc(self, desc: *ADAPTER_DESC) HRESULT
+    fn checkInterfaceSupport(self, riid: *const GUID, umd_version: *LARGE_INTEGER) HRESULT
+}
+
+define IAdapter1 : IAdapter {
+    iid = "29038F61-3839-4626-91FD-086879011A05"
+
+    fn getDesc1(self, desc: *ADAPTER_DESC1) HRESULT
+}
+
+define ISurface : IDeviceSubObject {
+    iid = "CAFCB56C-6AC3-4889-BF47-9E23BBD260EC"
+
+    fn getDesc(self, desc: *SURFACE_DESC) HRESULT
+    fn map(self, locked_rect: *MAPPED_RECT, flags: MAP_FLAG) HRESULT
+    fn unmap(self) HRESULT
+}
+
+define ISwapChain : IDeviceSubObject {
+    iid = "310D36A0-D2E7-4C0A-AA04-6A9D23B8886A"
+
+    fn present(self, interval: UINT, flags: PRESENT_FLAG) HRESULT
+    fn getBuffer(self, buffer: UINT, riid: *const GUID, surface: *?*anyopaque) HRESULT
+    fn setFullscreenState(self, fullscreen: BOOL, target: *IOutput) HRESULT
+    fn getFullscreenState(self, fullscreen: *BOOL, target: *?*IOutput) HRESULT
+    fn getDesc(self, desc: *SWAP_CHAIN_DESC) HRESULT
+    fn resizeBuffers(self, buffer_count: UINT, width: UINT, height: UINT, new_format: FORMAT, flags: SWAP_CHAIN_FLAG) HRESULT
+    fn resizeTarget(self, new_target_parameters: *const MODE_DESC) HRESULT
+    fn getContainingOutput(self, output: *?*IOutput) HRESULT
+    fn getFrameStatistics(self, stats: *FRAME_STATISTICS) HRESULT
+    fn getLastPresentCount(self, last_present_count: *UINT) HRESULT
+}
+
+define ISwapChain1 : ISwapChain {
+    iid = "790A45F7-0D42-4876-983A-0A55CFE6F4AA"
+
+    fn getDesc1(self, desc: *SWAP_CHAIN_DESC1) HRESULT
+    fn getFullscreenDesc(self, desc: *SWAP_CHAIN_FULLSCREEN_DESC) HRESULT
+    fn getHwnd(self, hwnd: *HWND) HRESULT
+    fn getCoreWindow(self, riid: *const GUID, unk: *?*anyopaque) HRESULT
+    fn present1(self, interval: UINT, flags: PRESENT_FLAG, present_parameters: *PRESENT_PARAMETERS) HRESULT
+    fn isTemporaryMonoSupported(self) BOOL
+    fn getRestrictToOutput(self, restrict_to_output: *?*IOutput) HRESULT
+    fn setBackgroundColor(self, color: *const D3DCOLORVALUE) HRESULT
+    fn getBackgroundColor(self, color: *D3DCOLORVALUE) HRESULT
+    fn setRotation(self, rotation: MODE_ROTATION) HRESULT
+    fn getRotation(self, rotation: *MODE_ROTATION) HRESULT
+}
+
+define IDeviceSubObject : IObject {
+    iid = "3D3E0379-F9DE-4D58-BB6C-18D62992F1A6"
+
+    fn getDevice(self, riid: *const GUID, device: *?*anyopaque) HRESULT
+}
+
+define IDevice : IObject {
+    iid = "54EC77FA-1377-44E6-8C32-88FD5F44C84C"
+
+    fn getAdapter(self, adapter: *?*IAdapter) HRESULT
+    fn createSurface(self, desc: *const SURFACE_DESC, num_surfaces: UINT, usage: USAGE, shared_resource: ?*const SHARED_RESOURCE, surface: *?*ISurface) HRESULT
+    fn queryResourceResidency(self, resources: [*]const *IUnknown, residency_status: [*]RESIDENCY, num_resources: UINT) HRESULT
+    fn setGpuThreadPriority(self, priority: INT) HRESULT
+    fn getGpuThreadPriority(self, priority: *INT) HRESULT
+}
