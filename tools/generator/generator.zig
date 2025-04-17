@@ -1,3 +1,13 @@
+// eventually we will want to ditch zon for an easier dsl
+// maybe something like this:
+//
+// define IFactory : IObject {
+//     iid = "7B7166EC-21C7-44AE-B21A-C9AE321AE369"
+//
+//     fn enumAdapters(self, index: UINT, adapter: *?*IAdapter) HRESULT;
+//     fn makeWindowAssociation(self) void;
+// }
+
 const std = @import("std");
 const trim = std.mem.trim;
 
@@ -44,7 +54,7 @@ pub fn main() !void {
     const generator_dir = try std.fs.cwd().openDir("tools/generator", .{});
 
     for (mapping) |entry| {
-        const zon_bytes = try generator_dir.readFileAlloc(allocator, entry.source, 9999999999);
+        const zon_bytes = try generator_dir.readFileAllocOptions(allocator, entry.source, 9999999999, null, @alignOf(u8), 0);
         const generated = try generate(zon_bytes);
 
         const target = try std.fs.cwd().createFile(entry.target, .{
@@ -68,9 +78,9 @@ pub fn main() !void {
     }
 }
 
-fn generate(zon_bytes: []const u8) ![]const u8 {
+fn generate(zon_bytes: [:0]const u8) ![]const u8 {
     var status = std.zon.parse.Status{};
-    const parsed = std.zon.parse.fromSlice([]Interface, allocator, @ptrCast(zon_bytes), &status, .{}) catch {
+    const parsed = std.zon.parse.fromSlice([]Interface, allocator, zon_bytes, &status, .{}) catch {
         std.debug.panic("failed to parse zon: {}", .{status});
     };
 

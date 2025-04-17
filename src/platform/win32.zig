@@ -160,16 +160,16 @@ pub const Window = struct {
     // -----------------------
 
     fn processEvent(self: *Window, msg: u32, wparam: w32.WPARAM, lparam: w32.LPARAM) !w32.LRESULT {
-        if (builtin.mode == .Debug) {
-            for (0..__event_level) |_| {
-                std.debug.print("  ", .{});
-            }
-            var buf = [_]u8{0} ** 6;
-            const msg_str = w32.msgToStr(msg, &buf);
-            std.debug.print("{s}\n", .{msg_str});
-            __event_level += 1;
-            defer __event_level -= 1;
-        }
+        // if (builtin.mode == .Debug) {
+        //     for (0..__event_level) |_| {
+        //         std.debug.print("  ", .{});
+        //     }
+        //     var buf = [_]u8{0} ** 6;
+        //     const msg_str = w32.msgToStr(msg, &buf);
+        //     std.debug.print("{s}\n", .{msg_str});
+        //     __event_level += 1;
+        //     defer __event_level -= 1;
+        // }
 
         switch (msg) {
             w32.WM_CLOSE => try self.addEvent(.window_close),
