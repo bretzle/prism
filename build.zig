@@ -4,9 +4,11 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const truetype = b.dependency("truetype", .{});
+    // const truetype = b.dependency("truetype", .{});
     // const vulkan_headers = b.dependency("vulkan_headers", .{});
     // const vulkan = b.dependency("vulkan", .{ .registry = vulkan_headers.path("registry/vk.xml") });
+
+    buildTools(b, target, optimize);
 
     const pool_mod = b.addModule("pool", .{
         .root_source_file = b.path("deps/pool.zig"),
@@ -27,7 +29,7 @@ pub fn build(b: *std.Build) void {
         .imports = &.{
             .{ .name = "w32", .module = w32_mod },
             .{ .name = "pool", .module = pool_mod },
-            .{ .name = "truetype", .module = truetype.module("TrueType") },
+            // .{ .name = "truetype", .module = truetype.module("TrueType") },
         },
     });
 
@@ -57,4 +59,19 @@ pub fn build(b: *std.Build) void {
 
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_tests.step);
+}
+
+fn buildTools(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) void {
+    const generator = b.addExecutable(.{
+        .name = "generator",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("tools/generator/generator.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+
+    const run = b.addRunArtifact(generator);
+    const step = b.step("generate", "run code generator");
+    step.dependOn(&run.step);
 }

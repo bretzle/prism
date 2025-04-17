@@ -1,0 +1,163 @@
+// .{
+//     .iid = "",
+//     .name = "",
+//     .inheirit = "",
+//     .vtable = .{
+//         .{ .name = "", .args = "", .rets = "" },
+//     },
+// },
+
+.{
+    .{
+        .common = true,
+        .iid = "00000000-0000-0000-C000-000000000046",
+        .name = "IUnknown",
+        .inheirit = null,
+        .vtable = .{
+            .{ .name = "query_interface", .args = "*IUnknown, riid: *const GUID, out: *?*anyopaque", .rets = "HRESULT" },
+            .{ .name = "add_ref", .args = "*IUnknown", .rets = "ULONG" },
+            .{ .name = "release", .args = "*IUnknown", .rets = "ULONG" },
+        },
+    },
+    .{
+        .common = true,
+        .iid = "AEC22FB8-76F3-4639-9BE0-28EB43A67A2E",
+        .name = "IObject",
+        .inheirit = "IUnknown",
+        .vtable = .{
+            .{ .name = "get_private_data", .args = "*IObject", .rets = "noreturn" },
+            .{ .name = "set_private_data", .args = "*IObject", .rets = "noreturn" },
+            .{ .name = "set_private_data_interface", .args = "*IObject", .rets = "noreturn" },
+            .{ .name = "set_name", .args = "*IObject", .rets = "noreturn" },
+        },
+    },
+
+    // Blob
+    // ----
+    .{
+        .iid = "8BA5FB08-5195-40E2-AC58-0D989C3A0102",
+        .name = "IBlob",
+        .inheirit = "IUnknown",
+        .vtable = .{
+            .{ .name = "get_buffer_pointer", .args = "*IBlob", .rets = "*anyopaque" },
+            .{ .name = "get_buffer_size", .args = "*IBlob", .rets = "SIZE_T" },
+        },
+    },
+
+    // DeviceChild
+    // -----------
+    .{
+        .iid = "905DB94B-A00C-4140-9DF5-2B64CA9EA357",
+        .name = "IDeviceChild",
+        .inheirit = "IObject",
+        .vtable = .{
+            .{ .name = "get_device", .args = "*IDeviceChild, riid: *const GUID, device: *?*anyopaque", .rets = "HRESULT" },
+        },
+    },
+
+    // Pageable
+    // --------
+    .{
+        .iid = "63ee58fb-1268-4835-86da-f008ce62f0d6",
+        .name = "IPageable",
+        .inheirit = "IDeviceChild",
+        .vtable = .{},
+    },
+
+    // Debug
+    // -----
+    .{
+        .iid = "344488B7-6846-474B-B989-F027448245E0",
+        .name = "IDebug",
+        .inheirit = "IUnknown",
+        .vtable = .{
+            .{ .name = "enable_debug_layer", .args = "*IDebug", .rets = "void" },
+        },
+    },
+
+    // Device
+    // ------
+    .{
+        .iid = "189819F1-1DB6-4B57-BE54-1821339B85F7",
+        .name = "IDevice",
+        .inheirit = "IObject",
+        .vtable = .{
+            .{ .name = "get_node_count", .args = "*IDevice", .rets = "noreturn" },
+            .{ .name = "create_command_queue", .args = "*IDevice, desc: *const COMMAND_QUEUE_DESC, riid: *const GUID, command_queue: *?*anyopaque", .rets = "HRESULT" },
+            .{ .name = "create_command_allocator", .args = "*IDevice", .rets = "noreturn" },
+            .{ .name = "create_graphics_pipeline_state", .args = "*IDevice", .rets = "noreturn" },
+            .{ .name = "create_compute_pipeline_state", .args = "*IDevice", .rets = "noreturn" },
+            .{ .name = "create_command_list", .args = "*IDevice", .rets = "noreturn" },
+            .{ .name = "check_feature_support", .args = "*IDevice, feature: FEATURE, data: *anyopaque, size: UINT", .rets = "HRESULT" },
+            .{ .name = "create_descriptor_heap", .args = "*IDevice", .rets = "noreturn" },
+            .{ .name = "get_descriptor_handle_increment_size", .args = "*IDevice", .rets = "noreturn" },
+            .{ .name = "create_root_signature", .args = "*IDevice", .rets = "noreturn" },
+            .{ .name = "create_constant_buffer_view", .args = "*IDevice", .rets = "noreturn" },
+            .{ .name = "create_shader_resource_view", .args = "*IDevice", .rets = "noreturn" },
+            .{ .name = "create_unordered_access_view", .args = "*IDevice", .rets = "noreturn" },
+            .{ .name = "create_render_target_view", .args = "*IDevice", .rets = "noreturn" },
+            .{ .name = "create_depth_stencil_view", .args = "*IDevice", .rets = "noreturn" },
+            .{ .name = "create_sampler", .args = "*IDevice", .rets = "noreturn" },
+            .{ .name = "copy_descriptors", .args = "*IDevice", .rets = "noreturn" },
+            .{ .name = "copy_descriptors_simple", .args = "*IDevice", .rets = "noreturn" },
+            .{ .name = "get_resource_allocation_info", .args = "*IDevice", .rets = "noreturn" },
+            .{ .name = "get_custom_heap_properties", .args = "*IDevice", .rets = "noreturn" },
+            .{ .name = "create_committed_resource", .args = "*IDevice", .rets = "noreturn" },
+            .{ .name = "create_heap", .args = "*IDevice", .rets = "noreturn" },
+            .{ .name = "create_placed_resource", .args = "*IDevice", .rets = "noreturn" },
+            .{ .name = "create_reserved_resource", .args = "*IDevice", .rets = "noreturn" },
+            .{ .name = "create_shared_handle", .args = "*IDevice", .rets = "noreturn" },
+            .{ .name = "open_shared_handle", .args = "*IDevice", .rets = "noreturn" },
+            .{ .name = "open_shared_handle_by_name", .args = "*IDevice", .rets = "noreturn" },
+            .{ .name = "make_resident", .args = "*IDevice", .rets = "noreturn" },
+            .{ .name = "evict", .args = "*IDevice", .rets = "noreturn" },
+            .{ .name = "create_fence", .args = "*IDevice", .rets = "noreturn" },
+            .{ .name = "get_device_removed_reason", .args = "*IDevice", .rets = "noreturn" },
+            .{ .name = "get_copyable_footprints", .args = "*IDevice", .rets = "noreturn" },
+            .{ .name = "create_query_heap", .args = "*IDevice", .rets = "noreturn" },
+            .{ .name = "set_stable_power_state", .args = "*IDevice", .rets = "noreturn" },
+            .{ .name = "create_command_signature", .args = "*IDevice, desc: *const COMMAND_SIGNATURE_DESC, root_signature: ?*IRootSignature, riid: *const GUID, signature: ?*?*anyopaque", .rets = "HRESULT" },
+            .{ .name = "get_resource_tiling", .args = "*IDevice", .rets = "noreturn" },
+            .{ .name = "get_adapter_luid", .args = "*IDevice", .rets = "noreturn" },
+        },
+    },
+
+    // CommandQueue
+    // ------------
+    .{
+        .iid = "0EC870A6-5D7E-4C22-8CFC-5BAAE07616ED",
+        .name = "ICommandQueue",
+        .inheirit = "IPageable",
+        .vtable = .{
+            .{ .name = "update_tile_mappings", .args = "*ICommandQueue", .rets = "noreturn" },
+            .{ .name = "copy_tile_mappings", .args = "*ICommandQueue", .rets = "noreturn" },
+            .{ .name = "execute_command_lists", .args = "*ICommandQueue", .rets = "noreturn" },
+            .{ .name = "set_marker", .args = "*ICommandQueue", .rets = "noreturn" },
+            .{ .name = "begin_event", .args = "*ICommandQueue", .rets = "noreturn" },
+            .{ .name = "end_event", .args = "*ICommandQueue", .rets = "noreturn" },
+            .{ .name = "signal", .args = "*ICommandQueue", .rets = "noreturn" },
+            .{ .name = "wait", .args = "*ICommandQueue", .rets = "noreturn" },
+            .{ .name = "get_timestamp_frequency", .args = "*ICommandQueue", .rets = "noreturn" },
+            .{ .name = "get_clock_calibration", .args = "*ICommandQueue", .rets = "noreturn" },
+            .{ .name = "get_desc", .args = "*ICommandQueue", .rets = "noreturn" },
+        },
+    },
+
+    // CommandSignature
+    // ----------------
+    .{
+        .iid = "C36A797C-EC80-4F0A-8985-A7B2475082D1",
+        .name = "ICommandSignature",
+        .inheirit = "IPageable",
+        .vtable = .{},
+    },
+
+    // RootSignature
+    // -------------
+    .{
+        .iid = "C54A6B66-72DF-4EE8-8BE5-A946A1429214",
+        .name = "IRootSignature",
+        .inheirit = "IDeviceChild",
+        .vtable = .{},
+    },
+}

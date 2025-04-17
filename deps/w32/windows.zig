@@ -733,8 +733,9 @@ pub extern "user32" fn GlobalFree(hMem: HGLOBAL) callconv(.winapi) ?HGLOBAL;
 
 pub const GetModuleHandleW = os.kernel32.GetModuleHandleW;
 
-pub const IID_IUnknown = GUID.parse("{00000000-0000-0000-C000-000000000046}");
 pub const IUnknown = extern struct {
+    pub const IID = GUID.parse("{00000000-0000-0000-C000-000000000046}");
+
     vtable: *const VTable,
 
     pub const VTable = extern struct {
@@ -745,6 +746,8 @@ pub const IUnknown = extern struct {
 };
 
 pub const IObject = extern struct {
+    pub const IID = GUID.parse("{AEC22FB8-76F3-4639-9BE0-28EB43A67A2E}");
+
     vtable: *const VTable,
 
     pub const VTable = extern struct {

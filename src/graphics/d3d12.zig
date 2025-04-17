@@ -30,11 +30,14 @@ pub const Backend = struct {
         }
 
         var factory: *dxgi.IFactory2 = undefined;
-        _ = dxgi.CreateDXGIFactory2(@intFromBool(builtin.mode == .Debug), &dxgi.IID_IFactory2, @ptrCast(&factory));
+        _ = dxgi.CreateDXGIFactory2(@intFromBool(builtin.mode == .Debug), &dxgi.IFactory2.IID, @ptrCast(&factory));
 
-        const adapter = factory.enumAdapters1(0);
-        const adapter_desc = adapter.getDesc1();
-        const umd_version: w32.LUID = @bitCast(adapter.checkInterfaceSupport(&dxgi.IID_IDevice));
+        var adapter: *dxgi.IAdapter1 = undefined;
+        _ = factory.enumAdapters1(0, @ptrCast(&adapter));
+        var adapter_desc: dxgi.ADAPTER_DESC1 = undefined;
+        _ = adapter.getDesc1(&adapter_desc);
+        var umd_version: w32.LUID = undefined;
+        _ = adapter.checkInterfaceSupport(&dxgi.IDevice.IID, @alignCast(@ptrCast(&umd_version)));
 
         const device_name = try std.unicode.utf16LeToUtf8Alloc(allocator, std.mem.span(@as([*:0]const u16, @ptrCast(&adapter_desc.Description))));
         defer allocator.free(device_name);
@@ -54,17 +57,17 @@ pub const Backend = struct {
         }
 
         var device: *d3d12.IDevice = undefined;
-        _ = d3d12.D3D12CreateDevice(@ptrCast(adapter), .@"11_1", &d3d12.IID_IDevice, @ptrCast(&device));
+        _ = d3d12.D3D12CreateDevice(@ptrCast(adapter), .@"11_1", &d3d12.IDevice.IID, @ptrCast(&device));
 
         if (builtin.mode == .Debug) {
             // TODO init d3d12 debug info queue
         }
 
         var arch: d3d12.FEATURE_DATA_ARCHITECTURE = .{ .NodeIndex = 0 };
-        device.checkFeatureSupport(.ARCHITECTURE, &arch, @sizeOf(@TypeOf(arch)));
+        _ = device.checkFeatureSupport(.ARCHITECTURE, &arch, @sizeOf(@TypeOf(arch)));
 
         var options16: d3d12.FEATURE_DATA_OPTIONS16 = undefined;
-        device.checkFeatureSupport(.OPTIONS16, &options16, @sizeOf(@TypeOf(options16)));
+        _ = device.checkFeatureSupport(.OPTIONS16, &options16, @sizeOf(@TypeOf(options16)));
 
         // create command queue
         const queue_desc = d3d12.COMMAND_QUEUE_DESC{
@@ -73,7 +76,8 @@ pub const Backend = struct {
             .NodeMask = 0,
             .Priority = 0,
         };
-        const command_queue: *d3d12.ICommandQueue = @alignCast(@ptrCast(device.createCommandQueue(&queue_desc, &d3d12.IID_ICommandQueue)));
+        var command_queue: *d3d12.ICommandQueue = undefined;
+        _ = device.createCommandQueue(&queue_desc, &d3d12.ICommandQueue.IID, @ptrCast(&command_queue));
 
         // create indirect command signatures
         var command_signature_desc = std.mem.zeroes(d3d12.COMMAND_SIGNATURE_DESC);
@@ -85,22 +89,22 @@ pub const Backend = struct {
         command_signature_desc.NumArgumentDescs = 1;
         command_signature_desc.pArgumentDescs = &indirect_argument_desc;
 
-        const indirect_draw_command_signature = device.createCommandSignature(&command_signature_desc, null, &d3d12.IID_ICommandSignature);
-        _ = indirect_draw_command_signature; // autofix
+        var indirect_draw_command_signature: *d3d12.ICommandSignature = undefined;
+        _ = device.createCommandSignature(&command_signature_desc, null, &d3d12.ICommandSignature.IID, @ptrCast(&indirect_draw_command_signature));
 
         indirect_argument_desc.Type = .DRAW_INDEXED;
         command_signature_desc.ByteStride = @sizeOf(IndexedIndirectDrawCommand);
         command_signature_desc.pArgumentDescs = &indirect_argument_desc;
 
-        const indirect_indexed_draw_command_signature = device.createCommandSignature(&command_signature_desc, null, &d3d12.IID_ICommandSignature);
-        _ = indirect_indexed_draw_command_signature; // autofix
+        var indirect_indexed_draw_command_signature: *d3d12.ICommandSignature = undefined;
+        _ = device.createCommandSignature(&command_signature_desc, null, &d3d12.ICommandSignature.IID, @ptrCast(&indirect_indexed_draw_command_signature));
 
         indirect_argument_desc.Type = .DISPATCH;
         command_signature_desc.ByteStride = @sizeOf(IndirectDispatchCommand);
         command_signature_desc.pArgumentDescs = &indirect_argument_desc;
 
-        const indirect_dispatch_command_signature = device.createCommandSignature(&command_signature_desc, null, &d3d12.IID_ICommandSignature);
-        _ = indirect_dispatch_command_signature; // autofix
+        var indirect_dispatch_command_signature: *d3d12.ICommandSignature = undefined;
+        _ = device.createCommandSignature(&command_signature_desc, null, &d3d12.ICommandSignature.IID, @ptrCast(&indirect_dispatch_command_signature));
 
         // initialize pools
         // TODO
@@ -144,6 +148,7 @@ pub const Backend = struct {
             .ptr = device,
             .vtable = .{
                 .destroy = util.vcast(Device.destroy),
+                .acquire_command_buffer = undefined,
             },
         };
     }
@@ -168,7 +173,8 @@ pub const Device = struct {
 
         const composition = SwapchainComposition.sdr;
         self.swapchain = createSwapchain(parent, window.hwnd, composition);
-        const swapchain_desc = self.swapchain.getDesc1();
+        var swapchain_desc: dxgi.SWAP_CHAIN_DESC1 = undefined;
+        _ = self.swapchain.getDesc1(&swapchain_desc);
         self.width = swapchain_desc.Width;
         self.height = swapchain_desc.Height;
         self.frame_counter = 0;
@@ -221,13 +227,14 @@ pub const Device = struct {
             .Windowed = 1,
         };
 
-        const swapchain = parent.factory.createSwapchainForHWND(@ptrCast(parent.command_queue), hwnd, &swapchain_desc, &fullscreen_desc, null);
+        var swapchain: *dxgi.ISwapChain1 = undefined;
+        _ = parent.factory.createSwapChainForHwnd(@ptrCast(parent.command_queue), hwnd, &swapchain_desc, &fullscreen_desc, null, @ptrCast(&swapchain));
 
         if (composition != .sdr) {
             unreachable; // TODO
         }
 
-        parent.factory.makeWindowAssociation(hwnd, .{ .NO_WINDOW_CHANGES = true });
+        _ = parent.factory.makeWindowAssociation(hwnd, .{ .NO_WINDOW_CHANGES = true });
 
         return swapchain;
     }

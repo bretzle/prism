@@ -1,0 +1,210 @@
+// .{
+//     .iid = "",
+//     .name = "",
+//     .inheirit = "",
+//     .vtable = .{
+//         .{ .name = "", .args = "", .rets = "" },
+//     },
+// },
+
+.{
+    .{
+        .common = true,
+        .iid = "00000000-0000-0000-C000-000000000046",
+        .name = "IUnknown",
+        .inheirit = null,
+        .vtable = .{
+            .{ .name = "query_interface", .args = "*IUnknown, riid: *const GUID, out: *?*anyopaque", .rets = "HRESULT" },
+            .{ .name = "add_ref", .args = "*IUnknown", .rets = "ULONG" },
+            .{ .name = "release", .args = "*IUnknown", .rets = "ULONG" },
+        },
+    },
+    .{
+        .common = true,
+        .iid = "AEC22FB8-76F3-4639-9BE0-28EB43A67A2E",
+        .name = "IObject",
+        .inheirit = "IUnknown",
+        .vtable = .{
+            .{ .name = "get_private_data", .args = "*IObject", .rets = "noreturn" },
+            .{ .name = "set_private_data", .args = "*IObject", .rets = "noreturn" },
+            .{ .name = "set_private_data_interface", .args = "*IObject", .rets = "noreturn" },
+            .{ .name = "set_name", .args = "*IObject", .rets = "noreturn" },
+        },
+    },
+
+    // Output
+    // ------
+    .{
+        .iid = "AE02EEDB-C735-4690-8D52-5A8DC20213AA",
+        .name = "IOutput",
+        .inheirit = "IObject",
+        .vtable = .{
+            .{ .name = "get_desc", .args = "*IOutput, desc: *OUTPUT_DESC", .rets = "HRESULT" },
+            .{ .name = "get_display_mode_list", .args = "*IOutput, format: FORMAT, flags: ENUM_MODES, num_modes: *UINT, desc: [*]MODE_DESC", .rets = "HRESULT" },
+            .{ .name = "find_closest_matching_mode", .args = "*IOutput, to_match: *const MODE_DESC, closet_match: *MODE_DESC, concerned_device: ?*IUnknown", .rets = "HRESULT" },
+            .{ .name = "wait_for_v_blank", .args = "*IOutput", .rets = "HRESULT" },
+            .{ .name = "take_ownership", .args = "*IOutput, device: *IUnknown, exclusive: BOOL", .rets = "HRESULT" },
+            .{ .name = "release_ownership", .args = "*IOutput", .rets = "void" },
+            .{ .name = "get_gamma_control_capabilities", .args = "*IOutput, gamma_caps: *GAMMA_CONTROL_CAPABILITIES", .rets = "HRESULT" },
+            .{ .name = "set_gamma_control", .args = "*IOutput, array: *const GAMMA_CONTROL", .rets = "HRESULT" },
+            .{ .name = "get_gamma_control", .args = "*IOutput, array: *GAMMA_CONTROL", .rets = "HRESULT" },
+            .{ .name = "set_display_surface", .args = "*IOutput, surface: *ISurface", .rets = "HRESULT" },
+            .{ .name = "get_display_surface_data", .args = "*IOutput, surface: *ISurface", .rets = "HRESULT" },
+            .{ .name = "get_frame_statistics", .args = "*IOutput, stats: *FRAME_STATISTICS", .rets = "HRESULT" },
+        },
+    },
+
+    // Factory
+    // -------
+    .{
+        .iid = "7B7166EC-21C7-44AE-B21A-C9AE321AE369",
+        .name = "IFactory",
+        .inheirit = "IObject",
+        .vtable = .{
+            .{ .name = "enum_adapters", .args = "*IFactory, index: UINT, adapter: *?*IAdapter", .rets = "HRESULT" },
+            .{ .name = "make_window_association", .args = "*IFactory, window: HWND, flags: MWA_FLAGS", .rets = "HRESULT" },
+            .{ .name = "get_window_association", .args = "*IFactory, window: *HWND", .rets = "HRESULT" },
+            .{ .name = "create_swap_chain", .args = "*IFactory, device: *IUnknown, desc: *SWAP_CHAIN_DESC, swapchain: *?*ISwapChain", .rets = "void" },
+            .{ .name = "create_software_adapter", .args = "*IFactory, adapter: *?*IAdapter", .rets = "void" },
+        },
+    },
+    .{
+        .iid = "770AAE78-F26F-4DBA-A829-253C83D1B387",
+        .name = "IFactory1",
+        .inheirit = "IFactory",
+        .vtable = .{
+            .{ .name = "enum_adapters1", .args = "*IFactory1, index: UINT, adapter: *?*IAdapter1", .rets = "HRESULT" },
+            .{ .name = "is_current", .args = "*IFactory1", .rets = "BOOL" },
+        },
+    },
+    .{
+        .iid = "50C83A1C-E072-4C48-87B0-3630FA36A6D0",
+        .name = "IFactory2",
+        .inheirit = "IFactory1",
+        .vtable = .{
+            .{ .name = "is_windowed_stereo_enabled", .args = "*IFactory2", .rets = "noreturn" },
+            .{ .name = "create_swap_chain_for_hwnd", .args = "*IFactory2, pDevice: *IUnknown, hWnd: HWND, pDesc: *SWAP_CHAIN_DESC1, pFullscreenDesc: ?*SWAP_CHAIN_FULLSCREEN_DESC, pRestrictToOutput: ?*IOutput, swapchain: *?*ISwapChain1", .rets = "HRESULT" },
+            .{ .name = "create_swap_chain_for_core_window", .args = "*IFactory2", .rets = "noreturn" },
+            .{ .name = "get_shared_resource_adapter_luid", .args = "*IFactory2", .rets = "noreturn" },
+            .{ .name = "register_stereo_status_window", .args = "*IFactory2", .rets = "noreturn" },
+            .{ .name = "register_stereo_status_event", .args = "*IFactory2", .rets = "noreturn" },
+            .{ .name = "unregister_stereo_status", .args = "*IFactory2", .rets = "noreturn" },
+            .{ .name = "register_occlusion_status_window", .args = "*IFactory2", .rets = "noreturn" },
+            .{ .name = "register_occlusion_status_event", .args = "*IFactory2", .rets = "noreturn" },
+            .{ .name = "unregister_occlusion_status", .args = "*IFactory2", .rets = "noreturn" },
+            .{ .name = "create_swap_chain_for_composition", .args = "*IFactory2", .rets = "noreturn" },
+        },
+    },
+    .{
+        .iid = "25483823-CD46-4C7D-86CA-47AA95B837BD",
+        .name = "IFactory3",
+        .inheirit = "IFactory2",
+        .vtable = .{
+            .{ .name = "get_creation_flags", .args = "*IFactory3", .rets = "noreturn" },
+        },
+    },
+    .{
+        .iid = "1BC6EA02-EF36-464F-BF0C-21CA39E5168A",
+        .name = "IFactory4",
+        .inheirit = "IFactory3",
+        .vtable = .{
+            .{ .name = "enum_adapter_by_luid", .args = "*IFactory4", .rets = "noreturn" },
+            .{ .name = "enum_warp_adapter", .args = "*IFactory4", .rets = "noreturn" },
+        },
+    },
+
+    // Adapter
+    // -------
+    .{
+        .iid = "2411E7E1-12AC-4CCF-BD14-9798E8534DC0",
+        .name = "IAdapter",
+        .inheirit = "IObject",
+        .vtable = .{
+            .{ .name = "enum_outputs", .args = "*IAdapter, index: UINT, output: *?*IOutput", .rets = "HRESULT" },
+            .{ .name = "get_desc", .args = "*IAdapter, desc: *ADAPTER_DESC", .rets = "HRESULT" },
+            .{ .name = "check_interface_support", .args = "*IAdapter, riid: *const GUID, umd_version: *LARGE_INTEGER", .rets = "HRESULT" },
+        },
+    },
+    .{
+        .iid = "29038F61-3839-4626-91FD-086879011A05",
+        .name = "IAdapter1",
+        .inheirit = "IAdapter",
+        .vtable = .{
+            .{ .name = "get_desc1", .args = "*IAdapter1, desc: *ADAPTER_DESC1", .rets = "HRESULT" },
+        },
+    },
+
+    // Surface
+    // -------
+    .{
+        .iid = "CAFCB56C-6AC3-4889-BF47-9E23BBD260EC",
+        .name = "ISurface",
+        .inheirit = "IDeviceSubObject",
+        .vtable = .{
+            .{ .name = "get_desc", .args = "*ISurface, desc: *SURFACE_DESC", .rets = "HRESULT" },
+            .{ .name = "map", .args = "*ISurface, locked_rect: *MAPPED_RECT, flags: MAP_FLAG", .rets = "HRESULT" },
+            .{ .name = "unmap", .args = "*ISurface", .rets = "HRESULT" },
+        },
+    },
+
+    // SwapChain
+    // ---------
+    .{
+        .iid = "310D36A0-D2E7-4C0A-AA04-6A9D23B8886A",
+        .name = "ISwapChain",
+        .inheirit = "IDeviceSubObject",
+        .vtable = .{
+            .{ .name = "present", .args = "*ISwapChain, interval: UINT, flags: PRESENT_FLAG", .rets = "HRESULT" },
+            .{ .name = "get_buffer", .args = "*ISwapChain, buffer: UINT, riid: *const GUID, surface: *?*anyopaque", .rets = "HRESULT" },
+            .{ .name = "set_fullscreen_state", .args = "*ISwapChain, fullscreen: BOOL, target: *IOutput", .rets = "HRESULT" },
+            .{ .name = "get_fullscreen_state", .args = "*ISwapChain, fullscreen: *BOOL, target: *?*IOutput", .rets = "HRESULT" },
+            .{ .name = "get_desc", .args = "*ISwapChain, desc: *SWAP_CHAIN_DESC", .rets = "HRESULT" },
+            .{ .name = "resize_buffers", .args = "*ISwapChain, buffer_count: UINT, width: UINT, height: UINT, new_format: FORMAT, flags: SWAP_CHAIN_FLAG", .rets = "HRESULT" },
+            .{ .name = "resize_target", .args = "*ISwapChain, new_target_parameters: *const MODE_DESC", .rets = "HRESULT" },
+            .{ .name = "get_containing_output", .args = "*ISwapChain, output: *?*IOutput", .rets = "HRESULT" },
+            .{ .name = "get_frame_statistics", .args = "*ISwapChain, stats: *FRAME_STATISTICS", .rets = "HRESULT" },
+            .{ .name = "get_last_present_count", .args = "*ISwapChain, last_present_count: *UINT", .rets = "HRESULT" },
+        },
+    },
+    .{
+        .iid = "790A45F7-0D42-4876-983A-0A55CFE6F4AA",
+        .name = "ISwapChain1",
+        .inheirit = "ISwapChain",
+        .vtable = .{
+            .{ .name = "get_desc1", .args = "*ISwapChain1, desc: *SWAP_CHAIN_DESC1", .rets = "HRESULT" },
+            .{ .name = "get_fullscreen_desc", .args = "*ISwapChain1, desc: *SWAP_CHAIN_FULLSCREEN_DESC", .rets = "HRESULT" },
+            .{ .name = "get_hwnd", .args = "*ISwapChain1, hwnd: *HWND", .rets = "HRESULT" },
+            .{ .name = "get_core_window", .args = "*ISwapChain1, riid: *const GUID, unk: *?*anyopaque", .rets = "HRESULT" },
+            .{ .name = "present1", .args = "*ISwapChain1, interval: UINT, flags: PRESENT_FLAG, present_parameters: *PRESENT_PARAMETERS", .rets = "HRESULT" },
+            .{ .name = "is_temporary_mono_supported", .args = "*ISwapChain1", .rets = "BOOL" },
+            .{ .name = "get_restrict_to_output", .args = "*ISwapChain1, restrict_to_output: *?*IOutput", .rets = "HRESULT" },
+            .{ .name = "set_background_color", .args = "*ISwapChain1, color: *const D3DCOLORVALUE", .rets = "HRESULT" },
+            .{ .name = "get_background_color", .args = "*ISwapChain1, color: *D3DCOLORVALUE", .rets = "HRESULT" },
+            .{ .name = "set_rotation", .args = "*ISwapChain1, rotation: MODE_ROTATION", .rets = "HRESULT" },
+            .{ .name = "get_rotation", .args = "*ISwapChain1, rotation: *MODE_ROTATION", .rets = "HRESULT" },
+        },
+    },
+
+    // Device
+    // ------
+    .{
+        .iid = "3D3E0379-F9DE-4D58-BB6C-18D62992F1A6",
+        .name = "IDeviceSubObject",
+        .inheirit = "IObject",
+        .vtable = .{
+            .{ .name = "get_device", .args = "*IDeviceSubObject, riid: *const GUID, device: *?*anyopaque", .rets = "HRESULT" },
+        },
+    },
+    .{
+        .iid = "54EC77FA-1377-44E6-8C32-88FD5F44C84C",
+        .name = "IDevice",
+        .inheirit = "IObject",
+        .vtable = .{
+            .{ .name = "get_adapter", .args = "*IDevice, adapter: *?*IAdapter", .rets = "HRESULT" },
+            .{ .name = "create_surface", .args = "*IDevice, desc: *const SURFACE_DESC, num_surfaces: UINT, usage: USAGE, shared_resource: ?*const SHARED_RESOURCE, surface: *?*ISurface", .rets = "HRESULT" },
+            .{ .name = "query_resource_residency", .args = "*IDevice, resources: [*]const *IUnknown, residency_status: [*]RESIDENCY, num_resources: UINT", .rets = "HRESULT" },
+            .{ .name = "set_gpu_thread_priority", .args = "*IDevice, priority: INT", .rets = "HRESULT" },
+            .{ .name = "get_gpu_thread_priority", .args = "*IDevice, priority: *INT", .rets = "HRESULT" },
+        },
+    },
+}
