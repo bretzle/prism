@@ -498,10 +498,9 @@ pub const MATRIX_3X2_F = extern struct {
 };
 
 pub const COLOR_SPACE_SUPPORT = packed struct(u32) {
+    present: bool = false,
     overlay_present: bool = false,
-    _: u31 = 0,
-
-    pub const present = COLOR_SPACE_SUPPORT{};
+    _: u30 = 0,
 };
 
 // functions

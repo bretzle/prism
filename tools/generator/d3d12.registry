@@ -38,6 +38,60 @@ define IDebug : IUnknown {
     fn enableDebugLayer(self) void
 }
 
+define IDebug1 : IDebug {
+    iid = "AFFAA4CA-63FE-4D8E-B8AD-159000AF4304"
+
+    fn setEnableGPUBasedValidation(self, enable: BOOL) void
+    fn setEnableSynchronizedCommandQueueValidation(self, enable: BOOL) void
+}
+
+define IInfoQueue : IUnknown {
+    iid = "0742A90B-C387-483F-B946-30A7E4E61458"
+
+    fn setMessageCountLimit(self, message_count_limit: u64) HRESULT
+    fn clearStoredMessages(self) void
+    fn getMessageA(self, message_index: u64, message: *MESSAGE, message_byte_length: *u32) HRESULT
+    fn getNumMessagesAllowedByStorageFilter(self) u64
+    fn getNumMessagesDeniedByStorageFilter(self) u64
+    fn getNumStoredMessages(self) u64
+    fn getNumStoredMessagesAllowedByRetrievalFilter(self) u64
+    fn getNumMessagesDiscardedByMessageCountLimit(self) u64
+    fn getMessageCountLimit(self) u64
+    fn addStorageFilterEntries(self, filter: *INFO_QUEUE_FILTER) HRESULT
+    fn getStorageFilter(self, filter: *INFO_QUEUE_FILTER, pFilterByteLength: *u32) HRESULT
+    fn clearStorageFilter(self) void
+    fn pushEmptyStorageFilter(self) HRESULT
+    fn pushCopyOfStorageFilter(self) HRESULT
+    fn pushStorageFilter(self, filter: *INFO_QUEUE_FILTER) HRESULT
+    fn popStorageFilter(self) void
+    fn getStorageFilterStackSize(self) u32
+    fn addRetrievalFilterEntries(self, filter: *INFO_QUEUE_FILTER) HRESULT
+    fn getRetrievalFilter(self, filter: *INFO_QUEUE_FILTER, filter_byte_length: *u32) HRESULT
+    fn clearRetrievalFilter(self) void
+    fn pushEmptyRetrievalFilter(self) HRESULT
+    fn pushCopyOfRetrievalFilter(self) HRESULT
+    fn pushRetrievalFilter(self, filter: *INFO_QUEUE_FILTER) HRESULT
+    fn popRetrievalFilter(self) void
+    fn getRetrievalFilterStackSize(self) u32
+    fn addMessage(self, category: MESSAGE_CATEGORY, severity: MESSAGE_SEVERITY, id: MESSAGE_ID, description: [*c]const u8) HRESULT
+    fn addApplicationMessage(self, severity: MESSAGE_SEVERITY, description: [*c]const u8) HRESULT
+    fn setBreakOnCategory(self, category: MESSAGE_CATEGORY, enable: BOOL) HRESULT
+    fn setBreakOnSeverity(self, severity: MESSAGE_SEVERITY, enable: BOOL) HRESULT
+    fn setBreakOnID(self, id: MESSAGE_ID, enable: BOOL) HRESULT
+    fn getBreakOnCategory(self, category: MESSAGE_CATEGORY) BOOL
+    fn getBreakOnSeverity(self, severity: MESSAGE_SEVERITY) BOOL
+    fn getBreakOnID(self, id: MESSAGE_ID) BOOL
+    fn setMuteDebugOutput(self, b_mute: BOOL) void
+    fn getMuteDebugOutput(self) BOOL
+}
+
+define IInfoQueue1 : IInfoQueue {
+    iid = "2852DD88-B484-4C0C-B6B1-67168500E600"
+
+    fn registerMessageCallback(self, callback_func: PFN_MESSAGE_CALLBACK, callback_filter_flags: MESSAGE_CALLBACK_FLAGS, context: ?*anyopaque, callback_cookie: *u32) HRESULT
+	fn unregisterMessageCallback(self, callback_cookie: u32) HRESULT
+}
+
 define IDevice : IObject {
     iid = "189819F1-1DB6-4B57-BE54-1821339B85F7"
 

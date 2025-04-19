@@ -16,6 +16,9 @@ const rtv_block_size = 16;
 const dsv_heap_size = 1024;
 const dsv_block_size = 1;
 
+const debug = false;
+var cookie: u32 = 0;
+
 pub const Instance = struct {
     manager: Manager(Instance) = .{},
     factory: *dxgi.IFactory4,
@@ -23,10 +26,19 @@ pub const Instance = struct {
 
     pub fn create(_: sysgpu.Instance.Descriptor) !*Instance {
         var factory: *dxgi.IFactory4 = undefined;
-        _ = dxgi.CreateDXGIFactory2(0, &dxgi.IFactory4.IID, @ptrCast(&factory));
+        _ = dxgi.CreateDXGIFactory2(@intFromBool(debug), &dxgi.IFactory4.IID, @ptrCast(&factory));
 
         // TODO check feature support
-        // TODO debug interface
+
+        if (debug) {
+            var controller: *d3d12.IDebug1 = undefined;
+            const hr = d3d12.D3D12GetDebugInterface(&d3d12.IDebug1.IID, @ptrCast(&controller));
+            if (hr == 0) {
+                defer _ = controller.release();
+                controller.enableDebugLayer();
+                controller.setEnableGPUBasedValidation(1);
+            }
+        }
 
         const self = try allocator.create(Instance);
         self.* = .{
@@ -175,12 +187,35 @@ pub const Device = struct {
     sampler_heap: DescriptorHeap = undefined,
     rtv_heap: DescriptorHeap = undefined,
     dsv_heap: DescriptorHeap = undefined,
-    // command_manager: CommandManager = undefined,
+    command_manager: CommandManager = undefined,
     // streaming_manager: StreamingManager = undefined,
     // reference_trackers: std.ArrayListUnmanaged(*ReferenceTracker) = .{},
 
     fn create(adapter: *Adapter, _: sysgpu.Device.Descriptor) !*Device {
-        // TODO debug interface
+        if (debug) {
+            var info_queue: *d3d12.IInfoQueue1 = undefined;
+            const hr = adapter.device.queryInterface(&d3d12.IInfoQueue1.IID, @ptrCast(&info_queue));
+            if (hr == 0) {
+                defer _ = info_queue.release();
+
+                var deny_ids = [_]d3d12.MESSAGE_ID{ .CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE, .CLEARDEPTHSTENCILVIEW_MISMATCHINGCLEARVALUE, .CREATERESOURCE_STATE_IGNORED };
+                var severities = [_]d3d12.MESSAGE_SEVERITY{ .INFO, .MESSAGE };
+
+                var filter = d3d12.INFO_QUEUE_FILTER{
+                    .AllowList = .{},
+                    .DenyList = .{
+                        .pSeverityList = &severities,
+                        .NumSeverities = severities.len,
+                        .pIDList = &deny_ids,
+                        .NumIDs = deny_ids.len,
+                    },
+                };
+
+                _ = info_queue.pushStorageFilter(&filter);
+
+                _ = info_queue.registerMessageCallback(Device.logger, .{}, null, &cookie);
+            }
+        }
 
         const queue = try allocator.create(Queue);
         errdefer allocator.destroy(queue);
@@ -209,10 +244,20 @@ pub const Device = struct {
         self.dsv_heap = try .create(self, .DSV, .{}, dsv_heap_size, dsv_block_size);
         errdefer self.dsv_heap.deinit();
 
-        // TODO command manager
+        self.command_manager = .create(self);
+
         // TODO streaming manager
 
         return self;
+    }
+
+    fn logger(category: d3d12.MESSAGE_CATEGORY, severity: d3d12.MESSAGE_SEVERITY, id: d3d12.MESSAGE_ID, description: [*c]const u8, _: ?*anyopaque) callconv(.winapi) void {
+        std.debug.print("{s} [{s}] {s} ({d})\n", .{
+            @tagName(severity),
+            @tagName(category),
+            description,
+            @intFromEnum(id),
+        });
     }
 
     pub fn getQueue(self: *Device) !*Queue {
@@ -220,6 +265,16 @@ pub const Device = struct {
     }
 
     pub const createSwapchain = SwapChain.create;
+};
+
+const CommandManager = struct {
+    device: *Device,
+    free_allocators: std.ArrayListUnmanaged(*d3d12.ICommandAllocator) = .empty,
+    free_command_lists: std.ArrayListUnmanaged(*d3d12.IGraphicsCommandList) = .empty,
+
+    fn create(device: *Device) CommandManager {
+        return .{ .device = device };
+    }
 };
 
 const Queue = struct {
