@@ -1,155 +1,268 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const prism = @import("../prism.zig");
-const platform = @import("../platform/platform.zig");
-const internal = @import("internal.zig");
 
-const d3d12 = @import("d3d12.zig");
+const w32 = @import("w32");
+
+const backend = switch (builtin.os.tag) {
+    .windows => @import("d3d12/d3d12.zig"),
+    else => unreachable,
+};
 
 const allocator = prism.allocator;
 
-pub const Implementation = enum { d3d12 };
+pub const Instance = opaque {
+    pub const Descriptor = struct {};
 
-pub const Context = struct {
-    ptr: *anyopaque,
-    vtable: struct {
-        destroy: *const fn (*anyopaque) void,
-        create_device: *const fn (*anyopaque, window: *platform.Window) anyerror!*Device,
-    },
-
-    pub fn create(comptime impl: Implementation) !Context {
-        switch (impl) {
-            .d3d12 => return try d3d12.Context.create(),
-        }
+    pub fn create(desc: Instance.Descriptor) !*Instance {
+        const instance = try backend.Instance.create(desc);
+        return @ptrCast(instance);
     }
 
-    pub fn destroy(self: *Context) void {
-        (self.vtable.destroy)(self.ptr);
+    pub fn createSurface(self: *Instance, desc: Surface.Descriptor) !*Surface {
+        const instance: *backend.Instance = @alignCast(@ptrCast(self));
+        const surface = try instance.createSurface(desc);
+        return @ptrCast(surface);
     }
 
-    pub fn createDevice(self: *Context, window: *platform.Window) !*Device {
-        return try (self.vtable.create_device)(self.ptr, window);
+    pub fn createAdapter(self: *Instance, options: Adapter.Options) !*Adapter {
+        const instance: *backend.Instance = @alignCast(@ptrCast(self));
+        const adapter = try instance.createAdapter(options);
+        return @ptrCast(adapter);
     }
 };
 
-pub const Device = struct {
-    ptr: *anyopaque,
-    vtable: struct {
-        // Device
-        destroy: *const fn (*anyopaque) void,
-        get_command_buffer_header: *const fn (*CommandBuffer) *internal.CommandBufferHeader,
+pub const Adapter = opaque {
+    pub const Type = enum { unknown, discrete_gpu, integrated_gpu };
 
-        // State Creation
-        // ComputePipeline *(*CreateComputePipeline)( Renderer *driverData, const ComputePipelineCreateInfo *createinfo);
-        // GraphicsPipeline *(*CreateGraphicsPipeline)( Renderer *driverData, const GraphicsPipelineCreateInfo *createinfo);
-        // Sampler *(*CreateSampler)( Renderer *driverData, const SamplerCreateInfo *createinfo);
-        // Shader *(*CreateShader)( Renderer *driverData, const ShaderCreateInfo *createinfo);
-        // Texture *(*CreateTexture)( Renderer *driverData, const TextureCreateInfo *createinfo);
-        // Buffer *(*CreateBuffer)( Renderer *driverData, BufferUsageFlags usageFlags, Uint32 size, const char *debugName);
-        // TransferBuffer *(*CreateTransferBuffer)( Renderer *driverData, TransferBufferUsage usage, Uint32 size, const char *debugName);
+    pub const Options = struct {
+        surface: *Surface,
+        power_preference: enum { efficent, performance },
+    };
 
-        // Debug Naming
-        // void (*SetBufferName)( Renderer *driverData, Buffer *buffer, const char *text);
-        // void (*SetTextureName)( Renderer *driverData, Texture *texture, const char *text);
-        // void (*InsertDebugLabel)( CommandBuffer *commandBuffer, const char *text);
-        // void (*PushDebugGroup)( CommandBuffer *commandBuffer, const char *name);
-        // void (*PopDebugGroup)( CommandBuffer *commandBuffer);
+    pub const Properties = struct {
+        vendor_id: u32,
+        vendor_name: [*:0]const u8,
+        architecture: [*:0]const u8,
+        device_id: u32,
+        name: [*:0]const u8,
+        driver_description: [*:0]const u8,
+        adapter_type: Type,
+        backend_type: BackendType,
+    };
 
-        // Disposal
-        // void (*ReleaseTexture)( Renderer *driverData, Texture *texture);
-        // void (*ReleaseSampler)( Renderer *driverData, Sampler *sampler);
-        // void (*ReleaseBuffer)( Renderer *driverData, Buffer *buffer);
-        // void (*ReleaseTransferBuffer)( Renderer *driverData, TransferBuffer *transferBuffer);
-        // void (*ReleaseShader)( Renderer *driverData, Shader *shader);
-        // void (*ReleaseComputePipeline)( Renderer *driverData, ComputePipeline *computePipeline);
-        // void (*ReleaseGraphicsPipeline)( Renderer *driverData, GraphicsPipeline *graphicsPipeline);
-
-        // Render Pass
-        // void (*BeginRenderPass)( CommandBuffer *commandBuffer, const ColorTargetInfo *colorTargetInfos, Uint32 numColorTargets, const DepthStencilTargetInfo *depthStencilTargetInfo);
-        // void (*BindGraphicsPipeline)( CommandBuffer *commandBuffer, GraphicsPipeline *graphicsPipeline);
-        // void (*SetViewport)( CommandBuffer *commandBuffer, const Viewport *viewport);
-        // void (*SetScissor)( CommandBuffer *commandBuffer, const SDL_Rect *scissor);
-        // void (*SetBlendConstants)( CommandBuffer *commandBuffer, SDL_FColor blendConstants);
-        // void (*SetStencilReference)( CommandBuffer *commandBuffer, Uint8 reference);
-        // void (*BindVertexBuffers)( CommandBuffer *commandBuffer, Uint32 firstSlot, const BufferBinding *bindings, Uint32 numBindings);
-        // void (*BindIndexBuffer)( CommandBuffer *commandBuffer, const BufferBinding *binding, IndexElementSize indexElementSize);
-        // void (*BindVertexSamplers)( CommandBuffer *commandBuffer, Uint32 firstSlot, const TextureSamplerBinding *textureSamplerBindings, Uint32 numBindings);
-        // void (*BindVertexStorageTextures)( CommandBuffer *commandBuffer, Uint32 firstSlot, Texture *const *storageTextures, Uint32 numBindings);
-        // void (*BindVertexStorageBuffers)( CommandBuffer *commandBuffer, Uint32 firstSlot, Buffer *const *storageBuffers, Uint32 numBindings);
-        // void (*BindFragmentSamplers)( CommandBuffer *commandBuffer, Uint32 firstSlot, const TextureSamplerBinding *textureSamplerBindings, Uint32 numBindings);
-        // void (*BindFragmentStorageTextures)( CommandBuffer *commandBuffer, Uint32 firstSlot, Texture *const *storageTextures, Uint32 numBindings);
-        // void (*BindFragmentStorageBuffers)( CommandBuffer *commandBuffer, Uint32 firstSlot, Buffer *const *storageBuffers, Uint32 numBindings);
-        // void (*PushVertexUniformData)( CommandBuffer *commandBuffer, Uint32 slotIndex, const void *data, Uint32 length);
-        // void (*PushFragmentUniformData)( CommandBuffer *commandBuffer, Uint32 slotIndex, const void *data, Uint32 length);
-        // void (*DrawIndexedPrimitives)( CommandBuffer *commandBuffer, Uint32 numIndices, Uint32 numInstances, Uint32 firstIndex, Sint32 vertexOffset, Uint32 firstInstance);
-        // void (*DrawPrimitives)( CommandBuffer *commandBuffer, Uint32 numVertices, Uint32 numInstances, Uint32 firstVertex, Uint32 firstInstance);
-        // void (*DrawPrimitivesIndirect)( CommandBuffer *commandBuffer, Buffer *buffer, Uint32 offset, Uint32 drawCount);
-        // void (*DrawIndexedPrimitivesIndirect)( CommandBuffer *commandBuffer, Buffer *buffer, Uint32 offset, Uint32 drawCount);
-        // void (*EndRenderPass)( CommandBuffer *commandBuffer);
-
-        // Compute Pass
-        // void (*BeginComputePass)( CommandBuffer *commandBuffer, const StorageTextureReadWriteBinding *storageTextureBindings, Uint32 numStorageTextureBindings, const StorageBufferReadWriteBinding *storageBufferBindings, Uint32 numStorageBufferBindings);
-        // void (*BindComputePipeline)( CommandBuffer *commandBuffer, ComputePipeline *computePipeline);
-        // void (*BindComputeSamplers)( CommandBuffer *commandBuffer, Uint32 firstSlot, const TextureSamplerBinding *textureSamplerBindings, Uint32 numBindings);
-        // void (*BindComputeStorageTextures)( CommandBuffer *commandBuffer, Uint32 firstSlot, Texture *const *storageTextures, Uint32 numBindings);
-        // void (*BindComputeStorageBuffers)( CommandBuffer *commandBuffer, Uint32 firstSlot, Buffer *const *storageBuffers, Uint32 numBindings);
-        // void (*PushComputeUniformData)( CommandBuffer *commandBuffer, Uint32 slotIndex, const void *data, Uint32 length);
-        // void (*DispatchCompute)( CommandBuffer *commandBuffer, Uint32 groupcountX, Uint32 groupcountY, Uint32 groupcountZ);
-        // void (*DispatchComputeIndirect)( CommandBuffer *commandBuffer, Buffer *buffer, Uint32 offset);
-        // void (*EndComputePass)( CommandBuffer *commandBuffer);
-
-        // TransferBuffer Data
-        // void *(*MapTransferBuffer)( Renderer *device, TransferBuffer *transferBuffer, bool cycle);
-        // void (*UnmapTransferBuffer)( Renderer *device, TransferBuffer *transferBuffer);
-
-        // Copy Pass
-        // void (*BeginCopyPass)( CommandBuffer *commandBuffer);
-        // void (*UploadToTexture)( CommandBuffer *commandBuffer, const TextureTransferInfo *source, const TextureRegion *destination, bool cycle);
-        // void (*UploadToBuffer)( CommandBuffer *commandBuffer, const TransferBufferLocation *source, const BufferRegion *destination, bool cycle);
-        // void (*CopyTextureToTexture)( CommandBuffer *commandBuffer, const TextureLocation *source, const TextureLocation *destination, Uint32 w, Uint32 h, Uint32 d, bool cycle);
-        // void (*CopyBufferToBuffer)( CommandBuffer *commandBuffer, const BufferLocation *source, const BufferLocation *destination, Uint32 size, bool cycle);
-        // void (*GenerateMipmaps)( CommandBuffer *commandBuffer, Texture *texture);
-        // void (*DownloadFromTexture)( CommandBuffer *commandBuffer, const TextureRegion *source, const TextureTransferInfo *destination);
-        // void (*DownloadFromBuffer)( CommandBuffer *commandBuffer, const BufferRegion *source, const TransferBufferLocation *destination);
-        // void (*EndCopyPass)( CommandBuffer *commandBuffer);
-        // void (*Blit)( CommandBuffer *commandBuffer, const BlitInfo *info);
-
-        // Submission/Presentation
-        // bool (*SupportsSwapchainComposition)( Renderer *driverData, SDL_Window *window, SwapchainComposition swapchainComposition);
-        // bool (*SupportsPresentMode)( Renderer *driverData, SDL_Window *window, PresentMode presentMode);
-        // bool (*ClaimWindow)( Renderer *driverData, SDL_Window *window);
-        // void (*ReleaseWindow)( Renderer *driverData, SDL_Window *window);
-        // bool (*SetSwapchainParameters)( Renderer *driverData, SDL_Window *window, SwapchainComposition swapchainComposition, PresentMode presentMode);
-        // bool (*SetAllowedFramesInFlight)( Renderer *driverData, Uint32 allowedFramesInFlight);
-        // TextureFormat (*GetSwapchainTextureFormat)( Renderer *driverData, SDL_Window *window);
-        acquire_command_buffer: *const fn (*anyopaque) anyerror!*CommandBuffer,
-        // bool (*AcquireSwapchainTexture)( CommandBuffer *commandBuffer, SDL_Window *window, Texture **swapchainTexture, Uint32 *swapchainTextureWidth, Uint32 *swapchainTextureHeight);
-        // bool (*WaitForSwapchain)( Renderer *driverData, SDL_Window *window);
-        // bool (*WaitAndAcquireSwapchainTexture)( CommandBuffer *commandBuffer, SDL_Window *window, Texture **swapchainTexture, Uint32 *swapchainTextureWidth, Uint32 *swapchainTextureHeight);
-        // bool (*Submit)( CommandBuffer *commandBuffer);
-        // Fence *(*SubmitAndAcquireFence)( CommandBuffer *commandBuffer);
-        // bool (*Cancel)( CommandBuffer *commandBuffer);
-        // bool (*Wait)( Renderer *driverData);
-        // bool (*WaitForFences)( Renderer *driverData, bool waitAll, Fence *const *fences, Uint32 numFences);
-        // bool (*QueryFence)( Renderer *driverData, Fence *fence);
-        // void (*ReleaseFence)( Renderer *driverData, Fence *fence);
-
-        // Feature Queries
-        // bool (*SupportsTextureFormat)( Renderer *driverData, TextureFormat format, TextureType type, TextureUsageFlags usage);
-        // bool (*SupportsSampleCount)( Renderer *driverData, TextureFormat format, SampleCount desiredSampleCount);
-    },
-
-    pub fn destroy(self: *Device) void {
-        (self.vtable.destroy)(self.ptr);
+    pub fn getProperties(self: *Adapter) Properties {
+        const adapter: *backend.Adapter = @alignCast(@ptrCast(self));
+        return adapter.getProperties();
     }
 
-    pub fn acquireCommandBuffer(self: *Device) !*CommandBuffer {
-        const buffer = try (self.vtable.acquire_command_buffer)(self.ptr);
-
-        const header = (self.vtable.get_command_buffer_header)(buffer);
-        header.* = .{};
-
-        return buffer;
+    pub fn createDevice(self: *Adapter, desc: Device.Descriptor) !*Device {
+        const adapter: *backend.Adapter = @alignCast(@ptrCast(self));
+        const device = try adapter.createDevice(desc);
+        return @ptrCast(device);
     }
 };
 
-pub const CommandBuffer = opaque {};
+pub const Device = opaque {
+    pub const Descriptor = struct {
+        label: ?[*:0]const u8 = null,
+    };
+
+    pub fn getQueue(self: *Device) !*Queue {
+        const device: *backend.Device = @alignCast(@ptrCast(self));
+        const queue = try device.getQueue();
+        queue.manager.reference();
+        return @ptrCast(queue);
+    }
+
+    pub fn createSwapchain(self: *Device, surface_: *Surface, desc: SwapChain.Descriptor) !*SwapChain {
+        const device: *backend.Device = @alignCast(@ptrCast(self));
+        const surface: *backend.Surface = @alignCast(@ptrCast(surface_));
+        const swapchain = try device.createSwapchain(surface, desc);
+        return @ptrCast(swapchain);
+    }
+};
+
+pub const Queue = opaque {};
+
+pub const SwapChain = opaque {
+    pub const Descriptor = struct {
+        label: ?[*:0]const u8 = null,
+        usage: Texture.UsageFlags,
+        format: Texture.Format,
+        width: u32,
+        height: u32,
+        present_mode: PresentMode,
+    };
+
+    pub fn present(self: *SwapChain) !void {
+        const swapchain: *backend.SwapChain = @alignCast(@ptrCast(self));
+        try swapchain.present();
+    }
+};
+
+pub const Surface = opaque {
+    pub const Descriptor = union {
+        windows: struct { hwnd: w32.HWND },
+    };
+};
+
+pub const Texture = opaque {
+    pub const Aspect = enum(u32) {
+        all,
+        stencil_only,
+        depth_only,
+        plane0_only,
+        plane1_only,
+    };
+
+    pub const Dimension = enum(u32) {
+        @"1d",
+        @"2d",
+        @"3d",
+    };
+
+    pub const Format = enum(u32) {
+        undefined = 0x00000000,
+        r8_unorm = 0x00000001,
+        r8_snorm = 0x00000002,
+        r8_uint = 0x00000003,
+        r8_sint = 0x00000004,
+        r16_uint = 0x00000005,
+        r16_sint = 0x00000006,
+        r16_float = 0x00000007,
+        rg8_unorm = 0x00000008,
+        rg8_snorm = 0x00000009,
+        rg8_uint = 0x0000000a,
+        rg8_sint = 0x0000000b,
+        r32_float = 0x0000000c,
+        r32_uint = 0x0000000d,
+        r32_sint = 0x0000000e,
+        rg16_uint = 0x0000000f,
+        rg16_sint = 0x00000010,
+        rg16_float = 0x00000011,
+        rgba8_unorm = 0x00000012,
+        rgba8_unorm_srgb = 0x00000013,
+        rgba8_snorm = 0x00000014,
+        rgba8_uint = 0x00000015,
+        rgba8_sint = 0x00000016,
+        bgra8_unorm = 0x00000017,
+        bgra8_unorm_srgb = 0x00000018,
+        rgb10_a2_unorm = 0x00000019,
+        rg11_b10_ufloat = 0x0000001a,
+        rgb9_e5_ufloat = 0x0000001b,
+        rg32_float = 0x0000001c,
+        rg32_uint = 0x0000001d,
+        rg32_sint = 0x0000001e,
+        rgba16_uint = 0x0000001f,
+        rgba16_sint = 0x00000020,
+        rgba16_float = 0x00000021,
+        rgba32_float = 0x00000022,
+        rgba32_uint = 0x00000023,
+        rgba32_sint = 0x00000024,
+        stencil8 = 0x00000025,
+        depth16_unorm = 0x00000026,
+        depth24_plus = 0x00000027,
+        depth24_plus_stencil8 = 0x00000028,
+        depth32_float = 0x00000029,
+        depth32_float_stencil8 = 0x0000002a,
+        bc1_rgba_unorm = 0x0000002b,
+        bc1_rgba_unorm_srgb = 0x0000002c,
+        bc2_rgba_unorm = 0x0000002d,
+        bc2_rgba_unorm_srgb = 0x0000002e,
+        bc3_rgba_unorm = 0x0000002f,
+        bc3_rgba_unorm_srgb = 0x00000030,
+        bc4_runorm = 0x00000031,
+        bc4_rsnorm = 0x00000032,
+        bc5_rg_unorm = 0x00000033,
+        bc5_rg_snorm = 0x00000034,
+        bc6_hrgb_ufloat = 0x00000035,
+        bc6_hrgb_float = 0x00000036,
+        bc7_rgba_unorm = 0x00000037,
+        bc7_rgba_unorm_srgb = 0x00000038,
+        etc2_rgb8_unorm = 0x00000039,
+        etc2_rgb8_unorm_srgb = 0x0000003a,
+        etc2_rgb8_a1_unorm = 0x0000003b,
+        etc2_rgb8_a1_unorm_srgb = 0x0000003c,
+        etc2_rgba8_unorm = 0x0000003d,
+        etc2_rgba8_unorm_srgb = 0x0000003e,
+        eacr11_unorm = 0x0000003f,
+        eacr11_snorm = 0x00000040,
+        eacrg11_unorm = 0x00000041,
+        eacrg11_snorm = 0x00000042,
+        astc4x4_unorm = 0x00000043,
+        astc4x4_unorm_srgb = 0x00000044,
+        astc5x4_unorm = 0x00000045,
+        astc5x4_unorm_srgb = 0x00000046,
+        astc5x5_unorm = 0x00000047,
+        astc5x5_unorm_srgb = 0x00000048,
+        astc6x5_unorm = 0x00000049,
+        astc6x5_unorm_srgb = 0x0000004a,
+        astc6x6_unorm = 0x0000004b,
+        astc6x6_unorm_srgb = 0x0000004c,
+        astc8x5_unorm = 0x0000004d,
+        astc8x5_unorm_srgb = 0x0000004e,
+        astc8x6_unorm = 0x0000004f,
+        astc8x6_unorm_srgb = 0x00000050,
+        astc8x8_unorm = 0x00000051,
+        astc8x8_unorm_srgb = 0x00000052,
+        astc10x5_unorm = 0x00000053,
+        astc10x5_unorm_srgb = 0x00000054,
+        astc10x6_unorm = 0x00000055,
+        astc10x6_unorm_srgb = 0x00000056,
+        astc10x8_unorm = 0x00000057,
+        astc10x8_unorm_srgb = 0x00000058,
+        astc10x10_unorm = 0x00000059,
+        astc10x10_unorm_srgb = 0x0000005a,
+        astc12x10_unorm = 0x0000005b,
+        astc12x10_unorm_srgb = 0x0000005c,
+        astc12x12_unorm = 0x0000005d,
+        astc12x12_unorm_srgb = 0x0000005e,
+        r8_bg8_biplanar420_unorm = 0x0000005f,
+    };
+
+    pub const SampleType = enum(u32) { float, unfilterable_float, depth, sint, uint };
+
+    pub const UsageFlags = packed struct(u32) {
+        copy_src: bool = false,
+        copy_dst: bool = false,
+        texture_binding: bool = false,
+        storage_binding: bool = false,
+        render_attachment: bool = false,
+        transient_attachment: bool = false,
+        _: u26 = 0,
+    };
+};
+
+pub const TextureView = opaque {
+    pub const Descriptor = struct {
+        label: ?[*:0]const u8 = null,
+        format: Texture.Format = .undefined,
+        dimension: Dimension = .undefined,
+        base_mip_level: u32 = 0,
+        mip_level_count: u32 = 0xffffffff,
+        base_array_layer: u32 = 0,
+        array_layer_count: u32 = 0xffffffff,
+        aspect: Texture.Aspect = .all,
+    };
+
+    pub const Dimension = enum {
+        undefined,
+        @"1d",
+        @"2d",
+        @"2d_array",
+        cube,
+        cube_array,
+        @"3d",
+    };
+};
+
+pub const BackendType = enum { d3d12 };
+
+pub const PresentMode = enum { immediate, fifo };
+
+pub const Extent3D = extern struct {
+    width: u32,
+    height: u32 = 1,
+    depth_or_array_layers: u32 = 1,
+};

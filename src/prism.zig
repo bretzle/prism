@@ -1,63 +1,119 @@
 const std = @import("std");
-const platform = @import("platform/platform.zig");
+const builtin = @import("builtin");
 const gpu = @import("gpu/gpu.zig");
+
+const platform = switch (builtin.target.os.tag) {
+    .windows => @import("platform/win32.zig"),
+    else => unreachable,
+};
 
 pub var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 pub const allocator = gpa.allocator();
 
-pub const Prism = struct {
-    ctx: ?*platform.Context,
-    backend: ?gpu.Context,
+pub const Application = struct {
+    windows: std.ArrayListUnmanaged(*Window),
 
-    pub fn create() !Prism {
+    pub fn create() !Application {
         return .{
-            .ctx = null,
-            .backend = null,
+            .windows = .empty,
         };
     }
 
-    pub fn destroy(self: *Prism) void {
-        if (self.ctx) |ctx| ctx.destroy();
-        if (self.backend) |_| self.backend.?.destroy();
+    pub fn deinit(self: *Application) void {
+        _ = self; // autofix
+        std.debug.print("TODO: deinit app\n", .{});
     }
 
-    pub fn createWindow(self: *Prism, width: u32, height: u32, title: []const u8) !*platform.Window {
-        if (self.ctx == null) self.ctx = try platform.Context.create();
-        return try self.ctx.?.createWindow(title, width, height);
-    }
+    pub fn createWindow(self: *Application, options: WindowOptions) !*Window {
+        const native, const size, const surface_desc = try platform.Window.create(self, options);
 
-    // pub fn createGPUDevice(self: *Prism, window: *platform.Window) !*GPUDevice {
-    //     if (self.backend == null) self.backend = try .create(.d3d12);
-    //     var backend_device = try self.backend.?.createDevice(window);
-    //     errdefer backend_device.destroy();
-    //     return try GPUDevice.create(window, backend_device);
-    // }
+        const window = try allocator.create(Window);
 
-    pub fn createGpuDevice(self: *Prism, window: *platform.Window) !*gpu.Device {
-        if (self.backend == null) self.backend = try .create(.d3d12);
-        return try self.backend.?.createDevice(window);
+        window.* = .{
+            .title = options.title,
+            .width = size[0],
+            .height = size[1],
+            .native = native,
+        };
+
+        window.native.front = &window.native.events[0];
+        window.native.back = &window.native.events[1];
+
+        window.instance = try gpu.Instance.create(.{});
+
+        window.surface = try window.instance.createSurface(surface_desc);
+        window.surface_descriptor = surface_desc;
+
+        window.adapter = try window.instance.createAdapter(.{ .surface = window.surface, .power_preference = .efficent });
+
+        const props = window.adapter.getProperties();
+        std.log.info("found {s} backend on {s} adapter: {s}, {s}", .{
+            @tagName(props.backend_type),
+            @tagName(props.adapter_type),
+            props.name,
+            props.driver_description,
+        });
+
+        window.device = try window.adapter.createDevice(.{});
+        window.queue = try window.device.getQueue();
+
+        window.swap_chain_descriptor = .{
+            .label = "main swap chain",
+            .usage = .{ .render_attachment = true },
+            .format = .bgra8_unorm,
+            .width = window.width,
+            .height = window.height,
+            .present_mode = .fifo,
+        };
+
+        window.swap_chain = try window.device.createSwapchain(window.surface, window.swap_chain_descriptor);
+
+        try self.windows.append(allocator, window);
+        return window;
     }
 };
 
-// pub const Color = packed struct {
-//     r: f32,
-//     g: f32,
-//     b: f32,
-//     a: f32,
-// };
+pub const WindowOptions = struct {
+    title: [:0]const u8 = "Example - 🎉",
+    width: u32 = 800,
+    height: u32 = 600,
+};
 
-// pub const LoadOp = enum { load, clear, dontcare };
-// pub const StoreOp = enum { store, dontcare, resolve, resolve_and_store };
-// pub const ColorTargetInfo = struct {
-//     texture: *backend.Texture,
-//     mip_level: u32 = 0,
-//     layer_or_depth_plane: u32 = 0,
-//     clear_color: Color,
-//     load_op: LoadOp,
-//     store_op: StoreOp,
-//     resolve_texture: ?*backend.Texture = null,
-//     resolve_mip_level: u32 = 0,
-//     resolve_layer: u32 = 0,
-//     cycle: bool = false,
-//     cycle_resolve_texture: bool = false,
-// };
+pub const Window = struct {
+    title: [:0]const u8,
+    width: u32,
+    height: u32,
+
+    // gpu
+    device: *gpu.Device = undefined,
+    instance: *gpu.Instance = undefined,
+    adapter: *gpu.Adapter = undefined,
+    queue: *gpu.Queue = undefined,
+    swap_chain: *gpu.SwapChain = undefined,
+    swap_chain_descriptor: gpu.SwapChain.Descriptor = undefined,
+    surface: *gpu.Surface = undefined,
+    surface_descriptor: gpu.Surface.Descriptor = undefined,
+
+    native: platform.Window,
+
+    pub fn deinit(self: *Window) void {
+        _ = self; // autofix
+        std.debug.print("TODO: deinit window\n", .{});
+    }
+
+    pub fn getEvents(self: *Window) []const Event {
+        return self.native.getEvents();
+    }
+};
+
+pub const EventTag = enum {
+    window_close,
+    window_visible,
+    window_hidden,
+};
+
+pub const Event = union(EventTag) {
+    window_close,
+    window_visible,
+    window_hidden,
+};

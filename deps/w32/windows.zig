@@ -37,6 +37,11 @@ pub const LUID = extern struct {
     HighPart: LONG,
 };
 
+pub const SIZE = extern struct {
+    cx: i32,
+    cy: i32,
+};
+
 pub const RECT = extern struct {
     left: LONG,
     top: LONG,
@@ -107,6 +112,12 @@ pub const TRACKMOUSEEVENT = extern struct {
 pub const LPTRACKMOUSEEVENT = *TRACKMOUSEEVENT;
 
 pub const WNDPROC = *const fn (hWnd: HWND, uMsg: u32, wParam: WPARAM, lParam: LPARAM) callconv(.winapi) LRESULT;
+
+pub const SECURITY_ATTRIBUTES = extern struct {
+    nLength: u32,
+    lpSecurityDescriptor: ?*anyopaque,
+    bInheritHandle: BOOL,
+};
 
 pub const ERROR_SUCCESS: DWORD = 0;
 
@@ -730,6 +741,14 @@ pub extern "user32" fn GlobalLock(hMem: HGLOBAL) callconv(.winapi) ?LPVOID;
 pub extern "user32" fn GlobalUnlock(hMem: HGLOBAL) callconv(.winapi) BOOL;
 pub extern "user32" fn GlobalAlloc(uFlags: UINT, dwBytes: SIZE_T) callconv(.winapi) ?HGLOBAL;
 pub extern "user32" fn GlobalFree(hMem: HGLOBAL) callconv(.winapi) ?HGLOBAL;
+pub extern "user32" fn GetDpiForWindow(hwnd: HWND) callconv(.winapi) u32;
+pub extern "user32" fn GetWindowRect(hWnd: ?HWND, lpRect: ?*RECT) callconv(.winapi) BOOL;
+pub extern "user32" fn AdjustWindowRectExForDpi(lpRect: ?*RECT, dwStyle: DWORD, bMenu: BOOL, dwExStyle: DWORD, dpi: u32) callconv(.winapi) BOOL;
+pub extern "user32" fn MonitorFromPoint(pt: POINT, dwFlags: DWORD) callconv(.winapi) ?HMONITOR;
+pub extern "user32" fn GetClientRect(hWnd: ?HWND, lpRect: ?*RECT) callconv(.winapi) BOOL;
+
+pub extern "kernel32" fn CreateEventW(lpEventAttributes: ?*SECURITY_ATTRIBUTES, bManualReset: BOOL, bInitialState: BOOL, lpName: ?[*:0]const u16) callconv(.winapi) ?*anyopaque;
+pub extern "kernel32" fn CloseHandle(hObject: HANDLE) callconv(.winapi) BOOL;
 
 pub const GetModuleHandleW = os.kernel32.GetModuleHandleW;
 

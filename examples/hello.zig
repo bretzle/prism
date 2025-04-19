@@ -1,37 +1,45 @@
 const prism = @import("prism");
+const gpu = prism.gpu;
 
 pub fn main() !void {
-    var app = try prism.Prism.create();
-    defer app.destroy();
+    var app = try prism.Application.create();
+    defer app.deinit();
 
-    const window = try app.createWindow(800, 600, "hello 🦄");
-    defer window.destroy();
+    const window = try app.createWindow(.{});
+    defer window.deinit();
 
-    const device = try app.createGpuDevice(window);
-    defer device.destroy();
+    // const pipeline = window.device.createRenderPipeline(.{});
+    // defer pipeline.release();
 
-    var frame: u32 = 0;
-    loop: while (true) : (frame += 1) {
-        for (try window.getEvents()) |*event| {
+    loop: while (true) {
+        for (window.getEvents()) |*event| {
             if (event.* == .window_close) break :loop;
         }
 
-        const cmds = try device.acquireCommandBuffer();
-        _ = cmds; // autofix
-        //     if (try cmds.waitAndAcquireSwapchainTexture()) |swapchain| {
-        //         const color_info = prism.ColorTargetInfo{
-        //             .texture = swapchain,
-        //             .clear_color = .{ .r = 1, .g = 0, .b = 0, .a = 1 },
-        //             .load_op = .clear,
+        //     const back_buffer_view = window.swapchain.getCurrentTextureView().?;
+        //     defer back_buffer_view.release();
+
+        //     const encoder = window.device.createCommandEncoder(.{});
+        //     defer encoder.release();
+
+        //     const render_pass = encoder.beginRenderPass(.init(.{
+        //         .color_attachments = &[_]gpu.RenderPassColorAttachments{.{
+        //             .view = back_buffer_view,
+        //             .clear_value = .{ .r = 0.776, .g = 0.988, .b = 1, .a = 1 },
+        //             .loap_op = .clear,
         //             .store_op = .store,
-        //         };
+        //         }},
+        //     }));
+        //     defer render_pass.release();
 
-        //         const pass = cmds.beginRenderPass(&.{color_info}, null);
-        //         pass.end();
+        //     render_pass.setPipeline(pipeline);
+        //     render_pass.draw(3, 1, 0, 0);
+        //     render_pass.end();
 
-        //         cmds.submit();
-        //     } else {
-        //         cmds.cancel();
-        //     }
+        //     var command = encoder.finish(.{});
+        //     defer command.release();
+
+        //     window.queue.submit(&.{command});
+        try window.swap_chain.present();
     }
 }

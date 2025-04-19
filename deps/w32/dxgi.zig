@@ -20,6 +20,8 @@ const LUID = w32.LUID;
 const ULONG = w32.ULONG;
 const POINT = w32.POINT;
 
+pub const ERROR_NOT_FOUND = 0x887A0002;
+
 pub const IUnknown = w32.IUnknown;
 pub const IObject = w32.IObject;
 
@@ -484,6 +486,22 @@ pub const SWAP_CHAIN_FULLSCREEN_DESC = extern struct {
     ScanlineOrdering: MODE_SCANLINE_ORDER,
     Scaling: MODE_SCALING,
     Windowed: BOOL,
+};
+
+pub const MATRIX_3X2_F = extern struct {
+    _11: FLOAT,
+    _12: FLOAT,
+    _21: FLOAT,
+    _22: FLOAT,
+    _31: FLOAT,
+    _32: FLOAT,
+};
+
+pub const COLOR_SPACE_SUPPORT = packed struct(u32) {
+    overlay_present: bool = false,
+    _: u31 = 0,
+
+    pub const present = COLOR_SPACE_SUPPORT{};
 };
 
 // functions
@@ -1139,7 +1157,7 @@ pub const ISwapChain = extern struct {
     const VTable = extern struct {
         base: IDeviceSubObject.VTable,
         present: *const fn (*ISwapChain, interval: UINT, flags: PRESENT_FLAG) callconv(.winapi) HRESULT,
-        get_buffer: *const fn (*ISwapChain, buffer: UINT, riid: *const GUID, surface: *?*anyopaque) callconv(.winapi) HRESULT,
+        get_buffer: *const fn (*ISwapChain, buffer: UINT, riid: *const GUID, object: *?*anyopaque) callconv(.winapi) HRESULT,
         set_fullscreen_state: *const fn (*ISwapChain, fullscreen: BOOL, target: *IOutput) callconv(.winapi) HRESULT,
         get_fullscreen_state: *const fn (*ISwapChain, fullscreen: *BOOL, target: *?*IOutput) callconv(.winapi) HRESULT,
         get_desc: *const fn (*ISwapChain, desc: *SWAP_CHAIN_DESC) callconv(.winapi) HRESULT,
@@ -1153,8 +1171,8 @@ pub const ISwapChain = extern struct {
     pub fn present(self: *ISwapChain, interval: UINT, flags: PRESENT_FLAG) HRESULT {
         return (self.vtable.present)(self, interval, flags);
     }
-    pub fn getBuffer(self: *ISwapChain, buffer: UINT, riid: *const GUID, surface: *?*anyopaque) HRESULT {
-        return (self.vtable.get_buffer)(self, buffer, riid, surface);
+    pub fn getBuffer(self: *ISwapChain, buffer: UINT, riid: *const GUID, object: *?*anyopaque) HRESULT {
+        return (self.vtable.get_buffer)(self, buffer, riid, object);
     }
     pub fn setFullscreenState(self: *ISwapChain, fullscreen: BOOL, target: *IOutput) HRESULT {
         return (self.vtable.set_fullscreen_state)(self, fullscreen, target);
@@ -1266,8 +1284,8 @@ pub const ISwapChain1 = extern struct {
     pub fn present(self: *ISwapChain1, interval: UINT, flags: PRESENT_FLAG) HRESULT {
         return (@as(*const ISwapChain.VTable, @ptrCast(self.vtable)).present)(@ptrCast(self), interval, flags);
     }
-    pub fn getBuffer(self: *ISwapChain1, buffer: UINT, riid: *const GUID, surface: *?*anyopaque) HRESULT {
-        return (@as(*const ISwapChain.VTable, @ptrCast(self.vtable)).get_buffer)(@ptrCast(self), buffer, riid, surface);
+    pub fn getBuffer(self: *ISwapChain1, buffer: UINT, riid: *const GUID, object: *?*anyopaque) HRESULT {
+        return (@as(*const ISwapChain.VTable, @ptrCast(self.vtable)).get_buffer)(@ptrCast(self), buffer, riid, object);
     }
     pub fn setFullscreenState(self: *ISwapChain1, fullscreen: BOOL, target: *IOutput) HRESULT {
         return (@as(*const ISwapChain.VTable, @ptrCast(self.vtable)).set_fullscreen_state)(@ptrCast(self), fullscreen, target);
@@ -1318,6 +1336,278 @@ pub const ISwapChain1 = extern struct {
         return (@as(*const IUnknown.VTable, @ptrCast(self.vtable)).add_ref)(@ptrCast(self));
     }
     pub fn release(self: *ISwapChain1) ULONG {
+        return (@as(*const IUnknown.VTable, @ptrCast(self.vtable)).release)(@ptrCast(self));
+    }
+};
+
+pub const ISwapChain2 = extern struct {
+    pub const IID = GUID.parse("{A8BE2AC4-199F-4946-B331-79599FB98DE7}");
+
+    vtable: *const VTable,
+
+    const VTable = extern struct {
+        base: ISwapChain1.VTable,
+        set_source_size: *const fn (*ISwapChain2, width: u32, height: u32) callconv(.winapi) HRESULT,
+        get_source_size: *const fn (*ISwapChain2, width: *u32, height: *u32) callconv(.winapi) HRESULT,
+        set_maximum_frame_latency: *const fn (*ISwapChain2, max_latency: u32) callconv(.winapi) HRESULT,
+        get_maximum_frame_latency: *const fn (*ISwapChain2, max_latency: *u32) callconv(.winapi) HRESULT,
+        get_frame_latency_waitable_object: *const fn (*ISwapChain2) callconv(.winapi) HANDLE,
+        set_matrix_transform: *const fn (*ISwapChain2, matrix: *MATRIX_3X2_F) callconv(.winapi) HRESULT,
+        get_matrix_transform: *const fn (*ISwapChain2, matrix: *MATRIX_3X2_F) callconv(.winapi) HRESULT,
+    };
+
+    pub fn setSourceSize(self: *ISwapChain2, width: u32, height: u32) HRESULT {
+        return (self.vtable.set_source_size)(self, width, height);
+    }
+    pub fn getSourceSize(self: *ISwapChain2, width: *u32, height: *u32) HRESULT {
+        return (self.vtable.get_source_size)(self, width, height);
+    }
+    pub fn setMaximumFrameLatency(self: *ISwapChain2, max_latency: u32) HRESULT {
+        return (self.vtable.set_maximum_frame_latency)(self, max_latency);
+    }
+    pub fn getMaximumFrameLatency(self: *ISwapChain2, max_latency: *u32) HRESULT {
+        return (self.vtable.get_maximum_frame_latency)(self, max_latency);
+    }
+    pub fn getFrameLatencyWaitableObject(self: *ISwapChain2) HANDLE {
+        return (self.vtable.get_frame_latency_waitable_object)(self);
+    }
+    pub fn setMatrixTransform(self: *ISwapChain2, matrix: *MATRIX_3X2_F) HRESULT {
+        return (self.vtable.set_matrix_transform)(self, matrix);
+    }
+    pub fn getMatrixTransform(self: *ISwapChain2, matrix: *MATRIX_3X2_F) HRESULT {
+        return (self.vtable.get_matrix_transform)(self, matrix);
+    }
+    // ISwapChain1 methods
+    pub fn getDesc1(self: *ISwapChain2, desc: *SWAP_CHAIN_DESC1) HRESULT {
+        return (@as(*const ISwapChain1.VTable, @ptrCast(self.vtable)).get_desc1)(@ptrCast(self), desc);
+    }
+    pub fn getFullscreenDesc(self: *ISwapChain2, desc: *SWAP_CHAIN_FULLSCREEN_DESC) HRESULT {
+        return (@as(*const ISwapChain1.VTable, @ptrCast(self.vtable)).get_fullscreen_desc)(@ptrCast(self), desc);
+    }
+    pub fn getHwnd(self: *ISwapChain2, hwnd: *HWND) HRESULT {
+        return (@as(*const ISwapChain1.VTable, @ptrCast(self.vtable)).get_hwnd)(@ptrCast(self), hwnd);
+    }
+    pub fn getCoreWindow(self: *ISwapChain2, riid: *const GUID, unk: *?*anyopaque) HRESULT {
+        return (@as(*const ISwapChain1.VTable, @ptrCast(self.vtable)).get_core_window)(@ptrCast(self), riid, unk);
+    }
+    pub fn present1(self: *ISwapChain2, interval: UINT, flags: PRESENT_FLAG, present_parameters: *PRESENT_PARAMETERS) HRESULT {
+        return (@as(*const ISwapChain1.VTable, @ptrCast(self.vtable)).present1)(@ptrCast(self), interval, flags, present_parameters);
+    }
+    pub fn isTemporaryMonoSupported(self: *ISwapChain2) BOOL {
+        return (@as(*const ISwapChain1.VTable, @ptrCast(self.vtable)).is_temporary_mono_supported)(@ptrCast(self));
+    }
+    pub fn getRestrictToOutput(self: *ISwapChain2, restrict_to_output: *?*IOutput) HRESULT {
+        return (@as(*const ISwapChain1.VTable, @ptrCast(self.vtable)).get_restrict_to_output)(@ptrCast(self), restrict_to_output);
+    }
+    pub fn setBackgroundColor(self: *ISwapChain2, color: *const D3DCOLORVALUE) HRESULT {
+        return (@as(*const ISwapChain1.VTable, @ptrCast(self.vtable)).set_background_color)(@ptrCast(self), color);
+    }
+    pub fn getBackgroundColor(self: *ISwapChain2, color: *D3DCOLORVALUE) HRESULT {
+        return (@as(*const ISwapChain1.VTable, @ptrCast(self.vtable)).get_background_color)(@ptrCast(self), color);
+    }
+    pub fn setRotation(self: *ISwapChain2, rotation: MODE_ROTATION) HRESULT {
+        return (@as(*const ISwapChain1.VTable, @ptrCast(self.vtable)).set_rotation)(@ptrCast(self), rotation);
+    }
+    pub fn getRotation(self: *ISwapChain2, rotation: *MODE_ROTATION) HRESULT {
+        return (@as(*const ISwapChain1.VTable, @ptrCast(self.vtable)).get_rotation)(@ptrCast(self), rotation);
+    }
+    // ISwapChain methods
+    pub fn present(self: *ISwapChain2, interval: UINT, flags: PRESENT_FLAG) HRESULT {
+        return (@as(*const ISwapChain.VTable, @ptrCast(self.vtable)).present)(@ptrCast(self), interval, flags);
+    }
+    pub fn getBuffer(self: *ISwapChain2, buffer: UINT, riid: *const GUID, object: *?*anyopaque) HRESULT {
+        return (@as(*const ISwapChain.VTable, @ptrCast(self.vtable)).get_buffer)(@ptrCast(self), buffer, riid, object);
+    }
+    pub fn setFullscreenState(self: *ISwapChain2, fullscreen: BOOL, target: *IOutput) HRESULT {
+        return (@as(*const ISwapChain.VTable, @ptrCast(self.vtable)).set_fullscreen_state)(@ptrCast(self), fullscreen, target);
+    }
+    pub fn getFullscreenState(self: *ISwapChain2, fullscreen: *BOOL, target: *?*IOutput) HRESULT {
+        return (@as(*const ISwapChain.VTable, @ptrCast(self.vtable)).get_fullscreen_state)(@ptrCast(self), fullscreen, target);
+    }
+    pub fn getDesc(self: *ISwapChain2, desc: *SWAP_CHAIN_DESC) HRESULT {
+        return (@as(*const ISwapChain.VTable, @ptrCast(self.vtable)).get_desc)(@ptrCast(self), desc);
+    }
+    pub fn resizeBuffers(self: *ISwapChain2, buffer_count: UINT, width: UINT, height: UINT, new_format: FORMAT, flags: SWAP_CHAIN_FLAG) HRESULT {
+        return (@as(*const ISwapChain.VTable, @ptrCast(self.vtable)).resize_buffers)(@ptrCast(self), buffer_count, width, height, new_format, flags);
+    }
+    pub fn resizeTarget(self: *ISwapChain2, new_target_parameters: *const MODE_DESC) HRESULT {
+        return (@as(*const ISwapChain.VTable, @ptrCast(self.vtable)).resize_target)(@ptrCast(self), new_target_parameters);
+    }
+    pub fn getContainingOutput(self: *ISwapChain2, output: *?*IOutput) HRESULT {
+        return (@as(*const ISwapChain.VTable, @ptrCast(self.vtable)).get_containing_output)(@ptrCast(self), output);
+    }
+    pub fn getFrameStatistics(self: *ISwapChain2, stats: *FRAME_STATISTICS) HRESULT {
+        return (@as(*const ISwapChain.VTable, @ptrCast(self.vtable)).get_frame_statistics)(@ptrCast(self), stats);
+    }
+    pub fn getLastPresentCount(self: *ISwapChain2, last_present_count: *UINT) HRESULT {
+        return (@as(*const ISwapChain.VTable, @ptrCast(self.vtable)).get_last_present_count)(@ptrCast(self), last_present_count);
+    }
+    // IDeviceSubObject methods
+    pub fn getDevice(self: *ISwapChain2, riid: *const GUID, device: *?*anyopaque) HRESULT {
+        return (@as(*const IDeviceSubObject.VTable, @ptrCast(self.vtable)).get_device)(@ptrCast(self), riid, device);
+    }
+    // IObject methods
+    pub fn getPrivateData(self: *ISwapChain2) noreturn {
+        return (@as(*const IObject.VTable, @ptrCast(self.vtable)).get_private_data)(@ptrCast(self));
+    }
+    pub fn setPrivateData(self: *ISwapChain2) noreturn {
+        return (@as(*const IObject.VTable, @ptrCast(self.vtable)).set_private_data)(@ptrCast(self));
+    }
+    pub fn setPrivateDataInterface(self: *ISwapChain2) noreturn {
+        return (@as(*const IObject.VTable, @ptrCast(self.vtable)).set_private_data_interface)(@ptrCast(self));
+    }
+    pub fn setName(self: *ISwapChain2) noreturn {
+        return (@as(*const IObject.VTable, @ptrCast(self.vtable)).set_name)(@ptrCast(self));
+    }
+    // IUnknown methods
+    pub fn queryInterface(self: *ISwapChain2, riid: *const GUID, out: *?*anyopaque) HRESULT {
+        return (@as(*const IUnknown.VTable, @ptrCast(self.vtable)).query_interface)(@ptrCast(self), riid, out);
+    }
+    pub fn addRef(self: *ISwapChain2) ULONG {
+        return (@as(*const IUnknown.VTable, @ptrCast(self.vtable)).add_ref)(@ptrCast(self));
+    }
+    pub fn release(self: *ISwapChain2) ULONG {
+        return (@as(*const IUnknown.VTable, @ptrCast(self.vtable)).release)(@ptrCast(self));
+    }
+};
+
+pub const ISwapChain3 = extern struct {
+    pub const IID = GUID.parse("{94D99BDB-F1F8-4AB0-B236-7DA0170EDAB1}");
+
+    vtable: *const VTable,
+
+    const VTable = extern struct {
+        base: ISwapChain2.VTable,
+        get_current_back_buffer_index: *const fn (*ISwapChain3) callconv(.winapi) u32,
+        check_color_space_support: *const fn (*ISwapChain3, color_space: COLOR_SPACE_TYPE, color_space_support: *COLOR_SPACE_SUPPORT) callconv(.winapi) HRESULT,
+        set_color_space1: *const fn (*ISwapChain3, color_space: COLOR_SPACE_TYPE) callconv(.winapi) HRESULT,
+        resize_buffers1: *const fn (*ISwapChain3, buffer_count: u32, width: u32, height: u32, format: FORMAT, flags: SWAP_CHAIN_FLAG, creation_node_mask: *u32, present_queue: *?*IUnknown) callconv(.winapi) HRESULT,
+    };
+
+    pub fn getCurrentBackBufferIndex(self: *ISwapChain3) u32 {
+        return (self.vtable.get_current_back_buffer_index)(self);
+    }
+    pub fn checkColorSpaceSupport(self: *ISwapChain3, color_space: COLOR_SPACE_TYPE, color_space_support: *COLOR_SPACE_SUPPORT) HRESULT {
+        return (self.vtable.check_color_space_support)(self, color_space, color_space_support);
+    }
+    pub fn setColorSpace1(self: *ISwapChain3, color_space: COLOR_SPACE_TYPE) HRESULT {
+        return (self.vtable.set_color_space1)(self, color_space);
+    }
+    pub fn resizeBuffers1(self: *ISwapChain3, buffer_count: u32, width: u32, height: u32, format: FORMAT, flags: SWAP_CHAIN_FLAG, creation_node_mask: *u32, present_queue: *?*IUnknown) HRESULT {
+        return (self.vtable.resize_buffers1)(self, buffer_count, width, height, format, flags, creation_node_mask, present_queue);
+    }
+    // ISwapChain2 methods
+    pub fn setSourceSize(self: *ISwapChain3, width: u32, height: u32) HRESULT {
+        return (@as(*const ISwapChain2.VTable, @ptrCast(self.vtable)).set_source_size)(@ptrCast(self), width, height);
+    }
+    pub fn getSourceSize(self: *ISwapChain3, width: *u32, height: *u32) HRESULT {
+        return (@as(*const ISwapChain2.VTable, @ptrCast(self.vtable)).get_source_size)(@ptrCast(self), width, height);
+    }
+    pub fn setMaximumFrameLatency(self: *ISwapChain3, max_latency: u32) HRESULT {
+        return (@as(*const ISwapChain2.VTable, @ptrCast(self.vtable)).set_maximum_frame_latency)(@ptrCast(self), max_latency);
+    }
+    pub fn getMaximumFrameLatency(self: *ISwapChain3, max_latency: *u32) HRESULT {
+        return (@as(*const ISwapChain2.VTable, @ptrCast(self.vtable)).get_maximum_frame_latency)(@ptrCast(self), max_latency);
+    }
+    pub fn getFrameLatencyWaitableObject(self: *ISwapChain3) HANDLE {
+        return (@as(*const ISwapChain2.VTable, @ptrCast(self.vtable)).get_frame_latency_waitable_object)(@ptrCast(self));
+    }
+    pub fn setMatrixTransform(self: *ISwapChain3, matrix: *MATRIX_3X2_F) HRESULT {
+        return (@as(*const ISwapChain2.VTable, @ptrCast(self.vtable)).set_matrix_transform)(@ptrCast(self), matrix);
+    }
+    pub fn getMatrixTransform(self: *ISwapChain3, matrix: *MATRIX_3X2_F) HRESULT {
+        return (@as(*const ISwapChain2.VTable, @ptrCast(self.vtable)).get_matrix_transform)(@ptrCast(self), matrix);
+    }
+    // ISwapChain1 methods
+    pub fn getDesc1(self: *ISwapChain3, desc: *SWAP_CHAIN_DESC1) HRESULT {
+        return (@as(*const ISwapChain1.VTable, @ptrCast(self.vtable)).get_desc1)(@ptrCast(self), desc);
+    }
+    pub fn getFullscreenDesc(self: *ISwapChain3, desc: *SWAP_CHAIN_FULLSCREEN_DESC) HRESULT {
+        return (@as(*const ISwapChain1.VTable, @ptrCast(self.vtable)).get_fullscreen_desc)(@ptrCast(self), desc);
+    }
+    pub fn getHwnd(self: *ISwapChain3, hwnd: *HWND) HRESULT {
+        return (@as(*const ISwapChain1.VTable, @ptrCast(self.vtable)).get_hwnd)(@ptrCast(self), hwnd);
+    }
+    pub fn getCoreWindow(self: *ISwapChain3, riid: *const GUID, unk: *?*anyopaque) HRESULT {
+        return (@as(*const ISwapChain1.VTable, @ptrCast(self.vtable)).get_core_window)(@ptrCast(self), riid, unk);
+    }
+    pub fn present1(self: *ISwapChain3, interval: UINT, flags: PRESENT_FLAG, present_parameters: *PRESENT_PARAMETERS) HRESULT {
+        return (@as(*const ISwapChain1.VTable, @ptrCast(self.vtable)).present1)(@ptrCast(self), interval, flags, present_parameters);
+    }
+    pub fn isTemporaryMonoSupported(self: *ISwapChain3) BOOL {
+        return (@as(*const ISwapChain1.VTable, @ptrCast(self.vtable)).is_temporary_mono_supported)(@ptrCast(self));
+    }
+    pub fn getRestrictToOutput(self: *ISwapChain3, restrict_to_output: *?*IOutput) HRESULT {
+        return (@as(*const ISwapChain1.VTable, @ptrCast(self.vtable)).get_restrict_to_output)(@ptrCast(self), restrict_to_output);
+    }
+    pub fn setBackgroundColor(self: *ISwapChain3, color: *const D3DCOLORVALUE) HRESULT {
+        return (@as(*const ISwapChain1.VTable, @ptrCast(self.vtable)).set_background_color)(@ptrCast(self), color);
+    }
+    pub fn getBackgroundColor(self: *ISwapChain3, color: *D3DCOLORVALUE) HRESULT {
+        return (@as(*const ISwapChain1.VTable, @ptrCast(self.vtable)).get_background_color)(@ptrCast(self), color);
+    }
+    pub fn setRotation(self: *ISwapChain3, rotation: MODE_ROTATION) HRESULT {
+        return (@as(*const ISwapChain1.VTable, @ptrCast(self.vtable)).set_rotation)(@ptrCast(self), rotation);
+    }
+    pub fn getRotation(self: *ISwapChain3, rotation: *MODE_ROTATION) HRESULT {
+        return (@as(*const ISwapChain1.VTable, @ptrCast(self.vtable)).get_rotation)(@ptrCast(self), rotation);
+    }
+    // ISwapChain methods
+    pub fn present(self: *ISwapChain3, interval: UINT, flags: PRESENT_FLAG) HRESULT {
+        return (@as(*const ISwapChain.VTable, @ptrCast(self.vtable)).present)(@ptrCast(self), interval, flags);
+    }
+    pub fn getBuffer(self: *ISwapChain3, buffer: UINT, riid: *const GUID, object: *?*anyopaque) HRESULT {
+        return (@as(*const ISwapChain.VTable, @ptrCast(self.vtable)).get_buffer)(@ptrCast(self), buffer, riid, object);
+    }
+    pub fn setFullscreenState(self: *ISwapChain3, fullscreen: BOOL, target: *IOutput) HRESULT {
+        return (@as(*const ISwapChain.VTable, @ptrCast(self.vtable)).set_fullscreen_state)(@ptrCast(self), fullscreen, target);
+    }
+    pub fn getFullscreenState(self: *ISwapChain3, fullscreen: *BOOL, target: *?*IOutput) HRESULT {
+        return (@as(*const ISwapChain.VTable, @ptrCast(self.vtable)).get_fullscreen_state)(@ptrCast(self), fullscreen, target);
+    }
+    pub fn getDesc(self: *ISwapChain3, desc: *SWAP_CHAIN_DESC) HRESULT {
+        return (@as(*const ISwapChain.VTable, @ptrCast(self.vtable)).get_desc)(@ptrCast(self), desc);
+    }
+    pub fn resizeBuffers(self: *ISwapChain3, buffer_count: UINT, width: UINT, height: UINT, new_format: FORMAT, flags: SWAP_CHAIN_FLAG) HRESULT {
+        return (@as(*const ISwapChain.VTable, @ptrCast(self.vtable)).resize_buffers)(@ptrCast(self), buffer_count, width, height, new_format, flags);
+    }
+    pub fn resizeTarget(self: *ISwapChain3, new_target_parameters: *const MODE_DESC) HRESULT {
+        return (@as(*const ISwapChain.VTable, @ptrCast(self.vtable)).resize_target)(@ptrCast(self), new_target_parameters);
+    }
+    pub fn getContainingOutput(self: *ISwapChain3, output: *?*IOutput) HRESULT {
+        return (@as(*const ISwapChain.VTable, @ptrCast(self.vtable)).get_containing_output)(@ptrCast(self), output);
+    }
+    pub fn getFrameStatistics(self: *ISwapChain3, stats: *FRAME_STATISTICS) HRESULT {
+        return (@as(*const ISwapChain.VTable, @ptrCast(self.vtable)).get_frame_statistics)(@ptrCast(self), stats);
+    }
+    pub fn getLastPresentCount(self: *ISwapChain3, last_present_count: *UINT) HRESULT {
+        return (@as(*const ISwapChain.VTable, @ptrCast(self.vtable)).get_last_present_count)(@ptrCast(self), last_present_count);
+    }
+    // IDeviceSubObject methods
+    pub fn getDevice(self: *ISwapChain3, riid: *const GUID, device: *?*anyopaque) HRESULT {
+        return (@as(*const IDeviceSubObject.VTable, @ptrCast(self.vtable)).get_device)(@ptrCast(self), riid, device);
+    }
+    // IObject methods
+    pub fn getPrivateData(self: *ISwapChain3) noreturn {
+        return (@as(*const IObject.VTable, @ptrCast(self.vtable)).get_private_data)(@ptrCast(self));
+    }
+    pub fn setPrivateData(self: *ISwapChain3) noreturn {
+        return (@as(*const IObject.VTable, @ptrCast(self.vtable)).set_private_data)(@ptrCast(self));
+    }
+    pub fn setPrivateDataInterface(self: *ISwapChain3) noreturn {
+        return (@as(*const IObject.VTable, @ptrCast(self.vtable)).set_private_data_interface)(@ptrCast(self));
+    }
+    pub fn setName(self: *ISwapChain3) noreturn {
+        return (@as(*const IObject.VTable, @ptrCast(self.vtable)).set_name)(@ptrCast(self));
+    }
+    // IUnknown methods
+    pub fn queryInterface(self: *ISwapChain3, riid: *const GUID, out: *?*anyopaque) HRESULT {
+        return (@as(*const IUnknown.VTable, @ptrCast(self.vtable)).query_interface)(@ptrCast(self), riid, out);
+    }
+    pub fn addRef(self: *ISwapChain3) ULONG {
+        return (@as(*const IUnknown.VTable, @ptrCast(self.vtable)).add_ref)(@ptrCast(self));
+    }
+    pub fn release(self: *ISwapChain3) ULONG {
         return (@as(*const IUnknown.VTable, @ptrCast(self.vtable)).release)(@ptrCast(self));
     }
 };

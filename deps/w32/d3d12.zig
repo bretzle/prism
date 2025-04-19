@@ -15,6 +15,7 @@ const RECT = w32.RECT;
 const UINT64 = u64;
 const UINT16 = u16;
 const UINT8 = u8;
+const HANDLE = w32.HANDLE;
 
 pub const IUnknown = w32.IUnknown;
 pub const IObject = w32.IObject;
@@ -301,7 +302,7 @@ pub const FEATURE = enum(UINT) {
 };
 
 pub const FEATURE_DATA_ARCHITECTURE = extern struct {
-    NodeIndex: UINT,
+    NodeIndex: UINT = 0,
     TileBasedRenderer: BOOL = 0,
     UMA: BOOL = 0,
     CacheCoherentUMA: BOOL = 0,
@@ -693,6 +694,13 @@ pub const DESCRIPTOR_HEAP_DESC = extern struct {
     NodeMask: UINT,
 };
 
+pub const FENCE_FLAGS = packed struct(UINT) {
+    SHARED: bool = false,
+    SHARED_CROSS_ADAPTER: bool = false,
+    NON_MONITORED: bool = false,
+    __unused: u29 = 0,
+};
+
 // functions
 // ---------
 
@@ -841,13 +849,13 @@ pub const IDevice = extern struct {
         base: IObject.VTable,
         get_node_count: *const fn (*IDevice) callconv(.winapi) noreturn,
         create_command_queue: *const fn (*IDevice, desc: *const COMMAND_QUEUE_DESC, riid: *const GUID, command_queue: *?*anyopaque) callconv(.winapi) HRESULT,
-        create_command_allocator: *const fn (*IDevice,  cmdlist_type: COMMAND_LIST_TYPE, guid: *const GUID, obj: *?*anyopaque) callconv(.winapi) HRESULT,
+        create_command_allocator: *const fn (*IDevice, cmdlist_type: COMMAND_LIST_TYPE, guid: *const GUID, obj: *?*anyopaque) callconv(.winapi) HRESULT,
         create_graphics_pipeline_state: *const fn (*IDevice) callconv(.winapi) noreturn,
         create_compute_pipeline_state: *const fn (*IDevice) callconv(.winapi) noreturn,
         create_command_list: *const fn (*IDevice, node_mask: UINT, cmdlist_type: COMMAND_LIST_TYPE, cmdalloc: *ICommandAllocator, initial_state: ?*IPipelineState, guid: *const GUID, cmdlist: *?*anyopaque) callconv(.winapi) HRESULT,
         check_feature_support: *const fn (*IDevice, feature: FEATURE, data: *anyopaque, size: UINT) callconv(.winapi) HRESULT,
-        create_descriptor_heap: *const fn (*IDevice) callconv(.winapi) noreturn,
-        get_descriptor_handle_increment_size: *const fn (*IDevice) callconv(.winapi) noreturn,
+        create_descriptor_heap: *const fn (*IDevice, desc: *const DESCRIPTOR_HEAP_DESC, riid: *const GUID, heap: *?*anyopaque) callconv(.winapi) HRESULT,
+        get_descriptor_handle_increment_size: *const fn (*IDevice, heap_type: DESCRIPTOR_HEAP_TYPE) callconv(.winapi) UINT,
         create_root_signature: *const fn (*IDevice) callconv(.winapi) noreturn,
         create_constant_buffer_view: *const fn (*IDevice) callconv(.winapi) noreturn,
         create_shader_resource_view: *const fn (*IDevice) callconv(.winapi) noreturn,
@@ -868,7 +876,7 @@ pub const IDevice = extern struct {
         open_shared_handle_by_name: *const fn (*IDevice) callconv(.winapi) noreturn,
         make_resident: *const fn (*IDevice) callconv(.winapi) noreturn,
         evict: *const fn (*IDevice) callconv(.winapi) noreturn,
-        create_fence: *const fn (*IDevice) callconv(.winapi) noreturn,
+        create_fence: *const fn (*IDevice, initial_value: u64, flags: FENCE_FLAGS, riid: *const GUID, fence: *?*anyopaque) callconv(.winapi) HRESULT,
         get_device_removed_reason: *const fn (*IDevice) callconv(.winapi) noreturn,
         get_copyable_footprints: *const fn (*IDevice) callconv(.winapi) noreturn,
         create_query_heap: *const fn (*IDevice) callconv(.winapi) noreturn,
@@ -884,8 +892,8 @@ pub const IDevice = extern struct {
     pub fn createCommandQueue(self: *IDevice, desc: *const COMMAND_QUEUE_DESC, riid: *const GUID, command_queue: *?*anyopaque) HRESULT {
         return (self.vtable.create_command_queue)(self, desc, riid, command_queue);
     }
-    pub fn createCommandAllocator(self: *IDevice,  cmdlist_type: COMMAND_LIST_TYPE, guid: *const GUID, obj: *?*anyopaque) HRESULT {
-        return (self.vtable.create_command_allocator)(self,  cmdlist_type, guid, obj);
+    pub fn createCommandAllocator(self: *IDevice, cmdlist_type: COMMAND_LIST_TYPE, guid: *const GUID, obj: *?*anyopaque) HRESULT {
+        return (self.vtable.create_command_allocator)(self, cmdlist_type, guid, obj);
     }
     pub fn createGraphicsPipelineState(self: *IDevice) noreturn {
         return (self.vtable.create_graphics_pipeline_state)(self);
@@ -899,11 +907,11 @@ pub const IDevice = extern struct {
     pub fn checkFeatureSupport(self: *IDevice, feature: FEATURE, data: *anyopaque, size: UINT) HRESULT {
         return (self.vtable.check_feature_support)(self, feature, data, size);
     }
-    pub fn createDescriptorHeap(self: *IDevice) noreturn {
-        return (self.vtable.create_descriptor_heap)(self);
+    pub fn createDescriptorHeap(self: *IDevice, desc: *const DESCRIPTOR_HEAP_DESC, riid: *const GUID, heap: *?*anyopaque) HRESULT {
+        return (self.vtable.create_descriptor_heap)(self, desc, riid, heap);
     }
-    pub fn getDescriptorHandleIncrementSize(self: *IDevice) noreturn {
-        return (self.vtable.get_descriptor_handle_increment_size)(self);
+    pub fn getDescriptorHandleIncrementSize(self: *IDevice, heap_type: DESCRIPTOR_HEAP_TYPE) UINT {
+        return (self.vtable.get_descriptor_handle_increment_size)(self, heap_type);
     }
     pub fn createRootSignature(self: *IDevice) noreturn {
         return (self.vtable.create_root_signature)(self);
@@ -965,8 +973,8 @@ pub const IDevice = extern struct {
     pub fn evict(self: *IDevice) noreturn {
         return (self.vtable.evict)(self);
     }
-    pub fn createFence(self: *IDevice) noreturn {
-        return (self.vtable.create_fence)(self);
+    pub fn createFence(self: *IDevice, initial_value: u64, flags: FENCE_FLAGS, riid: *const GUID, fence: *?*anyopaque) HRESULT {
+        return (self.vtable.create_fence)(self, initial_value, flags, riid, fence);
     }
     pub fn getDeviceRemovedReason(self: *IDevice) noreturn {
         return (self.vtable.get_device_removed_reason)(self);
@@ -1027,7 +1035,7 @@ pub const ICommandQueue = extern struct {
         set_marker: *const fn (*ICommandQueue) callconv(.winapi) noreturn,
         begin_event: *const fn (*ICommandQueue) callconv(.winapi) noreturn,
         end_event: *const fn (*ICommandQueue) callconv(.winapi) noreturn,
-        signal: *const fn (*ICommandQueue) callconv(.winapi) noreturn,
+        signal: *const fn (*ICommandQueue, fence: *IFence, value: u64) callconv(.winapi) HRESULT,
         wait: *const fn (*ICommandQueue) callconv(.winapi) noreturn,
         get_timestamp_frequency: *const fn (*ICommandQueue) callconv(.winapi) noreturn,
         get_clock_calibration: *const fn (*ICommandQueue) callconv(.winapi) noreturn,
@@ -1052,8 +1060,8 @@ pub const ICommandQueue = extern struct {
     pub fn endEvent(self: *ICommandQueue) noreturn {
         return (self.vtable.end_event)(self);
     }
-    pub fn signal(self: *ICommandQueue) noreturn {
-        return (self.vtable.signal)(self);
+    pub fn signal(self: *ICommandQueue, fence: *IFence, value: u64) HRESULT {
+        return (self.vtable.signal)(self, fence, value);
     }
     pub fn wait(self: *ICommandQueue) noreturn {
         return (self.vtable.wait)(self);
@@ -1349,7 +1357,7 @@ pub const IGraphicsCommandList = extern struct {
         om_set_stencil_ref: *const fn (*IGraphicsCommandList, stencil_ref: UINT) callconv(.winapi) void,
         set_pipeline_state: *const fn (*IGraphicsCommandList, pso: *IPipelineState) callconv(.winapi) void,
         resource_barrier: *const fn (*IGraphicsCommandList, num: UINT, barriers: [*]const RESOURCE_BARRIER) callconv(.winapi) void,
-        execute_bundle: *const fn (*IGraphicsCommandList, cmdlist: self) callconv(.winapi) void,
+        execute_bundle: *const fn (*IGraphicsCommandList, cmdlist: *IGraphicsCommandList) callconv(.winapi) void,
         set_descriptor_heaps: *const fn (*IGraphicsCommandList, num: UINT, heaps: [*]const *IDescriptorHeap) callconv(.winapi) void,
         set_compute_root_signature: *const fn (*IGraphicsCommandList, root_signature: ?*IRootSignature) callconv(.winapi) void,
         set_graphics_root_signature: *const fn (*IGraphicsCommandList, root_signature: ?*IRootSignature) callconv(.winapi) void,
@@ -1438,7 +1446,7 @@ pub const IGraphicsCommandList = extern struct {
     pub fn resourceBarrier(self: *IGraphicsCommandList, num: UINT, barriers: [*]const RESOURCE_BARRIER) void {
         return (self.vtable.resource_barrier)(self, num, barriers);
     }
-    pub fn executeBundle(self: *IGraphicsCommandList, cmdlist: self) void {
+    pub fn executeBundle(self: *IGraphicsCommandList, cmdlist: *IGraphicsCommandList) void {
         return (self.vtable.execute_bundle)(self, cmdlist);
     }
     pub fn setDescriptorHeaps(self: *IGraphicsCommandList, num: UINT, heaps: [*]const *IDescriptorHeap) void {
@@ -1614,7 +1622,7 @@ pub const IPipelineState = extern struct {
 };
 
 pub const IDescriptorHeap = extern struct {
-    pub const IID = GUID.parse("{}");
+    pub const IID = GUID.parse("{8EFB471D-616C-4F49-90F7-127BB763FA51}");
 
     vtable: *const VTable,
 
@@ -1698,6 +1706,57 @@ pub const IQueryHeap = extern struct {
         return (@as(*const IUnknown.VTable, @ptrCast(self.vtable)).add_ref)(@ptrCast(self));
     }
     pub fn release(self: *IQueryHeap) ULONG {
+        return (@as(*const IUnknown.VTable, @ptrCast(self.vtable)).release)(@ptrCast(self));
+    }
+};
+
+pub const IFence = extern struct {
+    pub const IID = GUID.parse("{0a753dcf-c4d8-4b91-adf6-be5a60d95a76}");
+
+    vtable: *const VTable,
+
+    const VTable = extern struct {
+        base: IPageable.VTable,
+        get_complepted_value: *const fn (*IFence) callconv(.winapi) u64,
+        set_event_on_completion: *const fn (*IFence, value: u64, event: HANDLE) callconv(.winapi) HRESULT,
+        signal: *const fn (*IFence, value: u64) callconv(.winapi) HRESULT,
+    };
+
+    pub fn getCompleptedValue(self: *IFence) u64 {
+        return (self.vtable.get_complepted_value)(self);
+    }
+    pub fn setEventOnCompletion(self: *IFence, value: u64, event: HANDLE) HRESULT {
+        return (self.vtable.set_event_on_completion)(self, value, event);
+    }
+    pub fn signal(self: *IFence, value: u64) HRESULT {
+        return (self.vtable.signal)(self, value);
+    }
+    // IPageable methods
+    // IDeviceChild methods
+    pub fn getDevice(self: *IFence, riid: *const GUID, device: *?*anyopaque) HRESULT {
+        return (@as(*const IDeviceChild.VTable, @ptrCast(self.vtable)).get_device)(@ptrCast(self), riid, device);
+    }
+    // IObject methods
+    pub fn getPrivateData(self: *IFence) noreturn {
+        return (@as(*const IObject.VTable, @ptrCast(self.vtable)).get_private_data)(@ptrCast(self));
+    }
+    pub fn setPrivateData(self: *IFence) noreturn {
+        return (@as(*const IObject.VTable, @ptrCast(self.vtable)).set_private_data)(@ptrCast(self));
+    }
+    pub fn setPrivateDataInterface(self: *IFence) noreturn {
+        return (@as(*const IObject.VTable, @ptrCast(self.vtable)).set_private_data_interface)(@ptrCast(self));
+    }
+    pub fn setName(self: *IFence) noreturn {
+        return (@as(*const IObject.VTable, @ptrCast(self.vtable)).set_name)(@ptrCast(self));
+    }
+    // IUnknown methods
+    pub fn queryInterface(self: *IFence, riid: *const GUID, out: *?*anyopaque) HRESULT {
+        return (@as(*const IUnknown.VTable, @ptrCast(self.vtable)).query_interface)(@ptrCast(self), riid, out);
+    }
+    pub fn addRef(self: *IFence) ULONG {
+        return (@as(*const IUnknown.VTable, @ptrCast(self.vtable)).add_ref)(@ptrCast(self));
+    }
+    pub fn release(self: *IFence) ULONG {
         return (@as(*const IUnknown.VTable, @ptrCast(self.vtable)).release)(@ptrCast(self));
     }
 };

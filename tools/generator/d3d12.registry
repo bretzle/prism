@@ -43,13 +43,13 @@ define IDevice : IObject {
 
     fn getNodeCount(self) noreturn
     fn createCommandQueue(self, desc: *const COMMAND_QUEUE_DESC, riid: *const GUID, command_queue: *?*anyopaque) HRESULT
-    fn createCommandAllocator(self,  cmdlist_type: COMMAND_LIST_TYPE, guid: *const GUID, obj: *?*anyopaque) HRESULT
+    fn createCommandAllocator(self, cmdlist_type: COMMAND_LIST_TYPE, guid: *const GUID, obj: *?*anyopaque) HRESULT
     fn createGraphicsPipelineState(self) noreturn
     fn createComputePipelineState(self) noreturn
     fn createCommandList(self, node_mask: UINT, cmdlist_type: COMMAND_LIST_TYPE, cmdalloc: *ICommandAllocator, initial_state: ?*IPipelineState, guid: *const GUID, cmdlist: *?*anyopaque) HRESULT
     fn checkFeatureSupport(self, feature: FEATURE, data: *anyopaque, size: UINT) HRESULT
-    fn createDescriptorHeap(self) noreturn
-    fn getDescriptorHandleIncrementSize(self) noreturn
+    fn createDescriptorHeap(self, desc: *const DESCRIPTOR_HEAP_DESC, riid: *const GUID, heap: *?*anyopaque) HRESULT
+    fn getDescriptorHandleIncrementSize(self, heap_type: DESCRIPTOR_HEAP_TYPE) UINT
     fn createRootSignature(self) noreturn
     fn createConstantBufferView(self) noreturn
     fn createShaderResourceView(self) noreturn
@@ -70,7 +70,7 @@ define IDevice : IObject {
     fn openSharedHandleByName(self) noreturn
     fn makeResident(self) noreturn
     fn evict(self) noreturn
-    fn createFence(self) noreturn
+    fn createFence(self, initial_value: u64, flags: FENCE_FLAGS, riid: *const GUID, fence: *?*anyopaque) HRESULT
     fn getDeviceRemovedReason(self) noreturn
     fn getCopyableFootprints(self) noreturn
     fn createQueryHeap(self) noreturn
@@ -89,7 +89,7 @@ define ICommandQueue : IPageable {
     fn setMarker(self) noreturn
     fn beginEvent(self) noreturn
     fn endEvent(self) noreturn
-    fn signal(self) noreturn
+    fn signal(self, fence: *IFence, value: u64) HRESULT
     fn wait(self) noreturn
     fn getTimestampFrequency(self) noreturn
     fn getClockCalibration(self) noreturn
@@ -149,7 +149,7 @@ define IGraphicsCommandList : ICommandList {
     fn omSetStencilRef(self, stencil_ref: UINT) void
     fn setPipelineState(self, pso: *IPipelineState) void
     fn resourceBarrier(self, num: UINT, barriers: [*]const RESOURCE_BARRIER) void
-    fn executeBundle(self, cmdlist: self) void
+    fn executeBundle(self, cmdlist: *IGraphicsCommandList) void
     fn setDescriptorHeaps(self, num: UINT, heaps: [*]const *IDescriptorHeap) void
     fn setComputeRootSignature(self, root_signature: ?*IRootSignature) void
     fn setGraphicsRootSignature(self, root_signature: ?*IRootSignature) void
@@ -191,7 +191,7 @@ define IPipelineState : IPageable {
 }
 
 define IDescriptorHeap : IPageable {
-    iid = ""
+    iid = "8EFB471D-616C-4F49-90F7-127BB763FA51"
 
     fn getDesc(self, desc: *DESCRIPTOR_HEAP_DESC) HRESULT
     fn getCpuDescriptorHandleForHeapStart(self, handle: *CPU_DESCRIPTOR_HANDLE) HRESULT
@@ -200,4 +200,12 @@ define IDescriptorHeap : IPageable {
 
 define IQueryHeap : IPageable {
     iid = ""
+}
+
+define IFence : IPageable {
+    iid = "0a753dcf-c4d8-4b91-adf6-be5a60d95a76"
+
+    fn getCompleptedValue(self) u64
+    fn setEventOnCompletion(self, value: u64, event: HANDLE) HRESULT
+    fn signal(self, value: u64) HRESULT
 }

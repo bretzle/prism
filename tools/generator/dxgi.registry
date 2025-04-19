@@ -104,7 +104,7 @@ define ISwapChain : IDeviceSubObject {
     iid = "310D36A0-D2E7-4C0A-AA04-6A9D23B8886A"
 
     fn present(self, interval: UINT, flags: PRESENT_FLAG) HRESULT
-    fn getBuffer(self, buffer: UINT, riid: *const GUID, surface: *?*anyopaque) HRESULT
+    fn getBuffer(self, buffer: UINT, riid: *const GUID, object: *?*anyopaque) HRESULT
     fn setFullscreenState(self, fullscreen: BOOL, target: *IOutput) HRESULT
     fn getFullscreenState(self, fullscreen: *BOOL, target: *?*IOutput) HRESULT
     fn getDesc(self, desc: *SWAP_CHAIN_DESC) HRESULT
@@ -129,6 +129,27 @@ define ISwapChain1 : ISwapChain {
     fn getBackgroundColor(self, color: *D3DCOLORVALUE) HRESULT
     fn setRotation(self, rotation: MODE_ROTATION) HRESULT
     fn getRotation(self, rotation: *MODE_ROTATION) HRESULT
+}
+
+define ISwapChain2 : ISwapChain1 {
+    iid = "A8BE2AC4-199F-4946-B331-79599FB98DE7"
+
+    fn setSourceSize(self, width: u32, height: u32) HRESULT
+	fn getSourceSize(self, width: *u32, height: *u32) HRESULT
+	fn setMaximumFrameLatency(self, max_latency: u32) HRESULT
+	fn getMaximumFrameLatency(self, max_latency: *u32) HRESULT
+	fn getFrameLatencyWaitableObject(self) HANDLE
+	fn setMatrixTransform(self, matrix: *MATRIX_3X2_F) HRESULT
+	fn getMatrixTransform(self, matrix: *MATRIX_3X2_F) HRESULT
+}
+
+define ISwapChain3 : ISwapChain2 {
+    iid = "94D99BDB-F1F8-4AB0-B236-7DA0170EDAB1"
+
+    fn getCurrentBackBufferIndex(self) u32
+	fn checkColorSpaceSupport(self, color_space: COLOR_SPACE_TYPE, color_space_support: *COLOR_SPACE_SUPPORT) HRESULT
+	fn setColorSpace1(self, color_space: COLOR_SPACE_TYPE) HRESULT
+	fn resizeBuffers1(self, buffer_count: u32, width: u32, height: u32, format: FORMAT, flags: SWAP_CHAIN_FLAG, creation_node_mask: *u32, present_queue: *?*IUnknown) HRESULT
 }
 
 define IDeviceSubObject : IObject {
