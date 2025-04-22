@@ -16,6 +16,7 @@ const UINT64 = u64;
 const UINT16 = u16;
 const UINT8 = u8;
 const HANDLE = w32.HANDLE;
+const LPCSTR = w32.LPCSTR;
 
 pub const IUnknown = w32.IUnknown;
 pub const IObject = w32.IObject;
@@ -1600,12 +1601,328 @@ pub const MESSAGE_CALLBACK_FLAGS = packed struct(u32) {
     _: u31 = 0,
 };
 
+pub const SHADER_BYTECODE = extern struct {
+    pShaderBytecode: ?*const anyopaque = null,
+    BytecodeLength: UINT64 = 0,
+};
+
+pub const SO_DECLARATION_ENTRY = extern struct {
+    Stream: UINT,
+    SemanticName: [*:0]const u8,
+    SemanticIndex: UINT,
+    StartComponent: UINT8,
+    ComponentCount: UINT8,
+    OutputSlot: UINT8,
+};
+
+pub const STREAM_OUTPUT_DESC = extern struct {
+    pSODeclaration: ?[*]const SO_DECLARATION_ENTRY,
+    NumEntries: UINT,
+    pBufferStrides: ?[*]const UINT,
+    NumStrides: UINT,
+    RasterizedStream: UINT,
+
+    pub inline fn initZero() STREAM_OUTPUT_DESC {
+        return std.mem.zeroes(@This());
+    }
+};
+
+pub const BLEND = enum(UINT) {
+    ZERO = 1,
+    ONE = 2,
+    SRC_COLOR = 3,
+    INV_SRC_COLOR = 4,
+    SRC_ALPHA = 5,
+    INV_SRC_ALPHA = 6,
+    DEST_ALPHA = 7,
+    INV_DEST_ALPHA = 8,
+    DEST_COLOR = 9,
+    INV_DEST_COLOR = 10,
+    SRC_ALPHA_SAT = 11,
+    BLEND_FACTOR = 14,
+    INV_BLEND_FACTOR = 15,
+    SRC1_COLOR = 16,
+    INV_SRC1_COLOR = 17,
+    SRC1_ALPHA = 18,
+    INV_SRC1_ALPHA = 19,
+};
+
+pub const BLEND_OP = enum(UINT) {
+    ADD = 1,
+    SUBTRACT = 2,
+    REV_SUBTRACT = 3,
+    MIN = 4,
+    MAX = 5,
+};
+
+pub const LOGIC_OP = enum(UINT) {
+    CLEAR = 0,
+    SET = 1,
+    COPY = 2,
+    COPY_INVERTED = 3,
+    NOOP = 4,
+    INVERT = 5,
+    AND = 6,
+    NAND = 7,
+    OR = 8,
+    NOR = 9,
+    XOR = 10,
+    EQUIV = 11,
+    AND_REVERSE = 12,
+    AND_INVERTED = 13,
+    OR_REVERSE = 14,
+    OR_INVERTED = 15,
+};
+
+pub const COLOR_WRITE_ENABLE = packed struct(UINT) {
+    RED: bool = false,
+    GREEN: bool = false,
+    BLUE: bool = false,
+    ALPHA: bool = false,
+    __unused: u28 = 0,
+
+    pub const ALL = COLOR_WRITE_ENABLE{ .RED = true, .GREEN = true, .BLUE = true, .ALPHA = true };
+};
+
+pub const RENDER_TARGET_BLEND_DESC = extern struct {
+    BlendEnable: BOOL = 0,
+    LogicOpEnable: BOOL = 0,
+    SrcBlend: BLEND = .ONE,
+    DestBlend: BLEND = .ZERO,
+    BlendOp: BLEND_OP = .ADD,
+    SrcBlendAlpha: BLEND = .ONE,
+    DestBlendAlpha: BLEND = .ZERO,
+    BlendOpAlpha: BLEND_OP = .ADD,
+    LogicOp: LOGIC_OP = .NOOP,
+    RenderTargetWriteMask: COLOR_WRITE_ENABLE = COLOR_WRITE_ENABLE.ALL,
+
+    pub fn initDefault() RENDER_TARGET_BLEND_DESC {
+        return .{};
+    }
+};
+
+pub const BLEND_DESC = extern struct {
+    AlphaToCoverageEnable: BOOL = 0,
+    IndependentBlendEnable: BOOL = 0,
+    RenderTarget: [8]RENDER_TARGET_BLEND_DESC = [_]RENDER_TARGET_BLEND_DESC{.{}} ** 8,
+
+    pub fn initDefault() BLEND_DESC {
+        return .{};
+    }
+};
+
+pub const FILL_MODE = enum(UINT) {
+    WIREFRAME = 2,
+    SOLID = 3,
+};
+
+pub const CULL_MODE = enum(UINT) {
+    NONE = 1,
+    FRONT = 2,
+    BACK = 3,
+};
+
+pub const CONSERVATIVE_RASTERIZATION_MODE = enum(UINT) {
+    OFF = 0,
+    ON = 1,
+};
+
+pub const RASTERIZER_DESC = extern struct {
+    FillMode: FILL_MODE = .SOLID,
+    CullMode: CULL_MODE = .BACK,
+    FrontCounterClockwise: BOOL = 0,
+    DepthBias: INT = 0,
+    DepthBiasClamp: FLOAT = 0.0,
+    SlopeScaledDepthBias: FLOAT = 0.0,
+    DepthClipEnable: BOOL = 1,
+    MultisampleEnable: BOOL = 0,
+    AntialiasedLineEnable: BOOL = 0,
+    ForcedSampleCount: UINT = 0,
+    ConservativeRaster: CONSERVATIVE_RASTERIZATION_MODE = .OFF,
+
+    pub fn initDefault() RASTERIZER_DESC {
+        return .{};
+    }
+};
+
+pub const DEPTH_WRITE_MASK = enum(UINT) {
+    ZERO = 0,
+    ALL = 1,
+};
+
+pub const STENCIL_OP = enum(UINT) {
+    KEEP = 1,
+    ZERO = 2,
+    REPLACE = 3,
+    INCR_SAT = 4,
+    DECR_SAT = 5,
+    INVERT = 6,
+    INCR = 7,
+    DECR = 8,
+};
+
+pub const DEPTH_STENCILOP_DESC = extern struct {
+    StencilFailOp: STENCIL_OP = .KEEP,
+    StencilDepthFailOp: STENCIL_OP = .KEEP,
+    StencilPassOp: STENCIL_OP = .KEEP,
+    StencilFunc: COMPARISON_FUNC = .ALWAYS,
+
+    pub fn initDefault() DEPTH_STENCILOP_DESC {
+        return .{};
+    }
+};
+
+pub const DEPTH_STENCIL_DESC = extern struct {
+    DepthEnable: BOOL = 1,
+    DepthWriteMask: DEPTH_WRITE_MASK = .ALL,
+    DepthFunc: COMPARISON_FUNC = .LESS,
+    StencilEnable: BOOL = 0,
+    StencilReadMask: UINT8 = 0xff,
+    StencilWriteMask: UINT8 = 0xff,
+    FrontFace: DEPTH_STENCILOP_DESC = .{},
+    BackFace: DEPTH_STENCILOP_DESC = .{},
+
+    pub fn initDefault() DEPTH_STENCIL_DESC {
+        return .{};
+    }
+};
+
+pub const INPUT_CLASSIFICATION = enum(UINT) {
+    PER_VERTEX_DATA = 0,
+    PER_INSTANCE_DATA = 1,
+};
+
+pub const INPUT_ELEMENT_DESC = extern struct {
+    SemanticName: [*:0]const u8,
+    SemanticIndex: UINT,
+    Format: dxgi.FORMAT,
+    InputSlot: UINT,
+    AlignedByteOffset: UINT,
+    InputSlotClass: INPUT_CLASSIFICATION,
+    InstanceDataStepRate: UINT,
+
+    pub inline fn init(
+        semanticName: [*:0]const u8,
+        semanticIndex: UINT,
+        format: dxgi.FORMAT,
+        inputSlot: UINT,
+        alignedByteOffset: UINT,
+        inputSlotClass: INPUT_CLASSIFICATION,
+        instanceDataStepRate: UINT,
+    ) INPUT_ELEMENT_DESC {
+        var v = std.mem.zeroes(@This());
+        v = .{
+            .SemanticName = semanticName,
+            .SemanticIndex = semanticIndex,
+            .Format = format,
+            .InputSlot = inputSlot,
+            .AlignedByteOffset = alignedByteOffset,
+            .InputSlotClass = inputSlotClass,
+            .InstanceDataStepRate = instanceDataStepRate,
+        };
+        return v;
+    }
+};
+
+pub const INPUT_LAYOUT_DESC = extern struct {
+    pInputElementDescs: ?[*]const INPUT_ELEMENT_DESC,
+    NumElements: UINT,
+
+    pub inline fn initZero() INPUT_LAYOUT_DESC {
+        return std.mem.zeroes(@This());
+    }
+
+    pub inline fn init(elements: []const INPUT_ELEMENT_DESC) INPUT_LAYOUT_DESC {
+        return .{
+            .pInputElementDescs = elements.ptr,
+            .NumElements = @intCast(elements.len),
+        };
+    }
+};
+
+pub const INDEX_BUFFER_STRIP_CUT_VALUE = enum(UINT) {
+    DISABLED = 0,
+    OxFFFF = 1,
+    OxFFFFFFFF = 2,
+};
+
+pub const PRIMITIVE_TOPOLOGY_TYPE = enum(UINT) {
+    UNDEFINED = 0,
+    POINT = 1,
+    LINE = 2,
+    TRIANGLE = 3,
+    PATCH = 4,
+};
+
+pub const CACHED_PIPELINE_STATE = extern struct {
+    pCachedBlob: ?*const anyopaque,
+    CachedBlobSizeInBytes: UINT64,
+
+    pub inline fn initZero() CACHED_PIPELINE_STATE {
+        return std.mem.zeroes(@This());
+    }
+};
+
+pub const PIPELINE_STATE_FLAGS = packed struct(UINT) {
+    TOOL_DEBUG: bool = false,
+    __unused1: bool = false,
+    DYNAMIC_DEPTH_BIAS: bool = false,
+    DYNAMIC_INDEX_BUFFER_STRIP_CUT: bool = false,
+    __unused: u28 = 0,
+};
+
+pub const GRAPHICS_PIPELINE_STATE_DESC = extern struct {
+    pRootSignature: ?*IRootSignature = null,
+    VS: SHADER_BYTECODE = .{},
+    PS: SHADER_BYTECODE = .{},
+    DS: SHADER_BYTECODE = .{},
+    HS: SHADER_BYTECODE = .{},
+    GS: SHADER_BYTECODE = .{},
+    StreamOutput: STREAM_OUTPUT_DESC = STREAM_OUTPUT_DESC.initZero(),
+    BlendState: BLEND_DESC = .{},
+    SampleMask: UINT = 0xffff_ffff,
+    RasterizerState: RASTERIZER_DESC = .{},
+    DepthStencilState: DEPTH_STENCIL_DESC = .{},
+    InputLayout: INPUT_LAYOUT_DESC = INPUT_LAYOUT_DESC.initZero(),
+    IBStripCutValue: INDEX_BUFFER_STRIP_CUT_VALUE = .DISABLED,
+    PrimitiveTopologyType: PRIMITIVE_TOPOLOGY_TYPE = .UNDEFINED,
+    NumRenderTargets: UINT = 0,
+    RTVFormats: [8]dxgi.FORMAT = [_]dxgi.FORMAT{.UNKNOWN} ** 8,
+    DSVFormat: dxgi.FORMAT = .UNKNOWN,
+    SampleDesc: dxgi.SAMPLE_DESC = .{ .Count = 1, .Quality = 0 },
+    NodeMask: UINT = 0,
+    CachedPSO: CACHED_PIPELINE_STATE = CACHED_PIPELINE_STATE.initZero(),
+    Flags: PIPELINE_STATE_FLAGS = .{},
+
+    pub fn initDefault() GRAPHICS_PIPELINE_STATE_DESC {
+        return .{};
+    }
+};
+
+pub const SHADER_MACRO = extern struct {
+    Name: LPCSTR,
+    Definition: LPCSTR,
+};
+
 // functions
 // ---------
 
 pub extern "d3d12" fn D3D12GetDebugInterface(riid: *const GUID, ppvDebug: *?*anyopaque) callconv(.winapi) HRESULT;
 pub extern "d3d12" fn D3D12CreateDevice(pAdapter: ?*IUnknown, MinimumFeatureLevel: FEATURE_LEVEL, riid: *const GUID, ppDevice: ?*?*anyopaque) callconv(.winapi) HRESULT;
 pub extern "d3d12" fn D3D12SerializeRootSignature(pRootSignature: *const ROOT_SIGNATURE_DESC, Version: ROOT_SIGNATURE_VERSION, ppBlob: *?*IBlob, ppErrorBlob: *?*IBlob) callconv(.winapi) HRESULT;
+pub extern "D3DCompiler_47" fn D3DCompile(
+    pSrcData: *const anyopaque,
+    SrcDataSize: SIZE_T,
+    pSourceName: ?LPCSTR,
+    pDefines: ?*const SHADER_MACRO,
+    pInclude: ?*const anyopaque, // FIXME IInclude
+    pEntrypoint: LPCSTR,
+    pTarget: LPCSTR,
+    Flags1: UINT,
+    Flags2: UINT,
+    ppCode: **IBlob,
+    ppErrorMsgs: ?**IBlob,
+) callconv(.winapi) HRESULT;
 
 // THIS FILE IS AUTOGENERATED BEYOND THIS POINT! DO NOT EDIT!
 // ----------------------------------------------------------
@@ -2078,13 +2395,13 @@ pub const IDevice = extern struct {
         get_node_count: *const fn (*IDevice) callconv(.winapi) noreturn,
         create_command_queue: *const fn (*IDevice, desc: *const COMMAND_QUEUE_DESC, riid: *const GUID, command_queue: *?*anyopaque) callconv(.winapi) HRESULT,
         create_command_allocator: *const fn (*IDevice, cmdlist_type: COMMAND_LIST_TYPE, guid: *const GUID, obj: *?*anyopaque) callconv(.winapi) HRESULT,
-        create_graphics_pipeline_state: *const fn (*IDevice) callconv(.winapi) noreturn,
+        create_graphics_pipeline_state: *const fn (*IDevice, desc: *const GRAPHICS_PIPELINE_STATE_DESC, riid: *const GUID, pso: *?*anyopaque) callconv(.winapi) HRESULT,
         create_compute_pipeline_state: *const fn (*IDevice) callconv(.winapi) noreturn,
         create_command_list: *const fn (*IDevice, node_mask: UINT, cmdlist_type: COMMAND_LIST_TYPE, cmdalloc: *ICommandAllocator, initial_state: ?*IPipelineState, guid: *const GUID, cmdlist: *?*anyopaque) callconv(.winapi) HRESULT,
         check_feature_support: *const fn (*IDevice, feature: FEATURE, data: *anyopaque, size: UINT) callconv(.winapi) HRESULT,
         create_descriptor_heap: *const fn (*IDevice, desc: *const DESCRIPTOR_HEAP_DESC, riid: *const GUID, heap: *?*anyopaque) callconv(.winapi) HRESULT,
         get_descriptor_handle_increment_size: *const fn (*IDevice, heap_type: DESCRIPTOR_HEAP_TYPE) callconv(.winapi) UINT,
-        create_root_signature: *const fn (*IDevice) callconv(.winapi) noreturn,
+        create_root_signature: *const fn (*IDevice, node_mask: u32, blob: *anyopaque, blob_length: SIZE_T, riid: *const GUID, root_signature: *?*anyopaque) callconv(.winapi) HRESULT,
         create_constant_buffer_view: *const fn (*IDevice) callconv(.winapi) noreturn,
         create_shader_resource_view: *const fn (*IDevice) callconv(.winapi) noreturn,
         create_unordered_access_view: *const fn (*IDevice) callconv(.winapi) noreturn,
@@ -2123,8 +2440,8 @@ pub const IDevice = extern struct {
     pub fn createCommandAllocator(self: *IDevice, cmdlist_type: COMMAND_LIST_TYPE, guid: *const GUID, obj: *?*anyopaque) HRESULT {
         return (self.vtable.create_command_allocator)(self, cmdlist_type, guid, obj);
     }
-    pub fn createGraphicsPipelineState(self: *IDevice) noreturn {
-        return (self.vtable.create_graphics_pipeline_state)(self);
+    pub fn createGraphicsPipelineState(self: *IDevice, desc: *const GRAPHICS_PIPELINE_STATE_DESC, riid: *const GUID, pso: *?*anyopaque) HRESULT {
+        return (self.vtable.create_graphics_pipeline_state)(self, desc, riid, pso);
     }
     pub fn createComputePipelineState(self: *IDevice) noreturn {
         return (self.vtable.create_compute_pipeline_state)(self);
@@ -2141,8 +2458,8 @@ pub const IDevice = extern struct {
     pub fn getDescriptorHandleIncrementSize(self: *IDevice, heap_type: DESCRIPTOR_HEAP_TYPE) UINT {
         return (self.vtable.get_descriptor_handle_increment_size)(self, heap_type);
     }
-    pub fn createRootSignature(self: *IDevice) noreturn {
-        return (self.vtable.create_root_signature)(self);
+    pub fn createRootSignature(self: *IDevice, node_mask: u32, blob: *anyopaque, blob_length: SIZE_T, riid: *const GUID, root_signature: *?*anyopaque) HRESULT {
+        return (self.vtable.create_root_signature)(self, node_mask, blob, blob_length, riid, root_signature);
     }
     pub fn createConstantBufferView(self: *IDevice) noreturn {
         return (self.vtable.create_constant_buffer_view)(self);
@@ -2807,7 +3124,7 @@ pub const IGraphicsCommandList = extern struct {
 };
 
 pub const IPipelineState = extern struct {
-    pub const IID = GUID.parse("{}");
+    pub const IID = GUID.parse("{765A30F3-F624-4C6F-A828-ACE948622445}");
 
     vtable: *const VTable,
 
@@ -2901,7 +3218,7 @@ pub const IDescriptorHeap = extern struct {
 };
 
 pub const IQueryHeap = extern struct {
-    pub const IID = GUID.parse("{}");
+    pub const IID = GUID.parse("{0D9658AE-ED45-469E-A61D-970EC583CAB4}");
 
     vtable: *const VTable,
 

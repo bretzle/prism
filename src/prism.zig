@@ -1,6 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const gpu = @import("gpu/gpu.zig");
+pub const gpu = @import("gpu/gpu.zig");
 
 const platform = switch (builtin.target.os.tag) {
     .windows => @import("platform/win32.zig"),
@@ -44,7 +44,7 @@ pub const Application = struct {
         window.surface = try window.instance.createSurface(surface_desc);
         window.surface_descriptor = surface_desc;
 
-        window.adapter = try window.instance.createAdapter(.{ .surface = window.surface, .power_preference = .efficent });
+        window.adapter = try window.instance.createAdapter(.{ .surface = window.surface, .power_preference = .performance });
 
         const props = window.adapter.getProperties();
         std.log.info("found {s} backend on {s} adapter: {s}, {s}", .{
@@ -94,6 +94,7 @@ pub const Window = struct {
     surface: *gpu.Surface = undefined,
     surface_descriptor: gpu.Surface.Descriptor = undefined,
 
+    framebuffer_format: gpu.Texture.Format = .bgra8_unorm,
     native: platform.Window,
 
     pub fn deinit(self: *Window) void {

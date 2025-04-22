@@ -81,6 +81,24 @@ pub const Device = opaque {
         const swapchain = try device.createSwapchain(surface, desc);
         return @ptrCast(swapchain);
     }
+
+    pub fn createShader(self: *Device, code: []const u8) !*ShaderModule {
+        const device: *backend.Device = @alignCast(@ptrCast(self));
+        const shader = try device.createShader(code);
+        return @ptrCast(shader);
+    }
+
+    pub fn createPipelineLayout(self: *Device, desc: PipelineLayout.Descriptor) !*PipelineLayout {
+        const device: *backend.Device = @alignCast(@ptrCast(self));
+        const layout = try device.createPipelineLayout(desc);
+        return @ptrCast(layout);
+    }
+
+    pub fn createRenderPipeline(self: *Device, desc: RenderPipeline.Descriptor) !*RenderPipeline {
+        const device: *backend.Device = @alignCast(@ptrCast(self));
+        const pipeline = try device.createRenderPipeline(desc);
+        return @ptrCast(pipeline);
+    }
 };
 
 pub const Queue = opaque {};
@@ -257,6 +275,45 @@ pub const TextureView = opaque {
     };
 };
 
+pub const ShaderModule = opaque {
+    pub fn release(self: *ShaderModule) void {
+        _ = self; // autofix
+        // TODO
+    }
+};
+
+pub const RenderPipeline = opaque {
+    pub const Descriptor = struct {
+        label: ?[]const u8 = null,
+        layout: *PipelineLayout, // TODO support auto layout
+        vertex: VertexState,
+        primitive: PrimitiveState = .{},
+        depth_stencil: ?DepthStencilState = null,
+        multisample: MultisampleState = .{},
+        fragment: ?FragmentState = null,
+    };
+
+    pub fn release(self: *RenderPipeline) void {
+        _ = self; // autofix
+        // TODO
+    }
+};
+
+pub const PipelineLayout = opaque {
+    pub const Descriptor = extern struct {
+        label: ?[*:0]const u8 = null,
+        bind_group_layout_count: usize = 0,
+        bind_group_layouts: ?[*]const *BindGroupLayout = null,
+    };
+
+    pub fn release(self: *PipelineLayout) void {
+        _ = self; // autofix
+        // TODO
+    }
+};
+
+pub const BindGroupLayout = opaque {};
+
 pub const BackendType = enum { d3d12 };
 
 pub const PresentMode = enum { immediate, fifo };
@@ -265,4 +322,221 @@ pub const Extent3D = extern struct {
     width: u32,
     height: u32 = 1,
     depth_or_array_layers: u32 = 1,
+};
+
+pub const BlendState = struct {
+    color: BlendComponent,
+    alpha: BlendComponent,
+
+    pub const default = BlendState{ .color = .{}, .alpha = .{} };
+};
+
+pub const BlendComponent = struct {
+    operation: BlendOperation = .add,
+    src_factor: BlendFactor = .one,
+    dst_factor: BlendFactor = .zero,
+};
+
+pub const BlendOperation = enum {
+    add,
+    subtract,
+    reverse_subtract,
+    min,
+    max,
+};
+
+pub const BlendFactor = enum {
+    zero,
+    one,
+    src,
+    one_minus_src,
+    src_alpha,
+    one_minus_src_alpha,
+    dst,
+    one_minus_dst,
+    dst_alpha,
+    one_minus_dst_alpha,
+    src_alpha_saturated,
+    constant,
+    one_minus_constant,
+    src1,
+    one_minus_src1,
+    src1_alpha,
+    one_minus_src1_alpha,
+};
+
+pub const ColorTargetState = struct {
+    format: Texture.Format,
+    blend: ?*const BlendState = null,
+    write_mask: ColorWriteMaskFlags = ColorWriteMaskFlags.all,
+};
+
+pub const ColorWriteMaskFlags = packed struct(u32) {
+    red: bool = false,
+    green: bool = false,
+    blue: bool = false,
+    alpha: bool = false,
+    _padding: u28 = 0,
+
+    pub const all = ColorWriteMaskFlags{ .red = true, .green = true, .blue = true, .alpha = true };
+};
+
+pub const DepthStencilState = extern struct {
+    format: Texture.Format,
+    depth_write_enabled: bool = false,
+    depth_compare: CompareFunction = .always,
+    stencil_front: StencilFaceState = .{},
+    stencil_back: StencilFaceState = .{},
+    stencil_read_mask: u32 = 0xFFFFFFFF,
+    stencil_write_mask: u32 = 0xFFFFFFFF,
+    depth_bias: i32 = 0,
+    depth_bias_slope_scale: f32 = 0.0,
+    depth_bias_clamp: f32 = 0.0,
+};
+
+pub const MultisampleState = struct {
+    count: u32 = 1,
+    mask: u32 = 0xFFFFFFFF,
+    alpha_to_coverage_enabled: bool = false,
+};
+
+pub const VertexState = struct {
+    module: *ShaderModule,
+    entrypoint: [:0]const u8,
+    constants: []const ConstantEntry = &.{},
+    buffers: []const VertexBufferLayout = &.{},
+};
+
+pub const PrimitiveState = struct {
+    topology: PrimitiveTopology = .triangle_list,
+    strip_index_format: IndexFormat = .undefined,
+    front_face: FrontFace = .ccw,
+    cull_mode: CullMode = .none,
+};
+
+pub const FragmentState = struct {
+    module: *ShaderModule,
+    entrypoint: [:0]const u8,
+    constants: []const ConstantEntry = &[0]ConstantEntry{},
+    targets: []const ColorTargetState = &[0]ColorTargetState{},
+};
+
+pub const CompareFunction = enum(u32) {
+    undefined = 0x00000000,
+    never = 0x00000001,
+    less = 0x00000002,
+    less_equal = 0x00000003,
+    greater = 0x00000004,
+    greater_equal = 0x00000005,
+    equal = 0x00000006,
+    not_equal = 0x00000007,
+    always = 0x00000008,
+};
+
+pub const StencilFaceState = extern struct {
+    compare: CompareFunction = .always,
+    fail_op: StencilOperation = .keep,
+    depth_fail_op: StencilOperation = .keep,
+    pass_op: StencilOperation = .keep,
+};
+
+pub const StencilOperation = enum(u32) {
+    keep = 0x00000000,
+    zero = 0x00000001,
+    replace = 0x00000002,
+    invert = 0x00000003,
+    increment_clamp = 0x00000004,
+    decrement_clamp = 0x00000005,
+    increment_wrap = 0x00000006,
+    decrement_wrap = 0x00000007,
+};
+
+pub const ConstantEntry = extern struct {
+    key: [*:0]const u8,
+    value: f64,
+};
+
+pub const VertexBufferLayout = extern struct {
+    array_stride: u64,
+    step_mode: VertexStepMode = .vertex,
+    attribute_count: usize,
+    attributes: ?[*]const VertexAttribute = null,
+};
+
+pub const VertexStepMode = enum(u32) {
+    vertex = 0x00000000,
+    instance = 0x00000001,
+    vertex_buffer_not_used = 0x00000002,
+};
+
+pub const VertexAttribute = extern struct {
+    format: VertexFormat,
+    offset: u64,
+    shader_location: u32,
+};
+
+pub const VertexFormat = enum(u32) {
+    undefined = 0x00000000,
+    uint8x2 = 0x00000001,
+    uint8x4 = 0x00000002,
+    sint8x2 = 0x00000003,
+    sint8x4 = 0x00000004,
+    unorm8x2 = 0x00000005,
+    unorm8x4 = 0x00000006,
+    snorm8x2 = 0x00000007,
+    snorm8x4 = 0x00000008,
+    uint16x2 = 0x00000009,
+    uint16x4 = 0x0000000a,
+    sint16x2 = 0x0000000b,
+    sint16x4 = 0x0000000c,
+    unorm16x2 = 0x0000000d,
+    unorm16x4 = 0x0000000e,
+    snorm16x2 = 0x0000000f,
+    snorm16x4 = 0x00000010,
+    float16x2 = 0x00000011,
+    float16x4 = 0x00000012,
+    float32 = 0x00000013,
+    float32x2 = 0x00000014,
+    float32x3 = 0x00000015,
+    float32x4 = 0x00000016,
+    uint32 = 0x00000017,
+    uint32x2 = 0x00000018,
+    uint32x3 = 0x00000019,
+    uint32x4 = 0x0000001a,
+    sint32 = 0x0000001b,
+    sint32x2 = 0x0000001c,
+    sint32x3 = 0x0000001d,
+    sint32x4 = 0x0000001e,
+};
+
+pub const PrimitiveTopology = enum(u32) {
+    point_list = 0x00000000,
+    line_list = 0x00000001,
+    line_strip = 0x00000002,
+    triangle_list = 0x00000003,
+    triangle_strip = 0x00000004,
+};
+
+pub const IndexFormat = enum(u32) {
+    undefined = 0x00000000,
+    uint16 = 0x00000001,
+    uint32 = 0x00000002,
+};
+
+pub const FrontFace = enum(u32) {
+    ccw = 0x00000000,
+    cw = 0x00000001,
+};
+
+pub const CullMode = enum(u32) {
+    none = 0x00000000,
+    front = 0x00000001,
+    back = 0x00000002,
+};
+
+pub const ShaderStageFlags = packed struct(u32) {
+    vertex: bool = false,
+    fragment: bool = false,
+    compute: bool = false,
+    _: u29 = 0,
 };

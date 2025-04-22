@@ -265,6 +265,9 @@ pub const Device = struct {
     }
 
     pub const createSwapchain = SwapChain.create;
+    pub const createShader = ShaderModule.create;
+    pub const createPipelineLayout = PipelineLayout.create;
+    pub const createRenderPipeline = RenderPipeline.create;
 };
 
 const CommandManager = struct {
@@ -565,3 +568,181 @@ pub const Resource = struct {
         unreachable;
     }
 };
+
+const ShaderModule = struct {
+    manager: Manager(ShaderModule) = .{},
+    code: []const u8,
+
+    fn create(_: *Device, code: []const u8) !*ShaderModule {
+        const self = try allocator.create(ShaderModule);
+        self.* = .{ .code = code };
+        return self;
+    }
+
+    fn compile(module: *ShaderModule, entrypoint: [:0]const u8, target: [:0]const u8) !*d3d12.IBlob {
+        const flags = if (debug) unreachable else 0;
+
+        var shader_blob: *d3d12.IBlob = undefined;
+        var error_blob: ?*d3d12.IBlob = null;
+        const hr = d3d12.D3DCompile(module.code.ptr, module.code.len, null, null, null, entrypoint, target, flags, 0, @ptrCast(&shader_blob), @ptrCast(&error_blob));
+
+        if (error_blob) |errors| {
+            const message: [*:0]const u8 = @ptrCast(errors.getBufferPointer());
+            std.debug.print("{s}\n", .{message});
+            _ = errors.release();
+        }
+
+        if (hr != 0) {
+            return error.CompileShaderFailed;
+        }
+
+        return shader_blob;
+    }
+};
+
+const RenderPipeline = struct {
+    manager: Manager(RenderPipeline) = .{},
+
+    fn create(device: *Device, desc: sysgpu.RenderPipeline.Descriptor) !*RenderPipeline {
+        const vertex_module: *ShaderModule = @alignCast(@ptrCast(desc.vertex.module));
+        const fragment_module: *ShaderModule = @alignCast(@ptrCast(desc.fragment.?.module));
+
+        const layout: *PipelineLayout = @alignCast(@ptrCast(desc.layout));
+        layout.manager.reference();
+        errdefer layout.manager.release();
+
+        const vertex_shader = try vertex_module.compile(desc.vertex.entrypoint, "vs_5_1");
+        defer _ = vertex_shader.release();
+
+        const pixel_shader = try fragment_module.compile(desc.fragment.?.entrypoint, "ps_5_1");
+        defer _ = pixel_shader.release();
+
+        var pipeline: *d3d12.IPipelineState = undefined;
+        const hr = device.device.createGraphicsPipelineState(
+            &.{
+                .pRootSignature = layout.root_signature,
+                .VS = conv.shaderBytecode(vertex_shader),
+                .PS = conv.shaderBytecode(pixel_shader),
+                .DS = .{},
+                .HS = .{},
+                .GS = .{},
+                .StreamOutput = conv.streamOutputDesc(),
+                .BlendState = conv.blendDesc(desc),
+                .SampleMask = desc.multisample.mask,
+                // .RasterizerState = conv.d3d12RasterizerDesc(desc),
+                // .DepthStencilState = conv.d3d12DepthStencilDesc(desc.depth_stencil),
+                // .InputLayout = .{
+                //     .pInputElementDescs = if (desc.vertex.buffer_count > 0) &input_elements.buffer else null,
+                //     .NumElements = @intCast(input_elements.len),
+                // },
+                // .IBStripCutValue = conv.d3d12IndexBufferStripCutValue(desc.primitive.strip_index_format),
+                // .PrimitiveTopologyType = conv.d3d12PrimitiveTopologyType(desc.primitive.topology),
+                // .NumRenderTargets = @intCast(num_render_targets),
+                // .RTVFormats = rtv_formats,
+                .DSVFormat = if (desc.depth_stencil) |ds| conv.formatToTexture(ds.format) else .UNKNOWN,
+                .SampleDesc = .{ .Count = desc.multisample.count, .Quality = 0 },
+                .NodeMask = 0,
+                .CachedPSO = .{ .pCachedBlob = null, .CachedBlobSizeInBytes = 0 },
+                .Flags = .{},
+            },
+            &d3d12.IPipelineState.IID,
+            @ptrCast(&pipeline),
+        );
+        _ = hr; // autofix
+
+        unreachable;
+    }
+};
+
+const max_bind_groups: u32 = 4;
+
+const PipelineLayout = struct {
+    manager: Manager(PipelineLayout) = .{},
+    root_signature: *d3d12.IRootSignature,
+    group_layouts: []*BindGroupLayout,
+    group_parameter_indices: std.BoundedArray(u32, max_bind_groups),
+
+    fn create(device: *Device, desc: sysgpu.PipelineLayout.Descriptor) !*PipelineLayout {
+        const group_layouts = try allocator.alloc(*BindGroupLayout, desc.bind_group_layout_count);
+        errdefer allocator.free(group_layouts);
+
+        const group_parameter_indices = std.BoundedArray(u32, max_bind_groups){};
+
+        const parameter_count: u32 = 0;
+        const range_count: u32 = 0;
+        for (0..desc.bind_group_layout_count) |_| {
+            unreachable;
+        }
+
+        var parameters = try std.ArrayListUnmanaged(d3d12.ROOT_PARAMETER).initCapacity(allocator, parameter_count);
+        defer parameters.deinit(allocator);
+
+        var ranges = try std.ArrayListUnmanaged(d3d12.DESCRIPTOR_RANGE).initCapacity(allocator, range_count);
+        defer ranges.deinit(allocator);
+
+        for (0..desc.bind_group_layout_count) |_| {
+            unreachable;
+        }
+
+        var root_signature_blob: *d3d12.IBlob = undefined;
+        var opt_errors: ?*d3d12.IBlob = null;
+        const hr = d3d12.D3D12SerializeRootSignature(
+            &.{
+                .NumParameters = @intCast(parameters.items.len),
+                .pParameters = parameters.items.ptr,
+                .NumStaticSamplers = 0,
+                .pStaticSamplers = null,
+                .Flags = .{ .ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT = true },
+            },
+            .VERSION_1_0,
+            @ptrCast(&root_signature_blob),
+            @ptrCast(&opt_errors),
+        );
+        if (opt_errors) |errors| {
+            const message: [*:0]const u8 = @ptrCast(errors.getBufferPointer());
+            std.debug.print("{s}\n", .{message});
+            _ = errors.release();
+        }
+        if (hr != 0) {
+            return error.SerializeRootSignatureFailed;
+        }
+
+        defer _ = root_signature_blob.release();
+
+        // var root_signature: *c.ID3D12RootSignature = undefined;
+        // hr = d3d_device.lpVtbl.*.CreateRootSignature.?(
+        //     d3d_device,
+        //     0,
+        //     root_signature_blob.lpVtbl.*.GetBufferPointer.?(root_signature_blob),
+        //     root_signature_blob.lpVtbl.*.GetBufferSize.?(root_signature_blob),
+        //     &c.IID_ID3D12RootSignature,
+        //     @ptrCast(&root_signature),
+        // );
+        // errdefer _ = root_signature.lpVtbl.*.Release.?(root_signature);
+        var root_signature: *d3d12.IRootSignature = undefined;
+        _ = device.device.createRootSignature(
+            0,
+            root_signature_blob.getBufferPointer(),
+            root_signature_blob.getBufferSize(),
+            &d3d12.IRootSignature.IID,
+            @ptrCast(&root_signature),
+        );
+        errdefer _ = root_signature.release();
+
+        const self = try allocator.create(PipelineLayout);
+        self.* = .{
+            .root_signature = root_signature,
+            .group_layouts = group_layouts,
+            .group_parameter_indices = group_parameter_indices,
+        };
+
+        return self;
+    }
+
+    pub fn deinit(self: *PipelineLayout) void {
+        _ = self; // autofix
+        // TODO
+    }
+};
+
+const BindGroupLayout = struct {};

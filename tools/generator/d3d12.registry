@@ -98,13 +98,13 @@ define IDevice : IObject {
     fn getNodeCount(self) noreturn
     fn createCommandQueue(self, desc: *const COMMAND_QUEUE_DESC, riid: *const GUID, command_queue: *?*anyopaque) HRESULT
     fn createCommandAllocator(self, cmdlist_type: COMMAND_LIST_TYPE, guid: *const GUID, obj: *?*anyopaque) HRESULT
-    fn createGraphicsPipelineState(self) noreturn
+    fn createGraphicsPipelineState(self, desc: *const GRAPHICS_PIPELINE_STATE_DESC, riid: *const GUID, pso: *?*anyopaque) HRESULT
     fn createComputePipelineState(self) noreturn
     fn createCommandList(self, node_mask: UINT, cmdlist_type: COMMAND_LIST_TYPE, cmdalloc: *ICommandAllocator, initial_state: ?*IPipelineState, guid: *const GUID, cmdlist: *?*anyopaque) HRESULT
     fn checkFeatureSupport(self, feature: FEATURE, data: *anyopaque, size: UINT) HRESULT
     fn createDescriptorHeap(self, desc: *const DESCRIPTOR_HEAP_DESC, riid: *const GUID, heap: *?*anyopaque) HRESULT
     fn getDescriptorHandleIncrementSize(self, heap_type: DESCRIPTOR_HEAP_TYPE) UINT
-    fn createRootSignature(self) noreturn
+    fn createRootSignature(self, node_mask: u32, blob: *anyopaque, blob_length: SIZE_T, riid: *const GUID, root_signature: *?*anyopaque) HRESULT
     fn createConstantBufferView(self) noreturn
     fn createShaderResourceView(self) noreturn
     fn createUnorderedAccessView(self) noreturn
@@ -239,7 +239,7 @@ define IGraphicsCommandList : ICommandList {
 }
 
 define IPipelineState : IPageable {
-    iid = ""
+    iid = "765A30F3-F624-4C6F-A828-ACE948622445"
 
     fn getCachedBlob(self, blob: **IBlob) HRESULT
 }
@@ -253,7 +253,7 @@ define IDescriptorHeap : IPageable {
 }
 
 define IQueryHeap : IPageable {
-    iid = ""
+    iid = "0D9658AE-ED45-469E-A61D-970EC583CAB4"
 }
 
 define IFence : IPageable {

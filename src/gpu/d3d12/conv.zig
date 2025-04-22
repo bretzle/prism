@@ -1,6 +1,7 @@
 const sysgpu = @import("../gpu.zig");
 const w32 = @import("w32");
 const dxgi = w32.dxgi;
+const d3d12 = w32.d3d12;
 
 pub fn formatToTexture(self: sysgpu.Texture.Format) dxgi.FORMAT {
     return switch (self) {
@@ -109,5 +110,108 @@ pub fn usage(self: sysgpu.Texture.UsageFlags) dxgi.USAGE {
         .SHADER_INPUT = self.texture_binding,
         .UNORDERED_ACCESS = self.storage_binding,
         .RENDER_TARGET_OUTPUT = self.render_attachment,
+    };
+}
+
+pub fn streamOutputDesc() d3d12.STREAM_OUTPUT_DESC {
+    return .{
+        .pSODeclaration = null,
+        .NumEntries = 0,
+        .pBufferStrides = null,
+        .NumStrides = 0,
+        .RasterizedStream = 0,
+    };
+}
+
+pub fn shaderBytecode(blob: *d3d12.IBlob) d3d12.SHADER_BYTECODE {
+    return .{
+        .pShaderBytecode = blob.getBufferPointer(),
+        .BytecodeLength = blob.getBufferSize(),
+    };
+}
+
+pub fn blendDesc(desc: sysgpu.RenderPipeline.Descriptor) d3d12.BLEND_DESC {
+    var targets = [_]d3d12.RENDER_TARGET_BLEND_DESC{renderTargetBlendDesc(null)} ** 8;
+    if (desc.fragment) |frag| {
+        for (frag.targets, 0..) |target, i| {
+            targets[i] = renderTargetBlendDesc(target);
+        }
+    }
+
+    return .{
+        .AlphaToCoverageEnable = @intFromBool(desc.multisample.alpha_to_coverage_enabled),
+        .IndependentBlendEnable = 1,
+        .RenderTarget = targets,
+    };
+}
+
+pub fn renderTargetBlendDesc(opt_target: ?sysgpu.ColorTargetState) d3d12.RENDER_TARGET_BLEND_DESC {
+    var desc = d3d12.RENDER_TARGET_BLEND_DESC{
+        .BlendEnable = 0,
+        .LogicOpEnable = 0,
+        .SrcBlend = .ONE,
+        .DestBlend = .ZERO,
+        .BlendOp = .ADD,
+        .SrcBlendAlpha = .ONE,
+        .DestBlendAlpha = .ZERO,
+        .BlendOpAlpha = .ADD,
+        .LogicOp = .NOOP,
+        .RenderTargetWriteMask = .ALL,
+    };
+
+    if (opt_target) |target| {
+        desc.RenderTargetWriteMask = renderTargetWriteMask(target.write_mask);
+        if (target.blend) |b| {
+            desc.BlendEnable = 1;
+            desc.SrcBlend = blend(b.color.src_factor);
+            desc.DestBlend = blend(b.color.dst_factor);
+            desc.BlendOp = blendOp(b.color.operation);
+            desc.SrcBlendAlpha = blend(b.alpha.src_factor);
+            desc.DestBlendAlpha = blend(b.alpha.dst_factor);
+            desc.BlendOpAlpha = blendOp(b.alpha.operation);
+        }
+    }
+
+    return desc;
+}
+
+pub fn renderTargetWriteMask(mask: sysgpu.ColorWriteMaskFlags) d3d12.COLOR_WRITE_ENABLE {
+    return .{
+        .RED = mask.red,
+        .GREEN = mask.green,
+        .BLUE = mask.blue,
+        .ALPHA = mask.alpha,
+    };
+}
+
+pub fn blend(factor: sysgpu.BlendFactor) d3d12.BLEND {
+    return switch (factor) {
+        .zero => .ZERO,
+        .one => .ONE,
+        .src => .SRC_COLOR,
+        .one_minus_src => .INV_SRC_COLOR,
+        .src_alpha => .SRC_ALPHA,
+        .one_minus_src_alpha => .INV_SRC_ALPHA,
+        .dst => .DEST_COLOR,
+        .one_minus_dst => .INV_DEST_COLOR,
+        .dst_alpha => .DEST_ALPHA,
+        .one_minus_dst_alpha => .INV_DEST_ALPHA,
+        .src_alpha_saturated => .SRC_ALPHA_SAT,
+        .constant => .BLEND_FACTOR,
+        .one_minus_constant => .INV_BLEND_FACTOR,
+        .src1 => .SRC1_COLOR,
+        .one_minus_src1 => .INV_SRC1_COLOR,
+        .src1_alpha => .SRC1_ALPHA,
+        .one_minus_src1_alpha => .INV_SRC1_ALPHA,
+    };
+}
+
+pub fn blendOp(op: sysgpu.BlendOperation) d3d12.BLEND_OP {
+    return switch (op) {
+        .add => .ADD,
+        .subtract => .SUBTRACT,
+        .reverse_subtract => .REV_SUBTRACT,
+        .min => .MIN,
+        .max => .MAX,
     };
 }
