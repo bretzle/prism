@@ -173,11 +173,11 @@ pub fn d3d12FrontCounterClockwise(face: types.FrontFace) w32.BOOL {
 
 pub fn d3d12HeapType(usage: gpu.Buffer.UsageFlags) d3d12.HEAP_TYPE {
     return if (usage.map_write)
-        d3d12.HEAP_TYPE_UPLOAD
+        .UPLOAD
     else if (usage.map_read)
-        d3d12.HEAP_TYPE_READBACK
+        .READBACK
     else
-        d3d12.HEAP_TYPE_DEFAULT;
+        .DEFAULT;
 }
 
 pub fn d3d12IndexBufferStripCutValue(strip_index_format: types.IndexFormat) d3d12.INDEX_BUFFER_STRIP_CUT_VALUE {
@@ -285,53 +285,43 @@ pub fn d3d12RenderTargetWriteMask(mask: types.ColorWriteMaskFlags) d3d12.COLOR_W
 }
 
 pub fn d3d12ResourceSizeForBuffer(size: u64, usage: gpu.Buffer.UsageFlags) u64 {
-    _ = size; // autofix
-    _ = usage; // autofix
-    // var resource_size = size;
-    // if (usage.uniform)
-    //     resource_size = utils.alignUp(resource_size, 256);
-    // return resource_size;
-
-    unreachable;
+    return if (usage.uniform)
+        alignUp(size, 256)
+    else
+        size;
 }
 
 pub fn d3d12ResourceStatesInitial(heap_type: d3d12.HEAP_TYPE, read_state: d3d12.RESOURCE_STATES) d3d12.RESOURCE_STATES {
     return switch (heap_type) {
-        d3d12.HEAP_TYPE_UPLOAD => d3d12.RESOURCE_STATE_GENERIC_READ,
-        d3d12.HEAP_TYPE_READBACK => d3d12.RESOURCE_STATE_COPY_DEST,
+        .UPLOAD => .GENERIC_READ,
+        .READBACK => .{ .COPY_DEST = true },
         else => read_state,
     };
 }
 
 pub fn d3d12ResourceStatesForBufferRead(usage: gpu.Buffer.UsageFlags) d3d12.RESOURCE_STATES {
-    var states: d3d12.RESOURCE_STATES = d3d12.RESOURCE_STATE_COMMON;
-    if (usage.copy_src)
-        states |= d3d12.RESOURCE_STATE_COPY_SOURCE;
-    if (usage.index)
-        states |= d3d12.RESOURCE_STATE_INDEX_BUFFER;
-    if (usage.vertex or usage.uniform)
-        states |= d3d12.RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-    if (usage.storage)
-        states |= d3d12.RESOURCE_STATE_ALL_SHADER_RESOURCE;
-    if (usage.indirect)
-        states |= d3d12.RESOURCE_STATE_INDIRECT_ARGUMENT;
-    return states;
+    return d3d12.RESOURCE_STATES{
+        .COPY_SOURCE = usage.copy_src,
+        .INDEX_BUFFER = usage.index,
+        .VERTEX_AND_CONSTANT_BUFFER = usage.vertex or usage.uniform,
+        .NON_PIXEL_SHADER_RESOURCE = usage.storage,
+        .PIXEL_SHADER_RESOURCE = usage.storage,
+        .INDIRECT_ARGUMENT_OR_PREDICATION = usage.indirect,
+    };
 }
 
 pub fn d3d12ResourceStatesForTextureRead(usage: gpu.Texture.UsageFlags) d3d12.RESOURCE_STATES {
-    var states: d3d12.RESOURCE_STATES = d3d12.RESOURCE_STATE_COMMON;
-    if (usage.copy_src)
-        states |= d3d12.RESOURCE_STATE_COPY_SOURCE;
-    if (usage.texture_binding or usage.storage_binding)
-        states |= d3d12.RESOURCE_STATE_ALL_SHADER_RESOURCE;
-    return states;
+    return d3d12.RESOURCE_STATES{
+        .COPY_SOURCE = usage.copy_src,
+        .NON_PIXEL_SHADER_RESOURCE = usage.texture_binding or usage.storage_binding,
+        .PIXEL_SHADER_RESOURCE = usage.texture_binding or usage.storage_binding,
+    };
 }
 
 pub fn d3d12ResourceFlagsForBuffer(usage: gpu.Buffer.UsageFlags) d3d12.RESOURCE_FLAGS {
-    var flags: d3d12.RESOURCE_FLAGS = d3d12.RESOURCE_FLAG_NONE;
-    if (usage.storage)
-        flags |= d3d12.RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-    return flags;
+    return .{
+        .ALLOW_UNORDERED_ACCESS = usage.storage,
+    };
 }
 
 pub fn d3d12ResourceFlagsForTexture(usage: gpu.Texture.UsageFlags, format: gpu.Texture.Format) d3d12.RESOURCE_FLAGS {
@@ -720,4 +710,8 @@ pub fn dxgiUsage(usage: gpu.Texture.UsageFlags) dxgi.USAGE {
         .UNORDERED_ACCESS = usage.storage_binding,
         .RENDER_TARGET_OUTPUT = usage.render_attachment,
     };
+}
+
+fn alignUp(x: usize, a: usize) usize {
+    return (x + a - 1) / a * a;
 }

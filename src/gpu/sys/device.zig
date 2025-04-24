@@ -59,16 +59,14 @@ pub const Device = opaque {
 
     pub inline fn createBindGroupLayout(self: *Device, desc: BindGroupLayout.Descriptor) *BindGroupLayout {
         const device: *impl.Device = @alignCast(@ptrCast(self));
-        _ = device; // autofix
-        _ = desc; // autofix
-        unreachable;
+        const layout = try impl.BindGroupLayout.create(device, desc);
+        return @ptrCast(layout);
     }
 
-    pub inline fn createBuffer(self: *Device, desc: Buffer.Descriptor) *Buffer {
+    pub inline fn createBuffer(self: *Device, desc: Buffer.Descriptor) !*Buffer {
         const device: *impl.Device = @alignCast(@ptrCast(self));
-        _ = device; // autofix
-        _ = desc; // autofix
-        unreachable;
+        const buffer = try impl.Buffer.create(device, desc);
+        return @ptrCast(buffer);
     }
 
     pub inline fn createCommandEncoder(self: *Device, desc: CommandEncoder.Descriptor) !*CommandEncoder {
@@ -124,11 +122,10 @@ pub const Device = opaque {
         unreachable;
     }
 
-    pub inline fn createPipelineLayout(self: *Device, desc: PipelineLayout.Descriptor) *PipelineLayout {
-        _ = desc; // autofix
+    pub inline fn createPipelineLayout(self: *Device, desc: PipelineLayout.Descriptor) !*PipelineLayout {
         const device: *impl.Device = @alignCast(@ptrCast(self));
-        _ = device; // autofix
-        unreachable;
+        const layout = try impl.PipelineLayout.create(device, desc);
+        return @ptrCast(layout);
     }
 
     pub inline fn createQuerySet(self: *Device, desc: QuerySet.Descriptor) *QuerySet {
@@ -205,10 +202,10 @@ pub const Device = opaque {
         return @ptrCast(swapchain);
     }
 
-    pub inline fn createTexture(self: *Device, desc: Texture.Descriptor) *Texture {
+    pub inline fn createTexture(self: *Device, desc: Texture.Descriptor) !*Texture {
+        _ = desc; // autofix
         const device: *impl.Device = @alignCast(@ptrCast(self));
         _ = device; // autofix
-        _ = desc; // autofix
         unreachable;
     }
 
@@ -237,8 +234,8 @@ pub const Device = opaque {
 
     pub inline fn getAdapter(self: *Device) *Adapter {
         const device: *impl.Device = @alignCast(@ptrCast(self));
-        _ = device; // autofix
-        unreachable;
+        device.adapter.manager.reference();
+        return device.adapter;
     }
 
     pub inline fn getLimits(self: *Device, limits: *SupportedLimits) bool {
@@ -250,9 +247,8 @@ pub const Device = opaque {
 
     pub inline fn getQueue(self: *Device) !*Queue {
         const device: *impl.Device = @alignCast(@ptrCast(self));
-        const queue = try device.getQueue();
-        queue.manager.reference();
-        return @ptrCast(queue);
+        device.queue.manager.reference();
+        return @ptrCast(device.queue);
     }
 
     pub inline fn hasFeature(self: *Device, feature: FeatureName) bool {

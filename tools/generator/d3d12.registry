@@ -113,11 +113,11 @@ define IDevice : IObject {
     fn createSampler(self) noreturn
     fn copyDescriptors(self) noreturn
     fn copyDescriptorsSimple(self) noreturn
-    fn getResourceAllocationInfo(self) noreturn
+    fn getResourceAllocationInfo(self, info: *RESOURCE_ALLOCATION_INFO, visible_mask: UINT, num_descs: UINT, descs: [*]const RESOURCE_DESC) void
     fn getCustomHeapProperties(self) noreturn
     fn createCommittedResource(self) noreturn
-    fn createHeap(self) noreturn
-    fn createPlacedResource(self) noreturn
+    fn createHeap(self, desc: *const HEAP_DESC, guid: *const GUID, heap: *?*anyopaque) HRESULT
+    fn createPlacedResource(self, heap: *IHeap, heap_offset: UINT64, desc: *const RESOURCE_DESC, state: RESOURCE_STATES, clear_value: ?*const CLEAR_VALUE, guid: *const GUID, resource: *?*anyopaque) HRESULT
     fn createReservedResource(self) noreturn
     fn createSharedHandle(self) noreturn
     fn openSharedHandle(self) noreturn
@@ -257,9 +257,15 @@ define IQueryHeap : IPageable {
 }
 
 define IFence : IPageable {
-    iid = "0a753dcf-c4d8-4b91-adf6-be5a60d95a76"
+    iid = "0A753DCF-C4D8-4B91-ADF6-BE5A60D95A76"
 
     fn getCompletedValue(self) u64
     fn setEventOnCompletion(self, value: u64, event: HANDLE) HRESULT
     fn signal(self, value: u64) HRESULT
+}
+
+define IHeap : IPageable {
+    iid = "6B3B2502-6E51-45B3-90EE-9884265E8DF3"
+
+    fn getDesc(self, desc: *HEAP_DESC) *HEAP_DESC
 }

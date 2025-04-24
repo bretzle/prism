@@ -27,6 +27,7 @@ pub const GPU_VIRTUAL_ADDRESS = UINT64;
 
 pub const DESCRIPTOR_RANGE_OFFSET_APPEND = 0xffffffff; // defined as -1
 pub const RESOURCE_BARRIER_ALL_SUBRESOURCES = 0xffffffff;
+pub const DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT = 0x400000;
 
 pub const CPU_DESCRIPTOR_HANDLE = extern struct {
     ptr: UINT64,
@@ -493,6 +494,7 @@ pub const HEAP_FLAGS = packed struct(UINT) {
     __unused: u19 = 0,
 
     pub const ALLOW_ALL_BUFFERS_AND_TEXTURES = HEAP_FLAGS{};
+    pub const ALLOW_ONLY_RT_DS_TEXTURES = HEAP_FLAGS{ .DENY_BUFFERS = true, .DENY_NON_RT_DS_TEXTURES = true };
     pub const ALLOW_ONLY_NON_RT_DS_TEXTURES = HEAP_FLAGS{ .DENY_BUFFERS = true, .DENY_RT_DS_TEXTURES = true };
     pub const ALLOW_ONLY_BUFFERS = HEAP_FLAGS{ .DENY_RT_DS_TEXTURES = true, .DENY_NON_RT_DS_TEXTURES = true };
     pub const HEAP_FLAG_ALLOW_ONLY_RT_DS_TEXTURES = HEAP_FLAGS{
@@ -2035,6 +2037,89 @@ pub const DEPTH_STENCIL_VIEW_DESC = extern struct {
     },
 };
 
+pub const DEPTH_STENCIL_VALUE = extern struct {
+    Depth: FLOAT,
+    Stencil: UINT8,
+};
+
+pub const CLEAR_VALUE = extern struct {
+    Format: dxgi.FORMAT,
+    u: extern union {
+        Color: [4]FLOAT,
+        DepthStencil: DEPTH_STENCIL_VALUE,
+    },
+};
+
+pub const RESOURCE_BINDING_TIER = enum(UINT) {
+    TIER_1 = 1,
+    TIER_2 = 2,
+    TIER_3 = 3,
+};
+
+pub const RESOURCE_HEAP_TIER = enum(UINT) {
+    TIER_1 = 1,
+    TIER_2 = 2,
+};
+
+pub const SHADER_MIN_PRECISION_SUPPORT = packed struct(UINT) {
+    @"10_BIT": bool = false,
+    @"16_BIT": bool = false,
+    __unused: u30 = 0,
+};
+
+pub const TILED_RESOURCES_TIER = enum(UINT) {
+    NOT_SUPPORTED = 0,
+    TIER_1 = 1,
+    TIER_2 = 2,
+    TIER_3 = 3,
+    TIER_4 = 4,
+};
+
+pub const CONSERVATIVE_RASTERIZATION_TIER = enum(UINT) {
+    NOT_SUPPORTED = 0,
+    TIER_1 = 1,
+    TIER_2 = 2,
+    TIER_3 = 3,
+};
+
+pub const CROSS_NODE_SHARING_TIER = enum(UINT) {
+    NOT_SUPPORTED = 0,
+    TIER_1_EMULATED = 1,
+    TIER_1 = 2,
+    TIER_2 = 3,
+    TIER_3 = 4,
+};
+
+pub const FEATURE_DATA_D3D12_OPTIONS = extern struct {
+    DoublePrecisionFloatShaderOps: BOOL,
+    OutputMergerLogicOp: BOOL,
+    MinPrecisionSupport: SHADER_MIN_PRECISION_SUPPORT,
+    TiledResourcesTier: TILED_RESOURCES_TIER,
+    ResourceBindingTier: RESOURCE_BINDING_TIER,
+    PSSpecifiedStencilRefSupported: BOOL,
+    TypedUAVLoadAdditionalFormats: BOOL,
+    ROVsSupported: BOOL,
+    ConservativeRasterizationTier: CONSERVATIVE_RASTERIZATION_TIER,
+    MaxGPUVirtualAddressBitsPerResource: UINT,
+    StandardSwizzle64KBSupported: BOOL,
+    CrossNodeSharingTier: CROSS_NODE_SHARING_TIER,
+    CrossAdapterRowMajorTextureSupported: BOOL,
+    VPAndRTArrayIndexFromAnyShaderFeedingRasterizerSupportedWithoutGSEmulation: BOOL,
+    ResourceHeapTier: RESOURCE_HEAP_TIER,
+};
+
+pub const HEAP_DESC = extern struct {
+    SizeInBytes: UINT64,
+    Properties: HEAP_PROPERTIES,
+    Alignment: UINT64,
+    Flags: HEAP_FLAGS,
+};
+
+pub const RESOURCE_ALLOCATION_INFO = extern struct {
+    SizeInBytes: UINT64,
+    Alignment: UINT64,
+};
+
 // functions
 // ---------
 
@@ -2541,11 +2626,11 @@ pub const IDevice = extern struct {
         create_sampler: *const fn (*IDevice) callconv(.winapi) noreturn,
         copy_descriptors: *const fn (*IDevice) callconv(.winapi) noreturn,
         copy_descriptors_simple: *const fn (*IDevice) callconv(.winapi) noreturn,
-        get_resource_allocation_info: *const fn (*IDevice) callconv(.winapi) noreturn,
+        get_resource_allocation_info: *const fn (*IDevice, info: *RESOURCE_ALLOCATION_INFO, visible_mask: UINT, num_descs: UINT, descs: [*]const RESOURCE_DESC) callconv(.winapi) void,
         get_custom_heap_properties: *const fn (*IDevice) callconv(.winapi) noreturn,
         create_committed_resource: *const fn (*IDevice) callconv(.winapi) noreturn,
-        create_heap: *const fn (*IDevice) callconv(.winapi) noreturn,
-        create_placed_resource: *const fn (*IDevice) callconv(.winapi) noreturn,
+        create_heap: *const fn (*IDevice, desc: *const HEAP_DESC, guid: *const GUID, heap: *?*anyopaque) callconv(.winapi) HRESULT,
+        create_placed_resource: *const fn (*IDevice, heap: *IHeap, heap_offset: UINT64, desc: *const RESOURCE_DESC, state: RESOURCE_STATES, clear_value: ?*const CLEAR_VALUE, guid: *const GUID, resource: *?*anyopaque) callconv(.winapi) HRESULT,
         create_reserved_resource: *const fn (*IDevice) callconv(.winapi) noreturn,
         create_shared_handle: *const fn (*IDevice) callconv(.winapi) noreturn,
         open_shared_handle: *const fn (*IDevice) callconv(.winapi) noreturn,
@@ -2616,8 +2701,8 @@ pub const IDevice = extern struct {
     pub fn copyDescriptorsSimple(self: *IDevice) noreturn {
         return (self.vtable.copy_descriptors_simple)(self);
     }
-    pub fn getResourceAllocationInfo(self: *IDevice) noreturn {
-        return (self.vtable.get_resource_allocation_info)(self);
+    pub fn getResourceAllocationInfo(self: *IDevice, info: *RESOURCE_ALLOCATION_INFO, visible_mask: UINT, num_descs: UINT, descs: [*]const RESOURCE_DESC) void {
+        return (self.vtable.get_resource_allocation_info)(self, info, visible_mask, num_descs, descs);
     }
     pub fn getCustomHeapProperties(self: *IDevice) noreturn {
         return (self.vtable.get_custom_heap_properties)(self);
@@ -2625,11 +2710,11 @@ pub const IDevice = extern struct {
     pub fn createCommittedResource(self: *IDevice) noreturn {
         return (self.vtable.create_committed_resource)(self);
     }
-    pub fn createHeap(self: *IDevice) noreturn {
-        return (self.vtable.create_heap)(self);
+    pub fn createHeap(self: *IDevice, desc: *const HEAP_DESC, guid: *const GUID, heap: *?*anyopaque) HRESULT {
+        return (self.vtable.create_heap)(self, desc, guid, heap);
     }
-    pub fn createPlacedResource(self: *IDevice) noreturn {
-        return (self.vtable.create_placed_resource)(self);
+    pub fn createPlacedResource(self: *IDevice, heap: *IHeap, heap_offset: UINT64, desc: *const RESOURCE_DESC, state: RESOURCE_STATES, clear_value: ?*const CLEAR_VALUE, guid: *const GUID, resource: *?*anyopaque) HRESULT {
+        return (self.vtable.create_placed_resource)(self, heap, heap_offset, desc, state, clear_value, guid, resource);
     }
     pub fn createReservedResource(self: *IDevice) noreturn {
         return (self.vtable.create_reserved_resource)(self);
@@ -3387,7 +3472,7 @@ pub const IQueryHeap = extern struct {
 };
 
 pub const IFence = extern struct {
-    pub const IID = GUID.parse("{0a753dcf-c4d8-4b91-adf6-be5a60d95a76}");
+    pub const IID = GUID.parse("{0A753DCF-C4D8-4B91-ADF6-BE5A60D95A76}");
 
     vtable: *const VTable,
 
@@ -3433,6 +3518,49 @@ pub const IFence = extern struct {
         return (@as(*const IUnknown.VTable, @ptrCast(self.vtable)).add_ref)(@ptrCast(self));
     }
     pub fn release(self: *IFence) ULONG {
+        return (@as(*const IUnknown.VTable, @ptrCast(self.vtable)).release)(@ptrCast(self));
+    }
+};
+
+pub const IHeap = extern struct {
+    pub const IID = GUID.parse("{6B3B2502-6E51-45B3-90EE-9884265E8DF3}");
+
+    vtable: *const VTable,
+
+    const VTable = extern struct {
+        base: IPageable.VTable,
+        get_desc: *const fn (*IHeap, desc: *HEAP_DESC) callconv(.winapi) *HEAP_DESC,
+    };
+
+    pub fn getDesc(self: *IHeap, desc: *HEAP_DESC) *HEAP_DESC {
+        return (self.vtable.get_desc)(self, desc);
+    }
+    // IPageable methods
+    // IDeviceChild methods
+    pub fn getDevice(self: *IHeap, riid: *const GUID, device: *?*anyopaque) HRESULT {
+        return (@as(*const IDeviceChild.VTable, @ptrCast(self.vtable)).get_device)(@ptrCast(self), riid, device);
+    }
+    // IObject methods
+    pub fn getPrivateData(self: *IHeap) noreturn {
+        return (@as(*const IObject.VTable, @ptrCast(self.vtable)).get_private_data)(@ptrCast(self));
+    }
+    pub fn setPrivateData(self: *IHeap) noreturn {
+        return (@as(*const IObject.VTable, @ptrCast(self.vtable)).set_private_data)(@ptrCast(self));
+    }
+    pub fn setPrivateDataInterface(self: *IHeap) noreturn {
+        return (@as(*const IObject.VTable, @ptrCast(self.vtable)).set_private_data_interface)(@ptrCast(self));
+    }
+    pub fn setName(self: *IHeap) noreturn {
+        return (@as(*const IObject.VTable, @ptrCast(self.vtable)).set_name)(@ptrCast(self));
+    }
+    // IUnknown methods
+    pub fn queryInterface(self: *IHeap, riid: *const GUID, out: *?*anyopaque) HRESULT {
+        return (@as(*const IUnknown.VTable, @ptrCast(self.vtable)).query_interface)(@ptrCast(self), riid, out);
+    }
+    pub fn addRef(self: *IHeap) ULONG {
+        return (@as(*const IUnknown.VTable, @ptrCast(self.vtable)).add_ref)(@ptrCast(self));
+    }
+    pub fn release(self: *IHeap) ULONG {
         return (@as(*const IUnknown.VTable, @ptrCast(self.vtable)).release)(@ptrCast(self));
     }
 };

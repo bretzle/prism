@@ -3,8 +3,6 @@ const gpu = @import("../gpu.zig");
 const impl = gpu.impl;
 const types = gpu.types;
 
-const MapModeFlags = types.MapModeFlags;
-
 pub const Buffer = opaque {
     pub const MapCallback = *const fn (status: MapAsyncStatus, userdata: ?*anyopaque) void;
 
@@ -53,44 +51,32 @@ pub const Buffer = opaque {
 
     /// Default `offset_bytes`: 0
     /// Default `len`: `gpu.whole_map_size` / `std.math.maxint(usize)` (whole range)
-    pub inline fn getConstMappedRange(self: *Buffer, comptime T: type, offset_bytes: usize, len: usize) ?[]const T {
-        _ = self; // autofix
-        _ = offset_bytes; // autofix
-        _ = len; // autofix
-        unreachable;
+    pub inline fn getConstMappedRange(self: *Buffer, comptime T: type, offset_bytes: usize, len: usize) []const T {
+        return self.getMappedRange(T, offset_bytes, len);
     }
 
     /// Default `offset_bytes`: 0
     /// Default `len`: `gpu.whole_map_size` / `std.math.maxint(usize)` (whole range)
-    pub inline fn getMappedRange(self: *Buffer, comptime T: type, offset_bytes: usize, len: usize) ?[]T {
-        _ = self; // autofix
-        _ = offset_bytes; // autofix
-        _ = len; // autofix
-        unreachable;
+    pub inline fn getMappedRange(self: *Buffer, comptime T: type, offset_bytes: usize, len: usize) []T {
+        const buffer: *impl.Buffer = @alignCast(@ptrCast(self));
+        const size = @sizeOf(T) * len;
+        const data: [*]T = @alignCast(@ptrCast(buffer.getMappedRange(offset_bytes, size + size % 4)));
+        return data[0..len];
     }
 
     pub inline fn getSize(self: *Buffer) u64 {
-        _ = self; // autofix
-        unreachable;
+        const buffer: *impl.Buffer = @alignCast(@ptrCast(self));
+        return buffer.getSize();
     }
 
     pub inline fn getUsage(self: *Buffer) UsageFlags {
-        _ = self; // autofix
-        unreachable;
+        const buffer: *impl.Buffer = @alignCast(@ptrCast(self));
+        return buffer.getUsage();
     }
 
-    pub inline fn mapAsync(self: *Buffer, mode: MapModeFlags, offset: usize, size: usize, context: anytype, comptime callback: fn (ctx: @TypeOf(context), status: MapAsyncStatus) callconv(.Inline) void) void {
-        _ = self; // autofix
-        _ = mode; // autofix
-        _ = offset; // autofix
-        _ = size; // autofix
-        _ = callback; // autofix
-        unreachable;
-    }
-
-    pub inline fn unmap(self: *Buffer) void {
-        _ = self; // autofix
-        unreachable;
+    pub inline fn unmap(self: *Buffer) !void {
+        const buffer: *impl.Buffer = @alignCast(@ptrCast(self));
+        try buffer.unmap();
     }
 
     pub inline fn setLabel(self: *Buffer, label: [:0]const u8) void {
@@ -100,12 +86,12 @@ pub const Buffer = opaque {
     }
 
     pub inline fn reference(self: *Buffer) void {
-        _ = self; // autofix
-        unreachable;
+        const buffer: *impl.Buffer = @alignCast(@ptrCast(self));
+        buffer.manager.reference();
     }
 
     pub inline fn release(self: *Buffer) void {
-        _ = self; // autofix
-        unreachable;
+        const buffer: *impl.Buffer = @alignCast(@ptrCast(self));
+        buffer.manager.release();
     }
 };
