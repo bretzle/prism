@@ -1,0 +1,11 @@
+# TODO
+- [ ] remove all nullable slices
+- [ ] work through unreachables
+- [ ] mailbox present mode is not being handles correctly
+- [ ] veryify that resources are referenced/released correctly
+- [ ] audit mach cross shader
+- [ ] write tool to allow eminated cross shader at runtime
+- [ ] load gpu procs from lib at runtime
+- [ ] consume labels
+- [ ] implement render graphs
+- [ ] validate multi window functions correctly

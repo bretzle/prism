@@ -1,29 +1,7 @@
 const std = @import("std");
 
-// pub const Adapter = @import("adapter.zig").Adapter;
-// pub const BindGroup = @import("bind_group.zig").BindGroup;
-// pub const BindGroupLayout = @import("bind_group.zig").BindGroupLayout;
-// pub const Buffer = @import("buffer.zig").Buffer;
-// pub const CommandBuffer = @import("command.zig").CommandBuffer;
-// pub const CommandEncoder = @import("command.zig").CommandEncoder;
-// pub const ComputePassEncoder = @import("pass.zig").ComputePassEncoder;
-// pub const ComputePipeline = @import("pipeline.zig").ComputePipeline;
-// pub const Device = @import("device.zig").Device;
-// pub const ExternalTexture = @import("texture.zig").ExternalTexture;
-// pub const Instance = @import("instance.zig").Instance;
-// pub const PipelineLayout = @import("pipeline.zig").PipelineLayout;
 const QuerySet = @import("sys/query_set.zig").QuerySet;
-// pub const Queue = @import("queue.zig").Queue;
-// pub const RenderBundle = @import("pass.zig").RenderBundle;
-// pub const RenderBundleEncoder = @import("pass.zig").RenderBundleEncoder;
-// pub const RenderPassEncoder = @import("pass.zig").RenderPassEncoder;
-// pub const RenderPipeline = @import("pipeline.zig").RenderPipeline;
-// pub const Sampler = @import("sampler.zig").Sampler;
 const ShaderModule = @import("sys/shader_module.zig").ShaderModule;
-// pub const SharedTextureMemory = @import("shared_texture_memory.zig").SharedTextureMemory;
-// pub const SharedFence = @import("shared_fence.zig").SharedFence;
-// pub const Surface = @import("surface.zig").Surface;
-// pub const SwapChain = @import("swap_chain.zig").SwapChain;
 const Texture = @import("sys/texture.zig").Texture;
 const TextureView = @import("sys/texture.zig").TextureView;
 
@@ -35,11 +13,11 @@ pub const mip_level_count_undefined = 0xffffffff;
 pub const whole_map_size = std.math.maxInt(usize);
 pub const whole_size = 0xffffffffffffffff;
 
-// pub const ComputePassTimestampWrite = extern struct {
-//     query_set: *QuerySet,
-//     query_index: u32,
-//     location: ComputePassTimestampLocation,
-// };
+pub const ComputePassTimestampWrite = struct {
+    query_set: *QuerySet,
+    query_index: u32,
+    location: ComputePassTimestampLocation,
+};
 
 pub const RenderPassDepthStencilAttachment = struct {
     view: *TextureView,
@@ -59,26 +37,10 @@ pub const RenderPassTimestampWrite = struct {
     location: RenderPassTimestampLocation,
 };
 
-// pub const ComputePassDescriptor = extern struct {
-//     next_in_chain: ?*const ChainedStruct = null,
-//     label: ?[*:0]const u8 = null,
-//     timestamp_write_count: usize = 0,
-//     timestamp_writes: ?[*]const ComputePassTimestampWrite = null,
-
-//     /// Provides a slightly friendlier Zig API to initialize this structure.
-//     pub inline fn init(v: struct {
-//         next_in_chain: ?*const ChainedStruct = null,
-//         label: ?[*:0]const u8 = null,
-//         timestamp_writes: ?[]const ComputePassTimestampWrite = null,
-//     }) ComputePassDescriptor {
-//         return .{
-//             .next_in_chain = v.next_in_chain,
-//             .label = v.label,
-//             .timestamp_write_count = if (v.timestamp_writes) |e| e.len else 0,
-//             .timestamp_writes = if (v.timestamp_writes) |e| e.ptr else null,
-//         };
-//     }
-// };
+pub const ComputePassDescriptor = struct {
+    label: ?[:0]const u8 = null,
+    timestamp_writes: []const ComputePassTimestampWrite = &.{},
+};
 
 pub const RenderPassDescriptor = struct {
     label: ?[:0]const u8 = null,
@@ -89,7 +51,11 @@ pub const RenderPassDescriptor = struct {
     max_draw_count: ?*const RenderPassDescriptorMaxDrawCount = null,
 };
 
-// pub const AlphaMode = enum(u32) { premultiplied = 0x00000000, unpremultiplied = 0x00000001, opaq = 0x00000002 };
+pub const AlphaMode = enum {
+    premultiplied,
+    unpremultiplied,
+    opaq,
+};
 
 pub const BlendFactor = enum {
     zero,
@@ -144,10 +110,10 @@ pub const CompareFunction = enum {
 //     info = 0x00000002,
 // };
 
-// pub const ComputePassTimestampLocation = enum(u32) {
-//     beginning = 0x00000000,
-//     end = 0x00000001,
-// };
+pub const ComputePassTimestampLocation = enum {
+    beginning,
+    end,
+};
 
 // pub const CreatePipelineAsyncStatus = enum(u32) {
 //     success = 0x00000000,
@@ -313,53 +279,6 @@ pub const RequestDeviceStatus = enum {
     unknown,
 };
 
-// pub const SType = enum(u32) {
-//     invalid = 0x00000000,
-//     surface_descriptor_from_metal_layer = 0x00000001,
-//     surface_descriptor_from_windows_hwnd = 0x00000002,
-//     surface_descriptor_from_xlib_window = 0x00000003,
-//     surface_descriptor_from_canvas_html_selector = 0x00000004,
-//     shader_module_spirv_descriptor = 0x00000005,
-//     shader_module_wgsl_descriptor = 0x00000006,
-//     primitive_depth_clip_control = 0x00000007,
-//     surface_descriptor_from_wayland_surface = 0x00000008,
-//     surface_descriptor_from_android_native_window = 0x00000009,
-//     surface_descriptor_from_windows_core_window = 0x0000000B,
-//     external_texture_binding_entry = 0x0000000C,
-//     external_texture_binding_layout = 0x0000000D,
-//     surface_descriptor_from_windows_swap_chain_panel = 0x0000000E,
-//     render_pass_descriptor_max_draw_count = 0x0000000F,
-//     adapter_properties_power_preference = 0x000003EE,
-//     request_adapter_options_luid = 0x000003F2,
-//     request_adapter_options_get_gl_proc = 0x000003F3,
-//     shared_texture_memory_vk_image_descriptor = 0x0000044C,
-//     shared_texture_memory_vk_dedicated_allocation_descriptor = 0x0000044D,
-//     shared_texture_memory_a_hardware_buffer_descriptor = 0x0000044E,
-//     shared_texture_memory_dma_buf_descriptor = 0x0000044F,
-//     shared_texture_memory_opaque_fd_descriptor = 0x00000450,
-//     shared_texture_memory_zircon_handle_descriptor = 0x00000451,
-//     shared_texture_memory_dxgi_shared_handle_descriptor = 0x00000452,
-//     shared_texture_memory_d3d11_texture_2d_descriptor = 0x00000453,
-//     shared_texture_memory_io_surface_descriptor = 0x00000454,
-//     shared_texture_memory_egl_image_descriptor = 0x00000455,
-//     shared_texture_memory_initialized_begin_state = 0x000004B0,
-//     shared_texture_memory_initialized_end_state = 0x000004B1,
-//     shared_texture_memory_vk_image_layout_begin_state = 0x000004B2,
-//     shared_texture_memory_vk_image_layout_end_state = 0x000004B3,
-//     shared_fence_vk_semaphore_opaque_fd_descriptor = 0x000004B4,
-//     shared_fence_vk_semaphore_opaque_fd_export_info = 0x000004B5,
-//     shared_fence_vk_semaphore_syncfd_descriptor = 0x000004B6,
-//     shared_fence_vk_semaphore_sync_fd_export_info = 0x000004B7,
-//     shared_fence_vk_semaphore_zircon_handle_descriptor = 0x000004B8,
-//     shared_fence_vk_semaphore_zircon_handle_export_info = 0x000004B9,
-//     shared_fence_dxgi_shared_handle_descriptor = 0x000004BA,
-//     shared_fence_dxgi_shared_handle_export_info = 0x000004BB,
-//     shared_fence_mtl_shared_event_descriptor = 0x000004BC,
-//     shared_fence_mtl_shared_event_export_info = 0x000004BD,
-//     shader_module_hlsl_descriptor = 0x000004BE,
-//     shader_module_msl_descriptor = 0x000004BF,
-// };
-
 pub const StencilOperation = enum {
     keep,
     zero,
@@ -440,21 +359,7 @@ pub const ColorWriteMaskFlags = packed struct(u32) {
 // pub const MapModeFlags = packed struct(u32) {
 //     read: bool = false,
 //     write: bool = false,
-
-//     _padding: u30 = 0,
-
-//     comptime {
-//         std.debug.assert(
-//             @sizeOf(@This()) == @sizeOf(u32) and
-//                 @bitSizeOf(@This()) == @bitSizeOf(u32),
-//         );
-//     }
-
-//     pub const undef = MapModeFlags{};
-
-//     pub fn equal(a: MapModeFlags, b: MapModeFlags) bool {
-//         return @as(u2, @truncate(@as(u32, @bitCast(a)))) == @as(u2, @truncate(@as(u32, @bitCast(b))));
-//     }
+//     _: u30 = 0,
 // };
 
 pub const ShaderStageFlags = packed struct(u32) {
@@ -523,19 +428,18 @@ pub const Limits = struct {
     max_compute_workgroups_per_dimension: u32 = limit_u32_undefined,
 };
 
-// pub const Origin2D = extern struct {
-//     x: u32 = 0,
-//     y: u32 = 0,
-// };
+pub const Origin2D = struct {
+    x: u32 = 0,
+    y: u32 = 0,
+};
 
-// pub const Origin3D = extern struct {
-//     x: u32 = 0,
-//     y: u32 = 0,
-//     z: u32 = 0,
-// };
+pub const Origin3D = struct {
+    x: u32 = 0,
+    y: u32 = 0,
+    z: u32 = 0,
+};
 
 // pub const CompilationMessage = extern struct {
-//     next_in_chain: ?*const ChainedStruct = null,
 //     message: ?[*:0]const u8 = null,
 //     type: CompilationMessageType,
 //     line_num: u64,
@@ -553,7 +457,6 @@ pub const ConstantEntry = struct {
 };
 
 // pub const CopyTextureForBrowserOptions = extern struct {
-//     next_in_chain: ?*const ChainedStruct = null,
 //     flip_y: Bool32 = .false,
 //     needs_color_space_conversion: Bool32 = .false,
 //     src_alpha_mode: AlphaMode = .unpremultiplied,
@@ -611,7 +514,6 @@ pub const BlendState = struct {
 };
 
 // pub const CompilationInfo = extern struct {
-//     next_in_chain: ?*const ChainedStruct = null,
 //     message_count: usize,
 //     messages: ?[*]const CompilationMessage = null,
 
@@ -638,20 +540,17 @@ pub const DepthStencilState = struct {
 };
 
 // pub const ImageCopyBuffer = extern struct {
-//     next_in_chain: ?*const ChainedStruct = null,
 //     layout: Texture.DataLayout,
 //     buffer: *Buffer,
 // };
 
 // pub const ImageCopyExternalTexture = extern struct {
-//     next_in_chain: ?*const ChainedStruct = null,
 //     external_texture: *ExternalTexture,
 //     origin: Origin3D,
 //     natural_size: Extent2D,
 // };
 
 // pub const ImageCopyTexture = extern struct {
-//     next_in_chain: ?*const ChainedStruct = null,
 //     texture: *Texture,
 //     mip_level: u32 = 0,
 //     origin: Origin3D = .{},
@@ -659,7 +558,6 @@ pub const DepthStencilState = struct {
 // };
 
 // pub const ProgrammableStageDescriptor = extern struct {
-//     next_in_chain: ?*const ChainedStruct = null,
 //     module: *ShaderModule,
 //     entry_point: [*:0]const u8,
 //     constant_count: usize = 0,
@@ -667,7 +565,6 @@ pub const DepthStencilState = struct {
 
 //     /// Provides a slightly friendlier Zig API to initialize this structure.
 //     pub inline fn init(v: struct {
-//         next_in_chain: ?*const ChainedStruct = null,
 //         module: *ShaderModule,
 //         entry_point: [*:0]const u8,
 //         constants: ?[]const ConstantEntry = null,
@@ -732,48 +629,10 @@ pub const FragmentState = struct {
     targets: []const ColorTargetState = &.{},
 };
 
-// pub const CompilationInfoCallback = *const fn (
-//     status: CompilationInfoRequestStatus,
-//     compilation_info: *const CompilationInfo,
-//     userdata: ?*anyopaque,
-// ) callconv(.C) void;
-
-// pub const ErrorCallback = *const fn (
-//     typ: ErrorType,
-//     message: [*:0]const u8,
-//     userdata: ?*anyopaque,
-// ) callconv(.C) void;
-
-// pub const LoggingCallback = *const fn (
-//     typ: LoggingType,
-//     message: [*:0]const u8,
-//     userdata: ?*anyopaque,
-// ) callconv(.C) void;
-
-// pub const RequestDeviceCallback = *const fn (
-//     status: RequestDeviceStatus,
-//     device: *Device,
-//     message: ?[*:0]const u8,
-//     userdata: ?*anyopaque,
-// ) callconv(.C) void;
-
-// pub const RequestAdapterCallback = *const fn (
-//     status: RequestAdapterStatus,
-//     adapter: ?*Adapter,
-//     message: ?[*:0]const u8,
-//     userdata: ?*anyopaque,
-// ) callconv(.C) void;
-
-// pub const CreateComputePipelineAsyncCallback = *const fn (
-//     status: CreatePipelineAsyncStatus,
-//     compute_pipeline: ?*ComputePipeline,
-//     message: ?[*:0]const u8,
-//     userdata: ?*anyopaque,
-// ) callconv(.C) void;
-
-// pub const CreateRenderPipelineAsyncCallback = *const fn (
-//     status: CreatePipelineAsyncStatus,
-//     pipeline: ?*RenderPipeline,
-//     message: ?[*:0]const u8,
-//     userdata: ?*anyopaque,
-// ) callconv(.C) void;
+// pub const CompilationInfoCallback = *const fn (status: CompilationInfoRequestStatus, compilation_info: *const CompilationInfo, userdata: ?*anyopaque) void;
+// pub const ErrorCallback = *const fn (typ: ErrorType, message: [*:0]const u8, userdata: ?*anyopaque) void;
+// pub const LoggingCallback = *const fn (typ: LoggingType, message: [*:0]const u8, userdata: ?*anyopaque) void;
+// pub const RequestDeviceCallback = *const fn (status: RequestDeviceStatus, device: *Device, message: ?[*:0]const u8, userdata: ?*anyopaque) void;
+// pub const RequestAdapterCallback = *const fn (status: RequestAdapterStatus, adapter: ?*Adapter, message: ?[*:0]const u8, userdata: ?*anyopaque) void;
+// pub const CreateComputePipelineAsyncCallback = *const fn (status: CreatePipelineAsyncStatus, compute_pipeline: ?*ComputePipeline, message: ?[*:0]const u8, userdata: ?*anyopaque) void;
+// pub const CreateRenderPipelineAsyncCallback = *const fn (status: CreatePipelineAsyncStatus, pipeline: ?*RenderPipeline, message: ?[*:0]const u8, userdata: ?*anyopaque) void;

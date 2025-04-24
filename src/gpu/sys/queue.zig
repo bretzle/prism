@@ -79,7 +79,7 @@ pub const Queue = opaque {
         unreachable;
     }
 
-    pub inline fn setLabel(self: *Queue, label: [*:0]const u8) void {
+    pub inline fn setLabel(self: *Queue, label: [:0]const u8) void {
         const queue: *impl.Queue = @alignCast(@ptrCast(self));
         _ = queue; // autofix
         _ = label; // autofix

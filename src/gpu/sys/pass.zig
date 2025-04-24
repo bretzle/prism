@@ -222,7 +222,7 @@ pub const ComputePassEncoder = opaque {
         unreachable;
     }
 
-    pub inline fn insertDebugMarker(self: *ComputePassEncoder, marker_label: [*:0]const u8) void {
+    pub inline fn insertDebugMarker(self: *ComputePassEncoder, marker_label: [:0]const u8) void {
         _ = self; // autofix
         _ = marker_label; // autofix
         unreachable;
@@ -233,7 +233,7 @@ pub const ComputePassEncoder = opaque {
         unreachable;
     }
 
-    pub inline fn pushDebugGroup(self: *ComputePassEncoder, group_label: [*:0]const u8) void {
+    pub inline fn pushDebugGroup(self: *ComputePassEncoder, group_label: [:0]const u8) void {
         _ = self; // autofix
         _ = group_label; // autofix
         unreachable;

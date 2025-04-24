@@ -111,14 +111,14 @@ pub const CommandEncoder = opaque {
         return @ptrCast(command_buffer);
     }
 
-    pub inline fn injectValidationError(self: *CommandEncoder, message: [*:0]const u8) void {
+    pub inline fn injectValidationError(self: *CommandEncoder, message: [:0]const u8) void {
         const encoder: *impl.CommandEncoder = @alignCast(@ptrCast(self));
         _ = encoder; // autofix
         _ = message; // autofix
         unreachable;
     }
 
-    pub inline fn insertDebugMarker(self: *CommandEncoder, marker_label: [*:0]const u8) void {
+    pub inline fn insertDebugMarker(self: *CommandEncoder, marker_label: [:0]const u8) void {
         const encoder: *impl.CommandEncoder = @alignCast(@ptrCast(self));
         _ = encoder; // autofix
         _ = marker_label; // autofix
@@ -131,7 +131,7 @@ pub const CommandEncoder = opaque {
         unreachable;
     }
 
-    pub inline fn pushDebugGroup(self: *CommandEncoder, group_label: [*:0]const u8) void {
+    pub inline fn pushDebugGroup(self: *CommandEncoder, group_label: [:0]const u8) void {
         const encoder: *impl.CommandEncoder = @alignCast(@ptrCast(self));
         _ = encoder; // autofix
         _ = group_label; // autofix

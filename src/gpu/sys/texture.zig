@@ -249,15 +249,6 @@ pub const TextureView = opaque {
 };
 
 pub const ExternalTexture = opaque {
-    // pub const BindingEntry = extern struct {
-    //     chain: ChainedStruct = .{ .next = null, .s_type = .external_texture_binding_entry },
-    //     external_texture: *ExternalTexture,
-    // };
-
-    // pub const BindingLayout = extern struct {
-    //     chain: ChainedStruct = .{ .next = null, .s_type = .external_texture_binding_layout },
-    // };
-
     pub const Rotation = enum { @"0", @"90", @"180", @"270" };
 
     pub const Descriptor = extern struct {
