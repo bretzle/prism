@@ -3,7 +3,8 @@ const gpu = @import("../gpu.zig");
 const impl = gpu.impl;
 const types = gpu.types;
 
-const TextureView = @import("texture_view.zig").TextureView;
+const Origin2D = types.Origin2D;
+const Extent2D = types.Extent2D;
 const Extent3D = types.Extent3D;
 
 pub const Texture = opaque {
@@ -210,6 +211,87 @@ pub const Texture = opaque {
     }
 
     pub inline fn release(self: *Texture) void {
+        _ = self; // autofix
+        unreachable;
+    }
+};
+
+pub const TextureView = opaque {
+    pub const Dimension = enum { undefined, @"1d", @"2d", @"2d_array", cube, cube_array, @"3d" };
+
+    pub const Descriptor = struct {
+        label: ?[:0]const u8 = null,
+        format: Texture.Format = .undefined,
+        dimension: Dimension = .undefined,
+        base_mip_level: u32 = 0,
+        mip_level_count: u32 = types.mip_level_count_undefined,
+        base_array_layer: u32 = 0,
+        array_layer_count: u32 = types.array_layer_count_undefined,
+        aspect: Texture.Aspect = .all,
+    };
+
+    pub inline fn setLabel(self: *TextureView, label: [:0]const u8) void {
+        const view: *impl.TextureView = @alignCast(@ptrCast(self));
+        _ = view; // autofix
+        _ = label; // autofix
+        unreachable;
+    }
+
+    pub inline fn reference(self: *TextureView) void {
+        const view: *impl.TextureView = @alignCast(@ptrCast(self));
+        view.manager.reference();
+    }
+
+    pub inline fn release(self: *TextureView) void {
+        const view: *impl.TextureView = @alignCast(@ptrCast(self));
+        view.manager.release();
+    }
+};
+
+pub const ExternalTexture = opaque {
+    // pub const BindingEntry = extern struct {
+    //     chain: ChainedStruct = .{ .next = null, .s_type = .external_texture_binding_entry },
+    //     external_texture: *ExternalTexture,
+    // };
+
+    // pub const BindingLayout = extern struct {
+    //     chain: ChainedStruct = .{ .next = null, .s_type = .external_texture_binding_layout },
+    // };
+
+    pub const Rotation = enum { @"0", @"90", @"180", @"270" };
+
+    pub const Descriptor = extern struct {
+        label: ?[:0]const u8 = null,
+        plane0: *TextureView,
+        plane1: ?*TextureView = null,
+        visible_origin: Origin2D,
+        visible_size: Extent2D,
+        do_yuv_to_rgb_conversion_only: bool = false,
+        yuv_to_rgb_conversion_matrix: ?*const [12]f32 = null,
+        src_transform_function_parameters: *const [7]f32,
+        dst_transform_function_parameters: *const [7]f32,
+        gamut_conversion_matrix: *const [9]f32,
+        flip_y: bool,
+        rotation: Rotation,
+    };
+
+    pub inline fn destroy(self: *ExternalTexture) void {
+        _ = self; // autofix
+        unreachable;
+    }
+
+    pub inline fn setLabel(self: *ExternalTexture, label: [:0]const u8) void {
+        _ = self; // autofix
+        _ = label; // autofix
+        unreachable;
+    }
+
+    pub inline fn reference(self: *ExternalTexture) void {
+        _ = self; // autofix
+        unreachable;
+    }
+
+    pub inline fn release(self: *ExternalTexture) void {
         _ = self; // autofix
         unreachable;
     }

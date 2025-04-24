@@ -4,7 +4,7 @@ const impl = gpu.impl;
 const types = gpu.types;
 
 const Texture = @import("texture.zig").Texture;
-const TextureView = @import("texture_view.zig").TextureView;
+const TextureView = @import("texture.zig").TextureView;
 
 const PresentMode = types.PresentMode;
 

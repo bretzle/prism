@@ -3,7 +3,7 @@ const gpu = @import("../gpu.zig");
 const impl = gpu.impl;
 const types = gpu.types;
 
-const CommandBuffer = @import("command_buffer.zig").CommandBuffer;
+const CommandBuffer = @import("command.zig").CommandBuffer;
 const Buffer = @import("buffer.zig").Buffer;
 const Texture = @import("texture.zig").Texture;
 

@@ -3,18 +3,39 @@ const gpu = @import("../gpu.zig");
 const impl = gpu.impl;
 const types = gpu.types;
 
-const ComputePassEncoder = @import("compute_pass_encoder.zig").ComputePassEncoder;
-const RenderPassEncoder = @import("render_pass_encoder.zig").RenderPassEncoder;
-const CommandBuffer = @import("command_buffer.zig").CommandBuffer;
+const ComputePassEncoder = @import("pass.zig").ComputePassEncoder;
+const RenderPassEncoder = @import("pass.zig").RenderPassEncoder;
 const Buffer = @import("buffer.zig").Buffer;
 const QuerySet = @import("query_set.zig").QuerySet;
 
 const RenderPassDescriptor = types.RenderPassDescriptor;
 const ComputePassDescriptor = types.ComputePassDescriptor;
-const ChainedStruct = types.ChainedStruct;
 const ImageCopyBuffer = types.ImageCopyBuffer;
 const ImageCopyTexture = types.ImageCopyTexture;
 const Extent3D = types.Extent3D;
+
+pub const CommandBuffer = opaque {
+    pub const Descriptor = struct {
+        label: ?[:0]const u8 = null,
+    };
+
+    pub inline fn setLabel(self: *CommandBuffer, label: [:0]const u8) void {
+        const buffer: *impl.CommandBuffer = @alignCast(@ptrCast(self));
+        _ = buffer; // autofix
+        _ = label; // autofix
+        unreachable;
+    }
+
+    pub inline fn reference(self: *CommandBuffer) void {
+        const buffer: *impl.CommandBuffer = @alignCast(@ptrCast(self));
+        buffer.manager.reference();
+    }
+
+    pub inline fn release(self: *CommandBuffer) void {
+        const buffer: *impl.CommandBuffer = @alignCast(@ptrCast(self));
+        buffer.manager.release();
+    }
+};
 
 pub const CommandEncoder = opaque {
     pub const Descriptor = struct {
