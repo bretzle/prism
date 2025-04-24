@@ -69,7 +69,12 @@ pub const Window = struct {
         _ = w32.ShowWindow(hwnd, w32.SW_SHOW);
 
         const surface_desc = gpu.Surface.Descriptor{
-            .windows = .{ .hwnd = hwnd },
+            .data = .{
+                .windows_hwnd = .{
+                    .hinstance = hinstance,
+                    .hwnd = hwnd,
+                },
+            },
         };
 
         return .{ .{ .hwnd = hwnd }, size, surface_desc };

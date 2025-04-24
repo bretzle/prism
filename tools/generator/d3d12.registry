@@ -108,8 +108,8 @@ define IDevice : IObject {
     fn createConstantBufferView(self) noreturn
     fn createShaderResourceView(self) noreturn
     fn createUnorderedAccessView(self) noreturn
-    fn createRenderTargetView(self) noreturn
-    fn createDepthStencilView(self) noreturn
+    fn createRenderTargetView(self, resource: ?*IResource, desc: ?*const RENDER_TARGET_VIEW_DESC, dst_descriptor: CPU_DESCRIPTOR_HANDLE) void
+    fn createDepthStencilView(self, resource: ?*IResource, desc: ?*const DEPTH_STENCIL_VIEW_DESC, dst_descriptor: CPU_DESCRIPTOR_HANDLE) void
     fn createSampler(self) noreturn
     fn copyDescriptors(self) noreturn
     fn copyDescriptorsSimple(self) noreturn
@@ -139,7 +139,7 @@ define ICommandQueue : IPageable {
 
     fn updateTileMappings(self) noreturn
     fn copyTileMappings(self) noreturn
-    fn executeCommandLists(self) noreturn
+    fn executeCommandLists(self, num: UINT, cmdlists: [*]const *ICommandList) void
     fn setMarker(self) noreturn
     fn beginEvent(self) noreturn
     fn endEvent(self) noreturn
@@ -259,7 +259,7 @@ define IQueryHeap : IPageable {
 define IFence : IPageable {
     iid = "0a753dcf-c4d8-4b91-adf6-be5a60d95a76"
 
-    fn getCompleptedValue(self) u64
+    fn getCompletedValue(self) u64
     fn setEventOnCompletion(self, value: u64, event: HANDLE) HRESULT
     fn signal(self, value: u64) HRESULT
 }

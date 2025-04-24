@@ -25,6 +25,9 @@ pub const PFN_MESSAGE_CALLBACK = *const fn (category: MESSAGE_CATEGORY, severity
 
 pub const GPU_VIRTUAL_ADDRESS = UINT64;
 
+pub const DESCRIPTOR_RANGE_OFFSET_APPEND = 0xffffffff; // defined as -1
+pub const RESOURCE_BARRIER_ALL_SUBRESOURCES = 0xffffffff;
+
 pub const CPU_DESCRIPTOR_HANDLE = extern struct {
     ptr: UINT64,
 };
@@ -219,7 +222,7 @@ pub const DESCRIPTOR_RANGE = extern struct {
     NumDescriptors: UINT,
     BaseShaderRegister: UINT,
     RegisterSpace: UINT,
-    OffsetInDescriptorsFromStart: UINT,
+    OffsetInDescriptorsFromTableStart: UINT,
 };
 
 pub const ROOT_DESCRIPTOR_TABLE = extern struct {
@@ -1904,6 +1907,134 @@ pub const SHADER_MACRO = extern struct {
     Definition: LPCSTR,
 };
 
+pub const BUFFER_RTV = extern struct {
+    FirstElement: UINT64,
+    NumElements: UINT,
+};
+
+pub const TEX1D_RTV = extern struct {
+    MipSlice: UINT,
+};
+
+pub const TEX1D_ARRAY_RTV = extern struct {
+    MipSlice: UINT,
+    FirstArraySlice: UINT,
+    ArraySize: UINT,
+};
+
+pub const TEX2D_RTV = extern struct {
+    MipSlice: UINT,
+    PlaneSlice: UINT,
+};
+
+pub const TEX2DMS_RTV = extern struct {
+    UnusedField_NothingToDefine: UINT,
+};
+
+pub const TEX2D_ARRAY_RTV = extern struct {
+    MipSlice: UINT,
+    FirstArraySlice: UINT,
+    ArraySize: UINT,
+    PlaneSlice: UINT,
+};
+
+pub const TEX2DMS_ARRAY_RTV = extern struct {
+    FirstArraySlice: UINT,
+    ArraySize: UINT,
+};
+
+pub const TEX3D_RTV = extern struct {
+    MipSlice: UINT,
+    FirstWSlice: UINT,
+    WSize: UINT,
+};
+
+pub const RTV_DIMENSION = enum(UINT) {
+    UNKNOWN = 0,
+    BUFFER = 1,
+    TEXTURE1D = 2,
+    TEXTURE1DARRAY = 3,
+    TEXTURE2D = 4,
+    TEXTURE2DARRAY = 5,
+    TEXTURE2DMS = 6,
+    TEXTURE2DMSARRAY = 7,
+    TEXTURE3D = 8,
+};
+
+pub const RENDER_TARGET_VIEW_DESC = extern struct {
+    Format: dxgi.FORMAT,
+    ViewDimension: RTV_DIMENSION,
+    u: extern union {
+        Buffer: BUFFER_RTV,
+        Texture1D: TEX1D_RTV,
+        Texture1DArray: TEX1D_ARRAY_RTV,
+        Texture2D: TEX2D_RTV,
+        Texture2DArray: TEX2D_ARRAY_RTV,
+        Texture2DMS: TEX2DMS_RTV,
+        Texture2DMSArray: TEX2DMS_ARRAY_RTV,
+        Texture3D: TEX3D_RTV,
+    },
+};
+
+pub const TEX1D_DSV = extern struct {
+    MipSlice: UINT,
+};
+
+pub const TEX1D_ARRAY_DSV = extern struct {
+    MipSlice: UINT,
+    FirstArraySlice: UINT,
+    ArraySize: UINT,
+};
+
+pub const TEX2D_DSV = extern struct {
+    MipSlice: UINT,
+};
+
+pub const TEX2D_ARRAY_DSV = extern struct {
+    MipSlice: UINT,
+    FirstArraySlice: UINT,
+    ArraySize: UINT,
+};
+
+pub const TEX2DMS_DSV = extern struct {
+    UnusedField_NothingToDefine: UINT,
+};
+
+pub const TEX2DMS_ARRAY_DSV = extern struct {
+    FirstArraySlice: UINT,
+    ArraySize: UINT,
+};
+
+pub const DSV_FLAGS = packed struct(UINT) {
+    READ_ONLY_DEPTH: bool = false,
+    READ_ONLY_STENCIL: bool = false,
+    __unused: u30 = 0,
+};
+
+pub const DSV_DIMENSION = enum(UINT) {
+    UNKNOWN = 0,
+    TEXTURE1D = 1,
+    TEXTURE1DARRAY = 2,
+    TEXTURE2D = 3,
+    TEXTURE2DARRAY = 4,
+    TEXTURE2DMS = 5,
+    TEXTURE2DMSARRAY = 6,
+};
+
+pub const DEPTH_STENCIL_VIEW_DESC = extern struct {
+    Format: dxgi.FORMAT,
+    ViewDimension: DSV_DIMENSION,
+    Flags: DSV_FLAGS,
+    u: extern union {
+        Texture1D: TEX1D_DSV,
+        Texture1DArray: TEX1D_ARRAY_DSV,
+        Texture2D: TEX2D_DSV,
+        Texture2DArray: TEX2D_ARRAY_DSV,
+        Texture2DMS: TEX2DMS_DSV,
+        Texture2DMSArray: TEX2DMS_ARRAY_DSV,
+    },
+};
+
 // functions
 // ---------
 
@@ -2405,8 +2536,8 @@ pub const IDevice = extern struct {
         create_constant_buffer_view: *const fn (*IDevice) callconv(.winapi) noreturn,
         create_shader_resource_view: *const fn (*IDevice) callconv(.winapi) noreturn,
         create_unordered_access_view: *const fn (*IDevice) callconv(.winapi) noreturn,
-        create_render_target_view: *const fn (*IDevice) callconv(.winapi) noreturn,
-        create_depth_stencil_view: *const fn (*IDevice) callconv(.winapi) noreturn,
+        create_render_target_view: *const fn (*IDevice, resource: ?*IResource, desc: ?*const RENDER_TARGET_VIEW_DESC, dst_descriptor: CPU_DESCRIPTOR_HANDLE) callconv(.winapi) void,
+        create_depth_stencil_view: *const fn (*IDevice, resource: ?*IResource, desc: ?*const DEPTH_STENCIL_VIEW_DESC, dst_descriptor: CPU_DESCRIPTOR_HANDLE) callconv(.winapi) void,
         create_sampler: *const fn (*IDevice) callconv(.winapi) noreturn,
         copy_descriptors: *const fn (*IDevice) callconv(.winapi) noreturn,
         copy_descriptors_simple: *const fn (*IDevice) callconv(.winapi) noreturn,
@@ -2470,11 +2601,11 @@ pub const IDevice = extern struct {
     pub fn createUnorderedAccessView(self: *IDevice) noreturn {
         return (self.vtable.create_unordered_access_view)(self);
     }
-    pub fn createRenderTargetView(self: *IDevice) noreturn {
-        return (self.vtable.create_render_target_view)(self);
+    pub fn createRenderTargetView(self: *IDevice, resource: ?*IResource, desc: ?*const RENDER_TARGET_VIEW_DESC, dst_descriptor: CPU_DESCRIPTOR_HANDLE) void {
+        return (self.vtable.create_render_target_view)(self, resource, desc, dst_descriptor);
     }
-    pub fn createDepthStencilView(self: *IDevice) noreturn {
-        return (self.vtable.create_depth_stencil_view)(self);
+    pub fn createDepthStencilView(self: *IDevice, resource: ?*IResource, desc: ?*const DEPTH_STENCIL_VIEW_DESC, dst_descriptor: CPU_DESCRIPTOR_HANDLE) void {
+        return (self.vtable.create_depth_stencil_view)(self, resource, desc, dst_descriptor);
     }
     pub fn createSampler(self: *IDevice) noreturn {
         return (self.vtable.create_sampler)(self);
@@ -2576,7 +2707,7 @@ pub const ICommandQueue = extern struct {
         base: IPageable.VTable,
         update_tile_mappings: *const fn (*ICommandQueue) callconv(.winapi) noreturn,
         copy_tile_mappings: *const fn (*ICommandQueue) callconv(.winapi) noreturn,
-        execute_command_lists: *const fn (*ICommandQueue) callconv(.winapi) noreturn,
+        execute_command_lists: *const fn (*ICommandQueue, num: UINT, cmdlists: [*]const *ICommandList) callconv(.winapi) void,
         set_marker: *const fn (*ICommandQueue) callconv(.winapi) noreturn,
         begin_event: *const fn (*ICommandQueue) callconv(.winapi) noreturn,
         end_event: *const fn (*ICommandQueue) callconv(.winapi) noreturn,
@@ -2593,8 +2724,8 @@ pub const ICommandQueue = extern struct {
     pub fn copyTileMappings(self: *ICommandQueue) noreturn {
         return (self.vtable.copy_tile_mappings)(self);
     }
-    pub fn executeCommandLists(self: *ICommandQueue) noreturn {
-        return (self.vtable.execute_command_lists)(self);
+    pub fn executeCommandLists(self: *ICommandQueue, num: UINT, cmdlists: [*]const *ICommandList) void {
+        return (self.vtable.execute_command_lists)(self, num, cmdlists);
     }
     pub fn setMarker(self: *ICommandQueue) noreturn {
         return (self.vtable.set_marker)(self);
@@ -3262,13 +3393,13 @@ pub const IFence = extern struct {
 
     const VTable = extern struct {
         base: IPageable.VTable,
-        get_complepted_value: *const fn (*IFence) callconv(.winapi) u64,
+        get_completed_value: *const fn (*IFence) callconv(.winapi) u64,
         set_event_on_completion: *const fn (*IFence, value: u64, event: HANDLE) callconv(.winapi) HRESULT,
         signal: *const fn (*IFence, value: u64) callconv(.winapi) HRESULT,
     };
 
-    pub fn getCompleptedValue(self: *IFence) u64 {
-        return (self.vtable.get_complepted_value)(self);
+    pub fn getCompletedValue(self: *IFence) u64 {
+        return (self.vtable.get_completed_value)(self);
     }
     pub fn setEventOnCompletion(self: *IFence, value: u64, event: HANDLE) HRESULT {
         return (self.vtable.set_event_on_completion)(self, value, event);

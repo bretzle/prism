@@ -709,6 +709,9 @@ pub const GMEM_ZEROINIT: UINT = 0x0040;
 pub const GPTR: UINT = 0x0040; // GMEM_FIXED | GMEM_ZEROINIT
 pub const GHND: UINT = 0x0042; // GMEM_MOVEABLE | GMEM_ZEROINIT
 
+pub const WAIT_OBJECT_0: DWORD = 0x00000000;
+pub const INFINITE: DWORD = 0xFFFFFFFF;
+
 pub extern "user32" fn GetLastError() callconv(.winapi) DWORD;
 pub extern "user32" fn RegisterClassExW(class: *const WNDCLASSEXW) callconv(.winapi) u16;
 pub extern "user32" fn UnregisterClassW(lpClassName: LPCWSTR, hInstance: ?HINSTANCE) callconv(.winapi) BOOL;
@@ -746,6 +749,7 @@ pub extern "user32" fn GetWindowRect(hWnd: ?HWND, lpRect: ?*RECT) callconv(.wina
 pub extern "user32" fn AdjustWindowRectExForDpi(lpRect: ?*RECT, dwStyle: DWORD, bMenu: BOOL, dwExStyle: DWORD, dpi: u32) callconv(.winapi) BOOL;
 pub extern "user32" fn MonitorFromPoint(pt: POINT, dwFlags: DWORD) callconv(.winapi) ?HMONITOR;
 pub extern "user32" fn GetClientRect(hWnd: ?HWND, lpRect: ?*RECT) callconv(.winapi) BOOL;
+pub extern "user32" fn WaitForSingleObject(hHandle: HANDLE, dwMilliseconds: DWORD) callconv(.winapi) DWORD;
 
 pub extern "kernel32" fn CreateEventW(lpEventAttributes: ?*SECURITY_ATTRIBUTES, bManualReset: BOOL, bInitialState: BOOL, lpName: ?[*:0]const u16) callconv(.winapi) ?*anyopaque;
 pub extern "kernel32" fn CloseHandle(hObject: HANDLE) callconv(.winapi) BOOL;

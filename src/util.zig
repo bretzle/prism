@@ -11,6 +11,10 @@ pub fn Manager(comptime T: type) type {
         }
 
         pub fn release(self: *Self) void {
+            if (!std.meta.hasMethod(T, "deinit")) {
+                @compileError("Manager requires " ++ @typeName(T) ++ " implement a deinit method");
+            }
+
             if (self.count.fetchSub(1, .release) == 1) {
                 _ = self.count.load(.acquire);
                 const parent: *T = @alignCast(@fieldParentPtr("manager", self));

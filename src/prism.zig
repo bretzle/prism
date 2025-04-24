@@ -7,7 +7,7 @@ const platform = switch (builtin.target.os.tag) {
     else => unreachable,
 };
 
-pub var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+pub var gpa: std.heap.GeneralPurposeAllocator(.{}) = .init;
 pub const allocator = gpa.allocator();
 
 pub const Application = struct {
@@ -19,9 +19,8 @@ pub const Application = struct {
         };
     }
 
-    pub fn deinit(self: *Application) void {
-        _ = self; // autofix
-        std.debug.print("TODO: deinit app\n", .{});
+    pub fn deinit(_: *Application) void {
+        // TODO
     }
 
     pub fn createWindow(self: *Application, options: WindowOptions) !*Window {
@@ -47,8 +46,7 @@ pub const Application = struct {
         window.adapter = try window.instance.createAdapter(.{ .surface = window.surface, .power_preference = .performance });
 
         const props = window.adapter.getProperties();
-        std.log.info("found {s} backend on {s} adapter: {s}, {s}", .{
-            @tagName(props.backend_type),
+        std.log.info("found d3d12 backend on {s} adapter: {s}, {s}", .{
             @tagName(props.adapter_type),
             props.name,
             props.driver_description,
@@ -66,7 +64,7 @@ pub const Application = struct {
             .present_mode = .fifo,
         };
 
-        window.swap_chain = try window.device.createSwapchain(window.surface, window.swap_chain_descriptor);
+        window.swap_chain = try window.device.createSwapChain(window.surface, window.swap_chain_descriptor);
 
         try self.windows.append(allocator, window);
         return window;
@@ -98,8 +96,12 @@ pub const Window = struct {
     native: platform.Window,
 
     pub fn deinit(self: *Window) void {
-        _ = self; // autofix
-        std.debug.print("TODO: deinit window\n", .{});
+        self.swap_chain.release();
+        self.queue.release();
+        self.device.release();
+        self.adapter.release();
+        self.surface.release();
+        self.instance.release();
     }
 
     pub fn getEvents(self: *Window) []const Event {
