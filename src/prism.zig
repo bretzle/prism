@@ -1,6 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 pub const gpu = @import("gpu/gpu.zig");
+pub const math = @import("math/math.zig");
 
 const platform = switch (builtin.target.os.tag) {
     .windows => @import("platform/win32.zig"),
@@ -120,3 +121,7 @@ pub const Event = union(EventTag) {
     window_visible,
     window_hidden,
 };
+
+test {
+    std.testing.refAllDecls(@This());
+}
