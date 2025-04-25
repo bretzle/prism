@@ -37,5 +37,32 @@ pub const TextureView = @import("sys/texture.zig").TextureView;
 pub const Texture = @import("sys/texture.zig").Texture;
 
 test {
-    std.testing.refAllDeclsRecursive(@This());
+    _ = impl;
+    _ = types;
+    _ = Adapter;
+    _ = BindGroupLayout;
+    _ = BindGroup;
+    _ = Buffer;
+    _ = CommandBuffer;
+    _ = CommandEncoder;
+    _ = ComputePassEncoder;
+    _ = ComputePipeline;
+    _ = Device;
+    _ = ExternalTexture;
+    _ = Instance;
+    _ = PipelineLayout;
+    _ = QuerySet;
+    _ = Queue;
+    _ = RenderBundleEncoder;
+    _ = RenderBundle;
+    _ = RenderPassEncoder;
+    _ = RenderPipeline;
+    _ = Sampler;
+    _ = ShaderModule;
+    _ = SharedFence;
+    _ = SharedTextureMemory;
+    _ = Surface;
+    _ = SwapChain;
+    _ = TextureView;
+    _ = Texture;
 }

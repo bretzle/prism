@@ -1085,6 +1085,16 @@ pub const CommandEncoder = struct {
         allocator.destroy(self);
     }
 
+    pub fn copyBufferToBuffer(self: *CommandEncoder, source: *Buffer, source_offset: u64, destination: *Buffer, destination_offset: u64, size: u64) !void {
+        _ = self; // autofix
+        _ = source; // autofix
+        _ = source_offset; // autofix
+        _ = destination; // autofix
+        _ = destination_offset; // autofix
+        _ = size; // autofix
+        unreachable;
+    }
+
     pub fn beginRenderPass(self: *CommandEncoder, desc: sys.types.RenderPassDescriptor) !*RenderPassEncoder {
         try self.state_tracker.endPass();
         return try RenderPassEncoder.create(self, desc);

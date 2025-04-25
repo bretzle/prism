@@ -28,8 +28,8 @@ const SupportedLimits = types.SupportedLimits;
 const ErrorType = types.ErrorType;
 const ErrorFilter = types.ErrorFilter;
 const LoggingType = types.LoggingType;
-const LoggingCallback = types.LoggingCallback;
-const ErrorCallback = types.ErrorCallback;
+// const LoggingCallback = types.LoggingCallback;
+// const ErrorCallback = types.ErrorCallback;
 
 const allocator = @import("../../prism.zig").allocator;
 

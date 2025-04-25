@@ -7,7 +7,7 @@ const QueryType = types.QueryType;
 const PipelineStatisticName = types.PipelineStatisticName;
 
 pub const QuerySet = opaque {
-    pub const Descriptor = extern struct {
+    pub const Descriptor = struct {
         label: [:0]const u8 = "unnamed",
         type: QueryType,
         count: u32,

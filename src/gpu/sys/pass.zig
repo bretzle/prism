@@ -293,7 +293,7 @@ pub const RenderBundle = opaque {
 };
 
 pub const RenderBundleEncoder = opaque {
-    pub const Descriptor = extern struct {
+    pub const Descriptor = struct {
         label: [:0]const u8 = "unnamed",
         color_formats: []const Texture.Format = &.{},
         depth_stencil_format: Texture.Format = .undefined,

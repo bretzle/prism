@@ -1,6 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 pub const gpu = @import("gpu/gpu.zig");
+pub const gfx = @import("gfx/gfx.zig");
 pub const math = @import("math/math.zig");
 pub const time = @import("time.zig");
 

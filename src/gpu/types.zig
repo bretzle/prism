@@ -1,5 +1,7 @@
 const std = @import("std");
 
+const Buffer = @import("sys/buffer.zig").Buffer;
+const ExternalTexture = @import("sys/texture.zig").ExternalTexture;
 const QuerySet = @import("sys/query_set.zig").QuerySet;
 const ShaderModule = @import("sys/shader_module.zig").ShaderModule;
 const Texture = @import("sys/texture.zig").Texture;
@@ -121,20 +123,20 @@ pub const CullMode = enum {
     back,
 };
 
-// pub const ErrorFilter = enum(u32) {
-//     validation = 0x00000000,
-//     out_of_memory = 0x00000001,
-//     internal = 0x00000002,
-// };
+pub const ErrorFilter = enum {
+    validation,
+    out_of_memory,
+    internal,
+};
 
-// pub const ErrorType = enum(u32) {
-//     no_error = 0x00000000,
-//     validation = 0x00000001,
-//     out_of_memory = 0x00000002,
-//     internal = 0x00000003,
-//     unknown = 0x00000004,
-//     device_lost = 0x00000005,
-// };
+pub const ErrorType = enum {
+    no_error,
+    validation,
+    out_of_memory,
+    internal,
+    unknown,
+    device_lost,
+};
 
 pub const FeatureName = enum(u32) {
     undefined = 0x00000000,
@@ -219,13 +221,13 @@ pub const LoadOp = enum {
 //     err = 0x00000003,
 // };
 
-// pub const PipelineStatisticName = enum(u32) {
-//     vertex_shader_invocations = 0x00000000,
-//     clipper_invocations = 0x00000001,
-//     clipper_primitives_out = 0x00000002,
-//     fragment_shader_invocations = 0x00000003,
-//     compute_shader_invocations = 0x00000004,
-// };
+pub const PipelineStatisticName = enum {
+    vertex_shader_invocations,
+    clipper_invocations,
+    clipper_primitives_out,
+    fragment_shader_invocations,
+    compute_shader_invocations,
+};
 
 pub const PowerPreference = enum {
     efficient,
@@ -447,16 +449,16 @@ pub const ConstantEntry = struct {
     value: f64,
 };
 
-// pub const CopyTextureForBrowserOptions = extern struct {
-//     flip_y: Bool32 = .false,
-//     needs_color_space_conversion: Bool32 = .false,
-//     src_alpha_mode: AlphaMode = .unpremultiplied,
-//     src_transfer_function_parameters: ?*const [7]f32 = null,
-//     conversion_matrix: ?*const [9]f32 = null,
-//     dst_transfer_function_parameters: ?*const [7]f32 = null,
-//     dst_alpha_mode: AlphaMode = .unpremultiplied,
-//     internal_usage: Bool32 = .false,
-// };
+pub const CopyTextureForBrowserOptions = struct {
+    flip_y: bool = false,
+    needs_color_space_conversion: bool = false,
+    src_alpha_mode: AlphaMode = .unpremultiplied,
+    src_transfer_function_parameters: ?*const [7]f32 = null,
+    conversion_matrix: ?*const [9]f32 = null,
+    dst_transfer_function_parameters: ?*const [7]f32 = null,
+    dst_alpha_mode: AlphaMode = .unpremultiplied,
+    internal_usage: bool = false,
+};
 
 pub const MultisampleState = struct {
     count: u32 = 1,
@@ -530,45 +532,29 @@ pub const DepthStencilState = struct {
     depth_bias_clamp: f32 = 0.0,
 };
 
-// pub const ImageCopyBuffer = extern struct {
-//     layout: Texture.DataLayout,
-//     buffer: *Buffer,
-// };
+pub const ImageCopyBuffer = struct {
+    layout: Texture.DataLayout,
+    buffer: *Buffer,
+};
 
-// pub const ImageCopyExternalTexture = extern struct {
-//     external_texture: *ExternalTexture,
-//     origin: Origin3D,
-//     natural_size: Extent2D,
-// };
+pub const ImageCopyExternalTexture = struct {
+    external_texture: *ExternalTexture,
+    origin: Origin3D,
+    natural_size: Extent2D,
+};
 
-// pub const ImageCopyTexture = extern struct {
-//     texture: *Texture,
-//     mip_level: u32 = 0,
-//     origin: Origin3D = .{},
-//     aspect: Texture.Aspect = .all,
-// };
+pub const ImageCopyTexture = struct {
+    texture: *Texture,
+    mip_level: u32 = 0,
+    origin: Origin3D = .{},
+    aspect: Texture.Aspect = .all,
+};
 
-// pub const ProgrammableStageDescriptor = extern struct {
-//     module: *ShaderModule,
-//     entry_point: [*:0]const u8,
-//     constant_count: usize = 0,
-//     constants: ?[*]const ConstantEntry = null,
-
-//     /// Provides a slightly friendlier Zig API to initialize this structure.
-//     pub inline fn init(v: struct {
-//         module: *ShaderModule,
-//         entry_point: [*:0]const u8,
-//         constants: ?[]const ConstantEntry = null,
-//     }) ProgrammableStageDescriptor {
-//         return .{
-//             .next_in_chain = v.next_in_chain,
-//             .module = v.module,
-//             .entry_point = v.entry_point,
-//             .constant_count = if (v.constants) |e| e.len else 0,
-//             .constants = if (v.constants) |e| e.ptr else null,
-//         };
-//     }
-// };
+pub const ProgrammableStageDescriptor = struct {
+    module: *ShaderModule,
+    entry_point: [:0]const u8,
+    constants: []const ConstantEntry = &.{},
+};
 
 pub const RenderPassColorAttachment = struct {
     view: ?*TextureView = null,

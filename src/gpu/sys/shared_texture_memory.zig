@@ -58,7 +58,7 @@ pub const SharedTextureMemory = opaque {
         },
     };
 
-    pub const Properties = extern struct {
+    pub const Properties = struct {
         usage: Texture.UsageFlags,
         size: Extent3D,
         format: Texture.Format,
