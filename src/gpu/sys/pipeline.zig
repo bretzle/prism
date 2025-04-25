@@ -14,30 +14,29 @@ const ProgrammableStageDescriptor = types.ProgrammableStageDescriptor;
 
 pub const PipelineLayout = opaque {
     pub const Descriptor = struct {
-        label: ?[:0]const u8 = null,
+        label: [:0]const u8 = "unnamed",
         bind_group_layouts: []const *BindGroupLayout = &.{},
     };
 
     pub inline fn setLabel(self: *PipelineLayout, label: [:0]const u8) void {
-        _ = self; // autofix
-        _ = label; // autofix
-        unreachable;
+        const layout: *impl.PipelineLayout = @alignCast(@ptrCast(self));
+        layout.setLabel(label);
     }
 
     pub inline fn reference(self: *PipelineLayout) void {
-        _ = self; // autofix
-        unreachable;
+        const layout: *impl.PipelineLayout = @alignCast(@ptrCast(self));
+        layout.manager.reference();
     }
 
     pub inline fn release(self: *PipelineLayout) void {
-        _ = self; // autofix
-        unreachable;
+        const layout: *impl.PipelineLayout = @alignCast(@ptrCast(self));
+        layout.manager.release();
     }
 };
 
 pub const RenderPipeline = opaque {
     pub const Descriptor = struct {
-        label: ?[:0]const u8 = null,
+        label: [:0]const u8 = "unnamed",
         layout: ?*PipelineLayout = null,
         vertex: VertexState,
         primitive: PrimitiveState = .{},
@@ -48,16 +47,13 @@ pub const RenderPipeline = opaque {
 
     pub inline fn getBindGroupLayout(self: *RenderPipeline, group_index: u32) *BindGroupLayout {
         const pipeline: *impl.RenderPipeline = @alignCast(@ptrCast(self));
-        _ = pipeline; // autofix
-        _ = group_index; // autofix
-        unreachable;
+        const layout = pipeline.getBindGroupLayout(group_index);
+        return @ptrCast(layout);
     }
 
     pub inline fn setLabel(self: *RenderPipeline, label: [:0]const u8) void {
         const pipeline: *impl.RenderPipeline = @alignCast(@ptrCast(self));
-        _ = pipeline; // autofix
-        _ = label; // autofix
-        unreachable;
+        pipeline.setLabel(label);
     }
 
     pub inline fn reference(self: *RenderPipeline) void {
@@ -73,7 +69,7 @@ pub const RenderPipeline = opaque {
 
 pub const ComputePipeline = opaque {
     pub const Descriptor = extern struct {
-        label: ?[:0]const u8 = null,
+        label: [:0]const u8 = "unnamed",
         layout: ?*PipelineLayout = null,
         compute: ProgrammableStageDescriptor,
     };

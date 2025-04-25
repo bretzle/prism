@@ -16,14 +16,12 @@ const Extent3D = types.Extent3D;
 
 pub const CommandBuffer = opaque {
     pub const Descriptor = struct {
-        label: ?[:0]const u8 = null,
+        label: [:0]const u8 = "unnamed",
     };
 
     pub inline fn setLabel(self: *CommandBuffer, label: [:0]const u8) void {
         const buffer: *impl.CommandBuffer = @alignCast(@ptrCast(self));
-        _ = buffer; // autofix
-        _ = label; // autofix
-        unreachable;
+        buffer.setLabel(label);
     }
 
     pub inline fn reference(self: *CommandBuffer) void {
@@ -39,7 +37,7 @@ pub const CommandBuffer = opaque {
 
 pub const CommandEncoder = opaque {
     pub const Descriptor = struct {
-        label: ?[:0]const u8 = null,
+        label: [:0]const u8 = "unnamed",
     };
 
     pub inline fn beginComputePass(self: *CommandEncoder, desc: ?ComputePassDescriptor) *ComputePassEncoder {
@@ -168,9 +166,7 @@ pub const CommandEncoder = opaque {
 
     pub inline fn setLabel(self: *CommandEncoder, label: [:0]const u8) void {
         const encoder: *impl.CommandEncoder = @alignCast(@ptrCast(self));
-        _ = encoder; // autofix
-        _ = label; // autofix
-        unreachable;
+        encoder.setLabel(label);
     }
 
     pub inline fn reference(self: *CommandEncoder) void {

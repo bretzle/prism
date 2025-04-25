@@ -17,7 +17,7 @@ pub const Sampler = opaque {
     };
 
     pub const Descriptor = struct {
-        label: ?[:0]const u8 = null,
+        label: [:0]const u8 = "unnamed",
         address_mode_u: AddressMode = .clamp_to_edge,
         address_mode_v: AddressMode = .clamp_to_edge,
         address_mode_w: AddressMode = .clamp_to_edge,

@@ -15,7 +15,7 @@ pub const ShaderModule = opaque {
     // pub const MSLDescriptor = struct { code: [:0]const u8, workgroup_size: WorkgroupSize };
 
     pub const Descriptor = struct {
-        label: ?[:0]const u8 = null,
+        label: [:0]const u8 = "unnamed",
         data: union {
             // spirv_descriptor: SPIRVDescriptor,
             wgsl_descriptor: WGSLDescriptor,
@@ -36,9 +36,7 @@ pub const ShaderModule = opaque {
 
     pub inline fn setLabel(self: *ShaderModule, label: [:0]const u8) void {
         const shader: *impl.ShaderModule = @alignCast(@ptrCast(self));
-        _ = shader; // autofix
-        _ = label; // autofix
-        unreachable;
+        shader.setLabel(label);
     }
 
     pub inline fn reference(self: *ShaderModule) void {

@@ -8,10 +8,10 @@ const PipelineStatisticName = types.PipelineStatisticName;
 
 pub const QuerySet = opaque {
     pub const Descriptor = extern struct {
-        label: ?[:0]const u8 = null,
+        label: [:0]const u8 = "unnamed",
         type: QueryType,
         count: u32,
-        pipeline_statistics: ?[]const PipelineStatisticName = null,
+        pipeline_statistics: []const PipelineStatisticName = &.{},
     };
 
     pub inline fn destroy(self: *QuerySet) void {

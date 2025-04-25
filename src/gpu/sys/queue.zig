@@ -18,7 +18,7 @@ pub const Queue = opaque {
     pub const WorkDoneStatus = enum { success, err, unknown, device_lost };
 
     pub const Descriptor = struct {
-        label: ?[:0]const u8 = null,
+        label: [:0]const u8 = "unnamed",
     };
 
     pub inline fn copyExternalTextureForBrowser(self: *Queue, source: *const ImageCopyExternalTexture, destination: *const ImageCopyTexture, copy_size: *const Extent3D, options: *const CopyTextureForBrowserOptions) void {
@@ -81,9 +81,7 @@ pub const Queue = opaque {
 
     pub inline fn setLabel(self: *Queue, label: [:0]const u8) void {
         const queue: *impl.Queue = @alignCast(@ptrCast(self));
-        _ = queue; // autofix
-        _ = label; // autofix
-        unreachable;
+        queue.setLabel(label);
     }
 
     pub inline fn reference(self: *Queue) void {

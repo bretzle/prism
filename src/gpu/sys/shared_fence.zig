@@ -5,14 +5,14 @@ const impl = gpu.impl;
 pub const SharedFence = opaque {
     pub const Type = enum { undefined, vk_semaphore_opaque_fd, vk_semaphore_sync_fd, vk_semaphore_zircon_handle, dxgi_shared_handle, mtl_shared_event };
 
-    pub const VkSemaphoreOpaqueFDDescriptor = extern struct { handle: c_int };
-    pub const VkSemaphoreSyncFDDescriptor = extern struct { handle: c_int };
-    pub const VkSemaphoreZirconHandleDescriptor = extern struct { handle: u32 };
-    pub const DXGISharedHandleDescriptor = extern struct { handle: *anyopaque };
-    pub const MTLSharedEventDescriptor = extern struct { shared_event: *anyopaque };
+    pub const VkSemaphoreOpaqueFDDescriptor = struct { handle: c_int };
+    pub const VkSemaphoreSyncFDDescriptor = struct { handle: c_int };
+    pub const VkSemaphoreZirconHandleDescriptor = struct { handle: u32 };
+    pub const DXGISharedHandleDescriptor = struct { handle: *anyopaque };
+    pub const MTLSharedEventDescriptor = struct { shared_event: *anyopaque };
 
-    pub const Descriptor = extern struct {
-        label: ?[:0]const u8,
+    pub const Descriptor = struct {
+        label: [:0]const u8 = "unnamed",
         data: union {
             none: void,
             vk_semaphore_opaque_fd_descriptor: VkSemaphoreOpaqueFDDescriptor,
@@ -23,13 +23,13 @@ pub const SharedFence = opaque {
         },
     };
 
-    pub const DXGISharedHandleExportInfo = extern struct { handle: *anyopaque };
-    pub const MTLSharedEventExportInfo = extern struct { shared_event: *anyopaque };
-    pub const VkSemaphoreOpaqueFDExportInfo = extern struct { handle: c_int };
-    pub const VkSemaphoreSyncFDExportInfo = extern struct { handle: c_int };
-    pub const VkSemaphoreZirconHandleExportInfo = extern struct { handle: u32 };
+    pub const DXGISharedHandleExportInfo = struct { handle: *anyopaque };
+    pub const MTLSharedEventExportInfo = struct { shared_event: *anyopaque };
+    pub const VkSemaphoreOpaqueFDExportInfo = struct { handle: c_int };
+    pub const VkSemaphoreSyncFDExportInfo = struct { handle: c_int };
+    pub const VkSemaphoreZirconHandleExportInfo = struct { handle: u32 };
 
-    pub const ExportInfo = extern struct {
+    pub const ExportInfo = struct {
         type: Type,
         data: union {
             none: void,

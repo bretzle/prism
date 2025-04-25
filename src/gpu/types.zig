@@ -38,16 +38,16 @@ pub const RenderPassTimestampWrite = struct {
 };
 
 pub const ComputePassDescriptor = struct {
-    label: ?[:0]const u8 = null,
+    label: [:0]const u8 = "unnamed",
     timestamp_writes: []const ComputePassTimestampWrite = &.{},
 };
 
 pub const RenderPassDescriptor = struct {
-    label: ?[:0]const u8 = null,
+    label: [:0]const u8 = "unnamed",
     color_attachments: []const RenderPassColorAttachment = &.{},
     depth_stencil_attachment: ?*const RenderPassDepthStencilAttachment = null,
     occlusion_query_set: ?*QuerySet = null,
-    timestamp_writes: ?[]const RenderPassTimestampWrite = null,
+    timestamp_writes: []const RenderPassTimestampWrite = &.{},
     max_draw_count: ?*const RenderPassDescriptorMaxDrawCount = null,
 };
 
@@ -114,15 +114,6 @@ pub const ComputePassTimestampLocation = enum {
     beginning,
     end,
 };
-
-// pub const CreatePipelineAsyncStatus = enum(u32) {
-//     success = 0x00000000,
-//     validation_error = 0x00000001,
-//     internal_error = 0x00000002,
-//     device_lost = 0x00000003,
-//     device_destroyed = 0x00000004,
-//     unknown = 0x00000005,
-// };
 
 pub const CullMode = enum {
     none,
@@ -618,14 +609,14 @@ pub const ColorTargetState = struct {
 pub const VertexState = struct {
     module: *ShaderModule,
     entrypoint: [:0]const u8,
-    constants: ?[]const ConstantEntry = null,
+    constants: []const ConstantEntry = &.{},
     buffers: []const VertexBufferLayout = &.{},
 };
 
 pub const FragmentState = struct {
     module: *ShaderModule,
     entrypoint: [:0]const u8,
-    constants: ?[]const ConstantEntry = null,
+    constants: []const ConstantEntry = &.{},
     targets: []const ColorTargetState = &.{},
 };
 
@@ -634,5 +625,3 @@ pub const FragmentState = struct {
 // pub const LoggingCallback = *const fn (typ: LoggingType, message: [*:0]const u8, userdata: ?*anyopaque) void;
 // pub const RequestDeviceCallback = *const fn (status: RequestDeviceStatus, device: *Device, message: ?[*:0]const u8, userdata: ?*anyopaque) void;
 // pub const RequestAdapterCallback = *const fn (status: RequestAdapterStatus, adapter: ?*Adapter, message: ?[*:0]const u8, userdata: ?*anyopaque) void;
-// pub const CreateComputePipelineAsyncCallback = *const fn (status: CreatePipelineAsyncStatus, compute_pipeline: ?*ComputePipeline, message: ?[*:0]const u8, userdata: ?*anyopaque) void;
-// pub const CreateRenderPipelineAsyncCallback = *const fn (status: CreatePipelineAsyncStatus, pipeline: ?*RenderPipeline, message: ?[*:0]const u8, userdata: ?*anyopaque) void;

@@ -138,20 +138,20 @@ pub const Texture = opaque {
     };
 
     pub const Descriptor = struct {
-        label: ?[:0]const u8 = null,
+        label: [:0]const u8 = "unnamed",
         usage: UsageFlags,
         dimension: Dimension = .@"2d",
         size: Extent3D,
         format: Format,
         mip_level_count: u32 = 1,
         sample_count: u32 = 1,
-        view_formats: ?[]const Format = null,
+        view_formats: []const Format = &.{},
     };
 
-    pub inline fn createView(self: *Texture, desc: ?TextureView.Descriptor) *TextureView {
-        _ = self; // autofix
-        _ = desc; // autofix
-        unreachable;
+    pub inline fn createView(self: *Texture, desc: TextureView.Descriptor) !*TextureView {
+        const texture: *impl.Texture = @alignCast(@ptrCast(self));
+        const view = try impl.TextureView.create(texture, desc);
+        return @ptrCast(view);
     }
 
     pub inline fn destroy(self: *Texture) void {
@@ -160,59 +160,58 @@ pub const Texture = opaque {
     }
 
     pub inline fn getDepthOrArrayLayers(self: *Texture) u32 {
-        _ = self; // autofix
-        unreachable;
+        const texture: *impl.Texture = @alignCast(@ptrCast(self));
+        return texture.size.depth_or_array_layers;
     }
 
     pub inline fn getDimension(self: *Texture) Dimension {
-        _ = self; // autofix
-        unreachable;
+        const texture: *impl.Texture = @alignCast(@ptrCast(self));
+        return texture.dimension;
     }
 
     pub inline fn getFormat(self: *Texture) Format {
-        _ = self; // autofix
-        unreachable;
-    }
-
-    pub inline fn getHeight(self: *Texture) u32 {
-        _ = self; // autofix
-        unreachable;
-    }
-
-    pub inline fn getMipLevelCount(self: *Texture) u32 {
-        _ = self; // autofix
-        unreachable;
-    }
-
-    pub inline fn getSampleCount(self: *Texture) u32 {
-        _ = self; // autofix
-        unreachable;
-    }
-
-    pub inline fn getUsage(self: *Texture) UsageFlags {
-        _ = self; // autofix
-        unreachable;
+        const texture: *impl.Texture = @alignCast(@ptrCast(self));
+        return texture.format;
     }
 
     pub inline fn getWidth(self: *Texture) u32 {
-        _ = self; // autofix
-        unreachable;
+        const texture: *impl.Texture = @alignCast(@ptrCast(self));
+        return texture.size.width;
+    }
+
+    pub inline fn getHeight(self: *Texture) u32 {
+        const texture: *impl.Texture = @alignCast(@ptrCast(self));
+        return texture.size.height;
+    }
+
+    pub inline fn getMipLevelCount(self: *Texture) u32 {
+        const texture: *impl.Texture = @alignCast(@ptrCast(self));
+        return texture.mip_level_count;
+    }
+
+    pub inline fn getSampleCount(self: *Texture) u32 {
+        const texture: *impl.Texture = @alignCast(@ptrCast(self));
+        return texture.sample_count;
+    }
+
+    pub inline fn getUsage(self: *Texture) UsageFlags {
+        const texture: *impl.Texture = @alignCast(@ptrCast(self));
+        return texture.usage;
     }
 
     pub inline fn setLabel(self: *Texture, label: [:0]const u8) void {
-        _ = self; // autofix
-        _ = label; // autofix
-        unreachable;
+        const texture: *impl.Texture = @alignCast(@ptrCast(self));
+        texture.setLabel(label);
     }
 
     pub inline fn reference(self: *Texture) void {
-        _ = self; // autofix
-        unreachable;
+        const texture: *impl.Texture = @alignCast(@ptrCast(self));
+        texture.manager.reference();
     }
 
     pub inline fn release(self: *Texture) void {
-        _ = self; // autofix
-        unreachable;
+        const texture: *impl.Texture = @alignCast(@ptrCast(self));
+        texture.manager.release();
     }
 };
 
@@ -220,7 +219,7 @@ pub const TextureView = opaque {
     pub const Dimension = enum { undefined, @"1d", @"2d", @"2d_array", cube, cube_array, @"3d" };
 
     pub const Descriptor = struct {
-        label: ?[:0]const u8 = null,
+        label: [:0]const u8 = "unnamed",
         format: Texture.Format = .undefined,
         dimension: Dimension = .undefined,
         base_mip_level: u32 = 0,
@@ -232,9 +231,7 @@ pub const TextureView = opaque {
 
     pub inline fn setLabel(self: *TextureView, label: [:0]const u8) void {
         const view: *impl.TextureView = @alignCast(@ptrCast(self));
-        _ = view; // autofix
-        _ = label; // autofix
-        unreachable;
+        view.setLabel(label);
     }
 
     pub inline fn reference(self: *TextureView) void {
@@ -251,8 +248,8 @@ pub const TextureView = opaque {
 pub const ExternalTexture = opaque {
     pub const Rotation = enum { @"0", @"90", @"180", @"270" };
 
-    pub const Descriptor = extern struct {
-        label: ?[:0]const u8 = null,
+    pub const Descriptor = struct {
+        label: [:0]const u8 = "unnamed",
         plane0: *TextureView,
         plane1: ?*TextureView = null,
         visible_origin: Origin2D,

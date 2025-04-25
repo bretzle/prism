@@ -22,24 +22,23 @@ pub const BindGroupLayout = opaque {
     };
 
     pub const Descriptor = struct {
-        label: ?[:0]const u8 = null,
+        label: [:0]const u8 = "unnamed",
         entries: []const Entry = &.{},
     };
 
     pub inline fn setLabel(self: *BindGroupLayout, label: [:0]const u8) void {
-        _ = self; // autofix
-        _ = label; // autofix
-        unreachable;
+        const layout: *impl.BindGroupLayout = @alignCast(@ptrCast(self));
+        layout.setLabel(label);
     }
 
     pub inline fn reference(self: *BindGroupLayout) void {
-        _ = self; // autofix
-        unreachable;
+        const layout: *impl.BindGroupLayout = @alignCast(@ptrCast(self));
+        layout.manager.reference();
     }
 
     pub inline fn release(self: *BindGroupLayout) void {
-        _ = self; // autofix
-        unreachable;
+        const layout: *impl.BindGroupLayout = @alignCast(@ptrCast(self));
+        layout.manager.release();
     }
 };
 
@@ -55,9 +54,9 @@ pub const BindGroup = opaque {
     };
 
     pub const Descriptor = struct {
-        label: ?[:0]const u8 = null,
+        label: [:0]const u8 = "unnamed",
         layout: *BindGroupLayout,
-        entries: ?[]const Entry = null,
+        entries: []const Entry = &.{},
     };
 
     pub inline fn setLabel(self: *BindGroup, label: [:0]const u8) void {

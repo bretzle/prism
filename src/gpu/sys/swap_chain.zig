@@ -10,7 +10,7 @@ const PresentMode = types.PresentMode;
 
 pub const SwapChain = opaque {
     pub const Descriptor = struct {
-        label: ?[:0]const u8 = null,
+        label: [:0]const u8 = "unnamed",
         usage: Texture.UsageFlags,
         format: Texture.Format,
         width: u32,

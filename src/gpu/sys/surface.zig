@@ -13,7 +13,7 @@ pub const Surface = opaque {
     // pub const DescriptorFromXlibWindow = struct { display: *anyopaque, window: u32 };
 
     pub const Descriptor = struct {
-        label: ?[:0]const u8 = null,
+        label: [:0]const u8 = "unnamed",
         data: union {
             // android_native_window: DescriptorFromAndroidNativeWindow,
             // canvas_html_selector: DescriptorFromCanvasHTMLSelector,

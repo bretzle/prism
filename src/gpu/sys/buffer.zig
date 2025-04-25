@@ -33,7 +33,7 @@ pub const Buffer = opaque {
     };
 
     pub const Descriptor = struct {
-        label: ?[:0]const u8 = null,
+        label: [:0]const u8 = "unnamed",
         usage: UsageFlags,
         size: u64,
         mapped_at_creation: bool = false,
@@ -80,9 +80,8 @@ pub const Buffer = opaque {
     }
 
     pub inline fn setLabel(self: *Buffer, label: [:0]const u8) void {
-        _ = self; // autofix
-        _ = label; // autofix
-        unreachable;
+        const buffer: *impl.Buffer = @alignCast(@ptrCast(self));
+        buffer.setLabel(label);
     }
 
     pub inline fn reference(self: *Buffer) void {

@@ -28,11 +28,8 @@ const SupportedLimits = types.SupportedLimits;
 const ErrorType = types.ErrorType;
 const ErrorFilter = types.ErrorFilter;
 const LoggingType = types.LoggingType;
-const CreatePipelineAsyncStatus = types.CreatePipelineAsyncStatus;
 const LoggingCallback = types.LoggingCallback;
 const ErrorCallback = types.ErrorCallback;
-const CreateComputePipelineAsyncCallback = types.CreateComputePipelineAsyncCallback;
-const CreateRenderPipelineAsyncCallback = types.CreateRenderPipelineAsyncCallback;
 
 const allocator = @import("../../prism.zig").allocator;
 
@@ -42,8 +39,8 @@ pub const Device = opaque {
     pub const LostReason = enum { undefined, destroyed };
 
     pub const Descriptor = struct {
-        label: ?[:0]const u8 = null,
-        required_features: ?[]const FeatureName = null,
+        label: [:0]const u8 = "unnamed",
+        required_features: []const FeatureName = &.{},
         required_limits: ?*const RequiredLimits = null,
         default_queue: Queue.Descriptor = Queue.Descriptor{},
         // device_lost_callback: LostCallback,
@@ -79,19 +76,6 @@ pub const Device = opaque {
         const device: *impl.Device = @alignCast(@ptrCast(self));
         _ = device; // autofix
         _ = desc; // autofix
-        unreachable;
-    }
-
-    pub inline fn createComputePipelineAsync(
-        self: *Device,
-        desc: ComputePipeline.Descriptor,
-        context: anytype,
-        comptime callback: fn (status: CreatePipelineAsyncStatus, compute_pipeline: *ComputePipeline, message: [:0]const u8, ctx: @TypeOf(context)) callconv(.Inline) void,
-    ) void {
-        const device: *impl.Device = @alignCast(@ptrCast(self));
-        _ = device; // autofix
-        _ = desc; // autofix
-        _ = callback; // autofix
         unreachable;
     }
 
@@ -148,19 +132,6 @@ pub const Device = opaque {
         return @ptrCast(render_pipeline);
     }
 
-    pub inline fn createRenderPipelineAsync(
-        self: *Device,
-        desc: RenderPipeline.Descriptor,
-        context: anytype,
-        comptime callback: fn (ctx: @TypeOf(context), status: CreatePipelineAsyncStatus, pipeline: *RenderPipeline, message: [:0]const u8) callconv(.Inline) void,
-    ) void {
-        const device: *impl.Device = @alignCast(@ptrCast(self));
-        _ = device; // autofix
-        _ = desc; // autofix
-        _ = callback; // autofix
-        unreachable;
-    }
-
     pub inline fn createSampler(self: *Device, desc: ?Sampler.Descriptor) *Sampler {
         const device: *impl.Device = @alignCast(@ptrCast(self));
         _ = device; // autofix
@@ -175,7 +146,7 @@ pub const Device = opaque {
     // }
 
     /// Helper to make createShaderModule invocations slightly nicer.
-    pub inline fn createShaderModuleWGSL(self: *Device, label: ?[:0]const u8, code: [:0]const u8) !*ShaderModule {
+    pub inline fn createShaderModuleWGSL(self: *Device, label: [:0]const u8, code: [:0]const u8) !*ShaderModule {
         const device: *impl.Device = @alignCast(@ptrCast(self));
 
         var errors = try shader.ErrorList.init(allocator);
@@ -342,9 +313,7 @@ pub const Device = opaque {
 
     pub inline fn setLabel(self: *Device, label: [:0]const u8) void {
         const device: *impl.Device = @alignCast(@ptrCast(self));
-        _ = device; // autofix
-        _ = label; // autofix
-        unreachable;
+        device.setLabel(label);
     }
 
     pub inline fn reference(self: *Device) void {

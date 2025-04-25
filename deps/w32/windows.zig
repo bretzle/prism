@@ -770,16 +770,21 @@ pub const IUnknown = extern struct {
 
 pub const IObject = extern struct {
     pub const IID = GUID.parse("{AEC22FB8-76F3-4639-9BE0-28EB43A67A2E}");
+    pub const DebugObjectName = GUID.parse("{4CCA5FD8-921F-42C8-8566-70CAF2A9B741}");
 
     vtable: *const VTable,
 
     pub const VTable = extern struct {
         base: IUnknown.VTable,
         get_private_data: *anyopaque,
-        set_private_data: *anyopaque,
+        set_private_data: *const fn (*IObject, guid: *const GUID, DataSize: u32, pData: ?*const anyopaque) callconv(.winapi) HRESULT,
         set_private_data_interface: *anyopaque,
         set_name: *anyopaque,
     };
+
+    pub fn setPrivateData(self: *IObject, guid: *const GUID, data_size: u32, data: ?*const anyopaque) HRESULT {
+        return (self.vtable.set_private_data)(self, guid, data_size, data);
+    }
 };
 
 pub fn msgToStr(msg: u32, buf: *[6]u8) []const u8 {

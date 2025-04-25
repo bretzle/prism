@@ -35,13 +35,7 @@ pub const RenderPassEncoder = opaque {
     /// Default `first_instance`: 0
     pub inline fn drawIndexed(self: *RenderPassEncoder, index_count: u32, instance_count: u32, first_index: u32, base_vertex: i32, first_instance: u32) void {
         const encoder: *impl.RenderPassEncoder = @alignCast(@ptrCast(self));
-        _ = encoder; // autofix
-        _ = index_count; // autofix
-        _ = instance_count; // autofix
-        _ = first_index; // autofix
-        _ = base_vertex; // autofix
-        _ = first_instance; // autofix
-        unreachable;
+        try encoder.drawIndexed(index_count, instance_count, first_index, base_vertex, first_instance);
     }
 
     pub inline fn drawIndexedIndirect(self: *RenderPassEncoder, indirect_buffer: *Buffer, indirect_offset: u64) void {
@@ -100,7 +94,7 @@ pub const RenderPassEncoder = opaque {
 
     /// Default `dynamic_offsets_count`: 0
     /// Default `dynamic_offsets`: `null`
-    pub inline fn setBindGroup(self: *RenderPassEncoder, group_index: u32, group: *BindGroup, dynamic_offsets: ?[]const u32) void {
+    pub inline fn setBindGroup(self: *RenderPassEncoder, group_index: u32, group: *BindGroup, dynamic_offsets: []const u32) void {
         const encoder: *impl.RenderPassEncoder = @alignCast(@ptrCast(self));
         _ = encoder; // autofix
         _ = group_index; // autofix
@@ -185,9 +179,7 @@ pub const RenderPassEncoder = opaque {
 
     pub inline fn setLabel(self: *RenderPassEncoder, label: [:0]const u8) void {
         const encoder: *impl.RenderPassEncoder = @alignCast(@ptrCast(self));
-        _ = encoder; // autofix
-        _ = label; // autofix
-        unreachable;
+        encoder.setLabel(label);
     }
 
     pub inline fn reference(self: *RenderPassEncoder) void {
@@ -240,7 +232,7 @@ pub const ComputePassEncoder = opaque {
     }
 
     /// Default `dynamic_offsets`: null
-    pub inline fn setBindGroup(self: *ComputePassEncoder, group_index: u32, group: *BindGroup, dynamic_offsets: ?[]const u32) void {
+    pub inline fn setBindGroup(self: *ComputePassEncoder, group_index: u32, group: *BindGroup, dynamic_offsets: []const u32) void {
         _ = self; // autofix
         _ = group_index; // autofix
         _ = group; // autofix
@@ -280,7 +272,7 @@ pub const ComputePassEncoder = opaque {
 
 pub const RenderBundle = opaque {
     pub const Descriptor = struct {
-        label: ?[:0]const u8 = null,
+        label: [:0]const u8 = "unnamed",
     };
 
     pub inline fn setLabel(self: *RenderBundle, label: [:0]const u8) void {
@@ -302,8 +294,8 @@ pub const RenderBundle = opaque {
 
 pub const RenderBundleEncoder = opaque {
     pub const Descriptor = extern struct {
-        label: ?[:0]const u8 = null,
-        color_formats: ?[]const Texture.Format = null,
+        label: [:0]const u8 = "unnamed",
+        color_formats: []const Texture.Format = &.{},
         depth_stencil_format: Texture.Format = .undefined,
         sample_count: u32 = 1,
         depth_read_only: bool = false,
@@ -374,7 +366,7 @@ pub const RenderBundleEncoder = opaque {
     }
 
     /// Default `dynamic_offsets`: `null`
-    pub inline fn setBindGroup(self: *RenderBundleEncoder, group_index: u32, group: *BindGroup, dynamic_offsets: ?[]const u32) void {
+    pub inline fn setBindGroup(self: *RenderBundleEncoder, group_index: u32, group: *BindGroup, dynamic_offsets: []const u32) void {
         _ = self; // autofix
         _ = group_index; // autofix
         _ = group; // autofix

@@ -19,7 +19,7 @@ pub const SharedTextureMemory = opaque {
     pub const ZirconHandleDescriptor = struct { memory_fd: u32, allocation_size: u64 };
 
     pub const Descriptor = struct {
-        label: ?[:0]const u8,
+        label: [:0]const u8 = "unnamed",
         data: union {
             none: void,
             a_hardware_buffer_descriptor: AHardwareBufferDescriptor,

@@ -650,7 +650,7 @@ pub const ShaderModule = struct {
     manager: Manager(ShaderModule) = .{},
     air: *sys.shader.Air,
 
-    pub fn create(_: *Device, air: *sys.shader.Air, _: ?[:0]const u8) !*ShaderModule {
+    pub fn create(_: *Device, air: *sys.shader.Air, _: [:0]const u8) !*ShaderModule {
         const self = try allocator.create(ShaderModule);
         self.* = .{ .air = air };
         return self;
@@ -797,9 +797,7 @@ pub const RenderPipeline = struct {
         }
         errdefer _ = pipeline.release();
 
-        if (desc.label) |_| {
-            unreachable;
-        }
+        setDebugName(@ptrCast(pipeline), desc.label);
 
         // Result
         const self = try allocator.create(RenderPipeline);
@@ -818,6 +816,10 @@ pub const RenderPipeline = struct {
         self.layout.manager.release();
         _ = self.pipeline.release();
         allocator.destroy(self);
+    }
+
+    pub fn getBindGroupLayout(self: *RenderPipeline, group_index: u32) *BindGroupLayout {
+        return self.layout.group_layouts[group_index];
     }
 };
 
@@ -1097,9 +1099,7 @@ pub const CommandEncoder = struct {
             return error.CommandListCloseFailed;
         }
 
-        if (desc.label) |_| {
-            unreachable;
-        }
+        setDebugName(@ptrCast(self.command_buffer.command_list), desc.label);
 
         return self.command_buffer;
     }
@@ -1348,6 +1348,11 @@ pub const RenderPassEncoder = struct {
         self.command_list.drawInstanced(vertex_count, instance_count, first_vertex, first_instance);
     }
 
+    pub fn drawIndexed(self: *RenderPassEncoder, index_count: u32, instance_count: u32, first_index: u32, base_vertex: i32, first_instance: u32) !void {
+        self.applyVertexBuffers();
+        self.command_list.drawIndexedInstanced(index_count, instance_count, first_index, base_vertex, first_instance);
+    }
+
     pub fn end(self: *RenderPassEncoder) !void {
         const command_list = self.command_list;
 
@@ -1427,9 +1432,7 @@ pub const Buffer = struct {
         var resource = try device.createBufferResource(desc.usage, desc.size);
         errdefer resource.deinit();
 
-        if (desc.label) |_| {
-            unreachable;
-        }
+        setDebugName(@ptrCast(resource.resource), desc.label);
 
         // Mapped at Creation
         var stage_buffer: ?*Buffer = null;
@@ -2438,3 +2441,7 @@ const MemoryAllocator = struct {
         _ = resource.resource.release();
     }
 };
+
+fn setDebugName(object: *d3d12.IObject, label: [:0]const u8) void {
+    _ = object.setPrivateData(&d3d12.IObject.DebugObjectName, @intCast(label.len), @ptrCast(label.ptr));
+}

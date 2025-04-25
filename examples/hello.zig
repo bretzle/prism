@@ -25,7 +25,7 @@ pub fn main() !void {
     const window = try app.createWindow(.{});
     defer window.deinit();
 
-    const shader = try window.device.createShaderModuleWGSL(null, code);
+    const shader = try window.device.createShaderModuleWGSL("triangle", code);
     defer shader.release();
 
     const blend = gpu.types.BlendState{};
