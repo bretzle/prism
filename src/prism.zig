@@ -2,6 +2,7 @@ const std = @import("std");
 const builtin = @import("builtin");
 pub const gpu = @import("gpu/gpu.zig");
 pub const math = @import("math/math.zig");
+pub const time = @import("time.zig");
 
 const platform = switch (builtin.target.os.tag) {
     .windows => @import("platform/win32.zig"),
@@ -15,9 +16,7 @@ pub const Application = struct {
     windows: std.ArrayListUnmanaged(*Window),
 
     pub fn create() !Application {
-        return .{
-            .windows = .empty,
-        };
+        return .{ .windows = .empty };
     }
 
     pub fn deinit(_: *Application) void {
