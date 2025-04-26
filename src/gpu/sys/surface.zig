@@ -24,6 +24,17 @@ pub const Surface = opaque {
             // windows_swap_chain_panel: DescriptorFromWindowsSwapChainPanel,
             // xlib_window: DescriptorFromXlibWindow,
         },
+
+        pub inline fn windows(hinstance: *anyopaque, hwnd: *anyopaque) Descriptor {
+            return .{
+                .data = .{
+                    .windows_hwnd = .{
+                        .hinstance = hinstance,
+                        .hwnd = hwnd,
+                    },
+                },
+            };
+        }
     };
 
     pub inline fn reference(self: *Surface) void {

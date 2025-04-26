@@ -1,3 +1,4 @@
+const std = @import("std");
 const prism = @import("prism");
 const gpu = prism.gpu;
 
@@ -8,32 +9,39 @@ pub fn main() !void {
     defer app.deinit();
 
     const window = try app.createWindow(.{});
-    defer window.deinit();
+    const device = window.getDevice();
+    const swapchain = window.getSwapchain();
+    const queue = window.getQueue();
 
-    const shader = try window.device.createShaderModuleWGSL("triangle", code);
+    const shader = try device.createShaderModuleWGSL("triangle", code);
     defer shader.release();
 
     const blend = gpu.types.BlendState{};
     const color_target = gpu.types.ColorTargetState{
-        .format = window.framebuffer_format,
+        .format = .bgra8_unorm,
         .blend = &blend,
     };
 
-    const pipeline = try window.device.createRenderPipeline(.{
+    const pipeline = try device.createRenderPipeline(.{
         .vertex = .{ .module = shader, .entrypoint = "vertex_main" },
         .fragment = &.{ .module = shader, .entrypoint = "frag_main", .targets = &.{color_target} },
     });
     defer pipeline.release();
 
-    loop: while (true) {
-        for (window.getEvents()) |*event| {
-            if (event.* == .window_close) break :loop;
-        }
+    loop: while (true) : (window.presentFrame()) {
+        for (window.getEvents()) |event| switch (event) {
+            .close => break :loop,
+            .key_press, .key_repeat, .key_release => |e| std.debug.print("{s}: {s}\n", .{ @tagName(event), @tagName(e.key) }),
+            .mouse_press, .mouse_release => |e| std.debug.print("{s}: {s}\n", .{ @tagName(event), @tagName(e.button) }),
+            .mouse_scroll => |e| std.debug.print("{s}: {}\n", .{ @tagName(event), e }),
+            .focus_gained, .focus_lost => std.debug.print("{s}\n", .{@tagName(event)}),
+            else => {},
+        };
 
-        const back_buffer_view = try window.swap_chain.getCurrentTextureView();
+        const back_buffer_view = try swapchain.getCurrentTextureView();
         defer back_buffer_view.release();
 
-        const encoder = try window.device.createCommandEncoder(.{});
+        const encoder = try device.createCommandEncoder(.{});
         defer encoder.release();
 
         const render_pass = try encoder.beginRenderPass(.{
@@ -53,9 +61,6 @@ pub fn main() !void {
         var command = try encoder.finish(.{});
         defer command.release();
 
-        try window.queue.submit(&.{command});
-
-        try window.device.tick();
-        try window.swap_chain.present();
+        try queue.submit(&.{command});
     }
 }

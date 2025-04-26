@@ -1,20 +1,22 @@
 const std = @import("std");
 const builtin = @import("builtin");
-pub const gpu = @import("gpu/gpu.zig");
-pub const gfx = @import("gfx/gfx.zig");
-pub const math = @import("math/math.zig");
-pub const time = @import("time.zig");
 
 const platform = switch (builtin.target.os.tag) {
     .windows => @import("platform/win32.zig"),
     else => unreachable,
 };
 
+pub const gpu = @import("gpu/gpu.zig");
+pub const gfx = @import("gfx/gfx.zig");
+pub const math = @import("math/math.zig");
+pub const time = @import("time.zig");
+
 pub var gpa: std.heap.GeneralPurposeAllocator(.{}) = .init;
 pub const allocator = gpa.allocator();
 
 pub const Application = struct {
     windows: std.ArrayListUnmanaged(*Window),
+    state: enum { running } = .running,
 
     pub fn create() !Application {
         return .{ .windows = .empty };
@@ -24,102 +26,256 @@ pub const Application = struct {
         // TODO
     }
 
-    pub fn createWindow(self: *Application, options: WindowOptions) !*Window {
-        const native, const size, const surface_desc = try platform.Window.create(self, options);
-
-        const window = try allocator.create(Window);
-
-        window.* = .{
-            .title = options.title,
-            .width = size[0],
-            .height = size[1],
-            .native = native,
-        };
-
-        window.native.front = &window.native.events[0];
-        window.native.back = &window.native.events[1];
-
-        window.instance = try gpu.Instance.create(.{});
-
-        window.surface = try window.instance.createSurface(surface_desc);
-        window.surface_descriptor = surface_desc;
-
-        window.adapter = try window.instance.createAdapter(.{ .surface = window.surface, .power_preference = .performance });
-
-        const props = window.adapter.getProperties();
-        std.log.info("found d3d12 backend on {s} adapter: {s}, {s}", .{
-            @tagName(props.adapter_type),
-            props.name,
-            props.driver_description,
-        });
-
-        window.device = try window.adapter.createDevice(.{});
-        window.queue = try window.device.getQueue();
-
-        window.swap_chain_descriptor = .{
-            .label = "main swap chain",
-            .usage = .{ .render_attachment = true },
-            .format = .bgra8_unorm,
-            .width = window.width,
-            .height = window.height,
-            .present_mode = .fifo,
-        };
-
-        window.swap_chain = try window.device.createSwapChain(window.surface, window.swap_chain_descriptor);
-
-        try self.windows.append(allocator, window);
-        return window;
+    pub fn createWindow(self: *Application, desc: Window.Descriptor) !*Window {
+        const win: *Window = @ptrCast(try platform.Window.create(self, desc));
+        try self.windows.append(allocator, win);
+        return win;
     }
 };
 
-pub const WindowOptions = struct {
-    title: [:0]const u8 = "Example - 🎉",
-    width: u32 = 800,
-    height: u32 = 600,
-};
+pub const Window = opaque {
+    pub const Descriptor = struct {
+        title: []const u8 = "prism ❤️",
+        width: u32 = 800,
+        height: u32 = 600,
+    };
 
-pub const Window = struct {
-    title: [:0]const u8,
-    width: u32,
-    height: u32,
-
-    // gpu
-    device: *gpu.Device = undefined,
-    instance: *gpu.Instance = undefined,
-    adapter: *gpu.Adapter = undefined,
-    queue: *gpu.Queue = undefined,
-    swap_chain: *gpu.SwapChain = undefined,
-    swap_chain_descriptor: gpu.SwapChain.Descriptor = undefined,
-    surface: *gpu.Surface = undefined,
-    surface_descriptor: gpu.Surface.Descriptor = undefined,
-
-    framebuffer_format: gpu.Texture.Format = .bgra8_unorm,
-    native: platform.Window,
-
-    pub fn deinit(self: *Window) void {
-        self.swap_chain.release();
-        self.queue.release();
-        self.device.release();
-        self.adapter.release();
-        self.surface.release();
-        self.instance.release();
+    pub inline fn presentFrame(self: *Window) void {
+        const window: *platform.Window = @alignCast(@ptrCast(self));
+        return window.presentFrame();
     }
 
-    pub fn getEvents(self: *Window) []const Event {
-        return self.native.getEvents();
+    pub inline fn getEvents(self: *Window) []const Event {
+        const window: *platform.Window = @alignCast(@ptrCast(self));
+        return window.getEvents();
+    }
+
+    pub inline fn getDevice(self: *Window) *gpu.Device {
+        const window: *platform.Window = @alignCast(@ptrCast(self));
+        return window.device;
+    }
+
+    pub inline fn getInstance(self: *Window) *gpu.Instance {
+        const window: *platform.Window = @alignCast(@ptrCast(self));
+        return window.instance;
+    }
+
+    pub inline fn getAdapter(self: *Window) *gpu.Adapter {
+        const window: *platform.Window = @alignCast(@ptrCast(self));
+        return window.adapter;
+    }
+
+    pub inline fn getQueue(self: *Window) *gpu.Queue {
+        const window: *platform.Window = @alignCast(@ptrCast(self));
+        return window.queue;
+    }
+
+    pub inline fn getSwapchain(self: *Window) *gpu.SwapChain {
+        const window: *platform.Window = @alignCast(@ptrCast(self));
+        return window.swapchain;
+    }
+
+    pub inline fn getSurface(self: *Window) *gpu.Surface {
+        const window: *platform.Window = @alignCast(@ptrCast(self));
+        return window.surface;
     }
 };
 
 pub const EventTag = enum {
-    window_close,
-    window_visible,
-    window_hidden,
+    close,
+    size,
+    key_repeat,
+    key_press,
+    key_release,
+    mouse_press,
+    mouse_release,
+    mouse_motion,
+    mouse_scroll,
+    focus_gained,
+    focus_lost,
 };
 
-pub const Event = union(EventTag) {
-    window_close,
-    window_visible,
-    window_hidden,
+pub const Event = union(enum) {
+    close,
+    size: [2]u32,
+    key_repeat: KeyEvent,
+    key_press: KeyEvent,
+    key_release: KeyEvent,
+    mouse_press: MouseButtonEvent,
+    mouse_release: MouseButtonEvent,
+    mouse_motion: math.Vec2,
+    mouse_scroll: math.Vec2,
+    focus_gained,
+    focus_lost,
+};
+
+pub const KeyEvent = struct {
+    key: Key,
+    mods: KeyMods,
+};
+
+pub const MouseButtonEvent = struct {
+    button: MouseButton,
+    mods: KeyMods,
+    pos: math.Vec2,
+};
+
+pub const Key = enum {
+    a,
+    b,
+    c,
+    d,
+    e,
+    f,
+    g,
+    h,
+    i,
+    j,
+    k,
+    l,
+    m,
+    n,
+    o,
+    p,
+    q,
+    r,
+    s,
+    t,
+    u,
+    v,
+    w,
+    x,
+    y,
+    z,
+
+    zero,
+    one,
+    two,
+    three,
+    four,
+    five,
+    six,
+    seven,
+    eight,
+    nine,
+
+    f1,
+    f2,
+    f3,
+    f4,
+    f5,
+    f6,
+    f7,
+    f8,
+    f9,
+    f10,
+    f11,
+    f12,
+    f13,
+    f14,
+    f15,
+    f16,
+    f17,
+    f18,
+    f19,
+    f20,
+    f21,
+    f22,
+    f23,
+    f24,
+    f25,
+
+    kp_divide,
+    kp_multiply,
+    kp_subtract,
+    kp_add,
+    kp_0,
+    kp_1,
+    kp_2,
+    kp_3,
+    kp_4,
+    kp_5,
+    kp_6,
+    kp_7,
+    kp_8,
+    kp_9,
+    kp_decimal,
+    kp_comma,
+    kp_equal,
+    kp_enter,
+
+    enter,
+    escape,
+    tab,
+    left_shift,
+    right_shift,
+    left_control,
+    right_control,
+    left_alt,
+    right_alt,
+    left_super,
+    right_super,
+    menu,
+    num_lock,
+    caps_lock,
+    print,
+    scroll_lock,
+    pause,
+    delete,
+    home,
+    end,
+    page_up,
+    page_down,
+    insert,
+    left,
+    right,
+    up,
+    down,
+    backspace,
+    space,
+    minus,
+    equal,
+    left_bracket,
+    right_bracket,
+    backslash,
+    semicolon,
+    apostrophe,
+    comma,
+    period,
+    slash,
+    grave,
+
+    iso_backslash,
+    international1,
+    international2,
+    international3,
+    international4,
+    international5,
+    lang1,
+    lang2,
+
+    unknown,
+};
+
+pub const KeyMods = packed struct(u8) {
+    shift: bool,
+    control: bool,
+    alt: bool,
+    super: bool,
+    caps_lock: bool,
+    num_lock: bool,
+    _: u2 = 0,
+};
+
+pub const MouseButton = enum {
+    left,
+    right,
+    middle,
+    four,
+    five,
+    six,
+    seven,
+    eight,
 };
 
 test {

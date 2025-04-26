@@ -337,6 +337,15 @@ pub const Device = struct {
 
         return try self.mem_allocator.createResource(&create_desc);
     }
+
+    fn logger(category: d3d12.MESSAGE_CATEGORY, severity: d3d12.MESSAGE_SEVERITY, id: d3d12.MESSAGE_ID, description: [*c]const u8, _: ?*anyopaque) callconv(.winapi) void {
+        std.debug.print("{s} [{s}] {s} ({d})\n", .{
+            @tagName(severity),
+            @tagName(category),
+            description,
+            @intFromEnum(id),
+        });
+    }
 };
 
 pub const Queue = struct {
@@ -449,6 +458,9 @@ pub const Queue = struct {
     }
 };
 
+const back_buffer_count = 2;
+
+// TODO I _really_ dont like how the code here is structured
 pub const SwapChain = struct {
     manager: Manager(SwapChain) = .{},
     device: *Device,
@@ -464,11 +476,11 @@ pub const SwapChain = struct {
     views: [2]*TextureView,
     fence_values: [2]u64,
     buffer_index: u32 = 0,
+    desc: sys.SwapChain.Descriptor,
 
     pub fn create(device: *Device, surface: *Surface, desc: sys.SwapChain.Descriptor) !*SwapChain {
         const instance = device.adapter.instance;
 
-        const back_buffer_count = 2;
         var swapchain_desc = dxgi.SWAP_CHAIN_DESC1{
             .Width = desc.width,
             .Height = desc.height,
@@ -483,29 +495,13 @@ pub const SwapChain = struct {
             .Flags = .{ .ALLOW_TEARING = instance.allow_tearing },
         };
 
+        device.processQueuedOperations();
+
         var swapchain: *dxgi.ISwapChain3 = undefined;
         _ = instance.factory.createSwapChainForHwnd(@ptrCast(device.queue.command_queue), surface.hwnd, &swapchain_desc, null, null, @ptrCast(&swapchain));
         errdefer _ = swapchain.release();
 
-        var textures: [back_buffer_count]*Texture = undefined;
-        var views: [back_buffer_count]*TextureView = undefined;
-        var fence_values: [back_buffer_count]u64 = undefined;
-        errdefer {
-            for (views) |view| view.manager.release();
-            for (textures) |texture| texture.manager.release();
-        }
-
-        for (0..back_buffer_count) |i| {
-            var buffer: *d3d12.IResource = undefined;
-            _ = swapchain.getBuffer(@intCast(i), &d3d12.IResource.IID, @ptrCast(&buffer));
-
-            const texture = try Texture.createForSwapchain(device, desc, buffer);
-            const view = try TextureView.create(texture, .{});
-
-            textures[i] = texture;
-            views[i] = view;
-            fence_values[i] = 0;
-        }
+        const textures, const views, const fence_values = try getBuffers(swapchain, device, desc);
 
         const self = try allocator.create(SwapChain);
         self.* = .{
@@ -521,16 +517,14 @@ pub const SwapChain = struct {
             .textures = textures,
             .views = views,
             .fence_values = fence_values,
+            .desc = desc,
         };
 
         return self;
     }
 
     pub fn deinit(self: *SwapChain) void {
-        self.queue.waitUntil(self.queue.fence_value);
-
-        for (self.views[0..self.back_buffer_count]) |view| view.manager.release();
-        for (self.textures[0..self.back_buffer_count]) |texture| texture.manager.release();
+        self.freeResources();
         _ = self.swapchain.release();
         allocator.destroy(self);
     }
@@ -554,6 +548,45 @@ pub const SwapChain = struct {
         self.queue.fence_value += 1;
         try self.queue.signal();
         self.fence_values[self.buffer_index] = self.queue.fence_value;
+    }
+
+    pub fn resize(self: *SwapChain, width: u32, height: u32) !void {
+        self.freeResources();
+
+        _ = self.swapchain.resizeBuffers(back_buffer_count, width, height, .UNKNOWN, .{});
+
+        self.desc.width = width;
+        self.desc.height = height;
+        self.textures, self.views, self.fence_values = try getBuffers(self.swapchain, self.device, self.desc);
+    }
+
+    fn freeResources(self: *SwapChain) void {
+        self.queue.waitUntil(self.queue.fence_value);
+
+        for (self.views[0..self.back_buffer_count]) |view| view.manager.release();
+        for (self.textures[0..self.back_buffer_count]) |texture| texture.manager.release();
+
+        self.device.processQueuedOperations();
+    }
+
+    fn getBuffers(swapchain: *dxgi.ISwapChain3, device: *Device, desc: sys.SwapChain.Descriptor) !struct { [back_buffer_count]*Texture, [back_buffer_count]*TextureView, [back_buffer_count]u64 } {
+        var textures: [back_buffer_count]*Texture = undefined;
+        var views: [back_buffer_count]*TextureView = undefined;
+        var fence_values: [back_buffer_count]u64 = undefined;
+
+        for (0..back_buffer_count) |i| {
+            var buffer: *d3d12.IResource = undefined;
+            _ = swapchain.getBuffer(@intCast(i), &d3d12.IResource.IID, @ptrCast(&buffer));
+
+            const texture = try Texture.createForSwapchain(device, desc, buffer);
+            const view = try TextureView.create(texture, .{});
+
+            textures[i] = texture;
+            views[i] = view;
+            fence_values[i] = 0;
+        }
+
+        return .{ textures, views, fence_values };
     }
 };
 

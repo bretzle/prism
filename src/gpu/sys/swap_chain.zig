@@ -35,6 +35,11 @@ pub const SwapChain = opaque {
         try swapchain.present();
     }
 
+    pub inline fn resize(self: *SwapChain, width: u32, height: u32) !void {
+        const swapchain: *impl.SwapChain = @alignCast(@ptrCast(self));
+        try swapchain.resize(width, height);
+    }
+
     pub inline fn reference(self: *SwapChain) void {
         const swapchain: *impl.SwapChain = @alignCast(@ptrCast(self));
         swapchain.manager.reference();
