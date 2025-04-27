@@ -568,14 +568,6 @@ pub const RequiredLimits = struct {
     limits: Limits,
 };
 
-/// Used to query limits from a Device or Adapter. Can be used as follows:
-///
-/// ```
-/// var supported: gpu.SupportedLimits = .{};
-/// if (!adapter.getLimits(&supported)) @panic("unsupported options");
-/// ```
-///
-/// Note that `getLimits` can only fail if `next_in_chain` options are invalid.
 pub const SupportedLimits = struct {
     limits: Limits,
 };

@@ -139,31 +139,44 @@ pub const Device = opaque {
         unreachable;
     }
 
-    // pub inline fn createShaderModule(self: *Device, desc: ShaderModule.Descriptor) !*ShaderModule {
-    //     const device: *impl.Device = @alignCast(@ptrCast(self));
-    //     _ = desc; // autofix
-    //     unreachable;
-    // }
+    pub inline fn createShaderModule(self: *Device, desc: ShaderModule.Descriptor) !*ShaderModule {
+        const device: *impl.Device = @alignCast(@ptrCast(self));
+        const shader_module = switch (desc.code) {
+            .wgsl => |code| blk: {
+                var errors = try shader.ErrorList.init(allocator);
+                var ast = try shader.Ast.parse(allocator, &errors, code);
+                defer ast.deinit(allocator);
+
+                const air = try allocator.create(shader.Air);
+                air.* = shader.Air.generate(allocator, &ast, &errors, null) catch |err| switch (err) {
+                    error.AnalysisFail => {
+                        try errors.print(code, null);
+                        return err;
+                    },
+                    else => return err,
+                };
+
+                break :blk try impl.ShaderModule.create(device, air, desc.label);
+            },
+            .hlsl => |code| try impl.ShaderModule.createCode(device, code, desc.label),
+        };
+        return @ptrCast(shader_module);
+    }
 
     /// Helper to make createShaderModule invocations slightly nicer.
     pub inline fn createShaderModuleWGSL(self: *Device, label: [:0]const u8, code: [:0]const u8) !*ShaderModule {
-        const device: *impl.Device = @alignCast(@ptrCast(self));
+        return self.createShaderModule(.{
+            .label = label,
+            .code = .{ .wgsl = code },
+        });
+    }
 
-        var errors = try shader.ErrorList.init(allocator);
-        var ast = try shader.Ast.parse(allocator, &errors, code);
-        defer ast.deinit(allocator);
-
-        const air = try allocator.create(shader.Air);
-        air.* = shader.Air.generate(allocator, &ast, &errors, null) catch |err| switch (err) {
-            error.AnalysisFail => {
-                errors.print(code, null) catch @panic("api error");
-                std.process.exit(1);
-            },
-            else => @panic("api error"),
-        };
-
-        const shader_module = try impl.ShaderModule.create(device, air, label);
-        return @ptrCast(shader_module);
+    /// Helper to make createShaderModule invocations slightly nicer.
+    pub inline fn createShaderModuleHLSL(self: *Device, label: [:0]const u8, code: [:0]const u8) !*ShaderModule {
+        return self.createShaderModule(.{
+            .label = label,
+            .code = .{ .hlsl = code },
+        });
     }
 
     pub inline fn createSwapChain(self: *Device, surface_: *Surface, desc: SwapChain.Descriptor) !*SwapChain {

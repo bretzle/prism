@@ -681,23 +681,38 @@ pub const TextureView = struct {
 
 pub const ShaderModule = struct {
     manager: Manager(ShaderModule) = .{},
-    air: *sys.shader.Air,
+    data: union(enum) {
+        air: *sys.shader.Air,
+        code: [:0]const u8,
+    },
 
     pub fn create(_: *Device, air: *sys.shader.Air, _: [:0]const u8) !*ShaderModule {
         const self = try allocator.create(ShaderModule);
-        self.* = .{ .air = air };
+        self.* = .{ .data = .{ .air = air } };
+        return self;
+    }
+
+    pub fn createCode(_: *Device, code: [:0]const u8, _: [:0]const u8) !*ShaderModule {
+        const self = try allocator.create(ShaderModule);
+        self.* = .{ .data = .{ .code = code } };
         return self;
     }
 
     pub fn deinit(self: *ShaderModule) void {
-        self.air.deinit(allocator);
-        allocator.destroy(self.air);
+        if (self.data == .air) {
+            self.data.air.deinit(allocator);
+            allocator.destroy(self.data.air);
+        }
         allocator.destroy(self);
     }
 
     fn compile(self: *ShaderModule, entrypoint: [:0]const u8, target: [:0]const u8) !*d3d12.IBlob {
-        const code = try sys.shader.CodeGen.generate(allocator, self.air, .hlsl, false, .{ .emit_source_file = "" }, null, null, null);
-        defer allocator.free(code);
+        const code: []const u8 = switch (self.data) {
+            .air => |air| try sys.shader.CodeGen.generate(allocator, air, .hlsl, false, .{ .emit_source_file = "" }, null, null, null),
+            .code => |code| code,
+        };
+
+        defer if (self.data == .air) allocator.free(code);
 
         const flags: u32 = 0;
         // if (debug)
@@ -742,21 +757,25 @@ pub const RenderPipeline = struct {
     pub fn create(device: *Device, desc: sys.RenderPipeline.Descriptor) !*RenderPipeline {
         const vertex_module: *ShaderModule = @alignCast(@ptrCast(desc.vertex.module));
 
-        if (desc.layout) |_| {
-            unreachable;
+        var layout: *PipelineLayout = undefined;
+        if (desc.layout) |raw| {
+            layout = @alignCast(@ptrCast(raw));
+            layout.manager.reference();
+        } else if (vertex_module.data == .air) {
+            var layout_desc = DefaultPipelineLayoutDescriptor{};
+            defer layout_desc.deinit();
+
+            try layout_desc.addFunction(vertex_module.data.air, .{ .vertex = true }, desc.vertex.entrypoint);
+            if (desc.fragment) |frag| {
+                const frag_module: *ShaderModule = @alignCast(@ptrCast(frag.module));
+                try layout_desc.addFunction(frag_module.data.air, .{ .fragment = true }, frag.entrypoint);
+            }
+
+            layout = try PipelineLayout.createDefault(device, layout_desc);
+        } else {
+            return error.MissingPipelineLayout;
         }
 
-        var layout_desc = DefaultPipelineLayoutDescriptor{};
-        defer layout_desc.deinit();
-
-        try layout_desc.addFunction(vertex_module.air, .{ .vertex = true }, desc.vertex.entrypoint);
-        if (desc.fragment) |frag| {
-            const frag_module: *ShaderModule = @alignCast(@ptrCast(frag.module));
-
-            try layout_desc.addFunction(frag_module.air, .{ .fragment = true }, frag.entrypoint);
-        }
-
-        const layout = try PipelineLayout.createDefault(device, layout_desc);
         errdefer layout.manager.release();
 
         // Shaders
@@ -1835,7 +1854,7 @@ const DefaultPipelineLayoutDescriptor = struct {
                                     entry.buffer.type = .storage;
                                 }
                             },
-                            else => std.debug.panic("unhandled addr_space\n", .{}),
+                            else => @panic("unhandled addr_space"),
                         }
                     },
                 }

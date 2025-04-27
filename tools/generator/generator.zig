@@ -25,8 +25,6 @@ pub fn main() !void {
         const registry = try generator_dir.readFileAlloc(allocator, entry.source, 9999999999);
         const generated = try gen.run(registry);
 
-        // std.debug.print("```\n{s}```\n", .{generated});
-
         const target = try std.fs.cwd().createFile(entry.target, .{
             .read = true,
             .truncate = false,

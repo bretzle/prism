@@ -2,7 +2,7 @@ const std = @import("std");
 const prism = @import("prism");
 const gpu = prism.gpu;
 
-const code = @embedFile("triangle.wgsl");
+const code = @embedFile("triangle.hlsl");
 
 pub fn main() !void {
     var app = try prism.Application.create();
@@ -13,7 +13,7 @@ pub fn main() !void {
     const swapchain = window.getSwapchain();
     const queue = window.getQueue();
 
-    const shader = try device.createShaderModuleWGSL("triangle", code);
+    const shader = try device.createShaderModuleHLSL("triangle", code);
     defer shader.release();
 
     const blend = gpu.types.BlendState{};
@@ -22,7 +22,11 @@ pub fn main() !void {
         .blend = &blend,
     };
 
+    const layout = try device.createPipelineLayout(.{});
+    defer layout.release();
+
     const pipeline = try device.createRenderPipeline(.{
+        .layout = layout,
         .vertex = .{ .module = shader, .entrypoint = "vertex_main" },
         .fragment = &.{ .module = shader, .entrypoint = "frag_main", .targets = &.{color_target} },
     });
