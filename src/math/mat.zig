@@ -493,6 +493,38 @@ pub fn Mat4x4(comptime Scalar: type) type {
             return p;
         }
 
+        pub inline fn lookAt(eye: vec.Vec3(T), focus: vec.Vec3(T), up: vec.Vec3(T)) Matrix {
+            return lookToLh(eye, eye.sub(&focus), up);
+        }
+
+        pub inline fn lookToLh(pos: vec.Vec3(T), dir: vec.Vec3(T), up: vec.Vec3(T)) Matrix {
+            const az = dir.normalize(0);
+            const ax = up.cross(&az).normalize(0);
+            const ay = az.cross(&ax).normalize(0);
+
+            return Matrix.create(
+                &RowVec.create(ax.x(), ax.y(), ax.z(), -ax.dot(&pos)),
+                &RowVec.create(ay.x(), ay.y(), ay.z(), -ay.dot(&pos)),
+                &RowVec.create(az.x(), az.y(), az.z(), -az.dot(&pos)),
+                &RowVec.create(0, 0, 0, 1),
+            ).transpose();
+        }
+
+        pub fn perspectiveFov(fovy: f32, aspect: f32, near: f32, far: f32) Matrix {
+            const sin = @sin(fovy * 0.5);
+            const cos = @cos(fovy * 0.5);
+
+            const h = cos / sin;
+            const w = h / aspect;
+            const r = far / (near - far);
+            return Matrix.create(
+                &RowVec.create(w, 0, 0, 0),
+                &RowVec.create(0, h, 0, 0),
+                &RowVec.create(0, 0, r, -1),
+                &RowVec.create(0, 0, r * near, 0),
+            );
+        }
+
         pub const mul = Shared.mul;
         pub const mulVec = Shared.mulVec;
         pub const eql = Shared.eql;

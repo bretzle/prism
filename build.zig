@@ -1,5 +1,10 @@
 const std = @import("std");
 
+const examples = [_][]const u8{
+    "triangle",
+    "cube",
+};
+
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
@@ -34,7 +39,7 @@ pub fn build(b: *std.Build) void {
     });
 
     buildTools(b, target, optimize);
-    buildExample(b, prism, target, optimize);
+    buildExamples(b, prism, target, optimize);
     buildTest(b, prism, target, optimize);
 }
 
@@ -49,31 +54,32 @@ fn buildTools(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.bui
     });
 
     const run = b.addRunArtifact(generator);
-    const step = b.step("generate", "run code generator");
+    const step = b.step("generate", "Run code generator");
     step.dependOn(&run.step);
 }
 
-fn buildExample(b: *std.Build, prism: *std.Build.Module, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) void {
-    const exe = b.addExecutable(.{
-        .name = "example - hello",
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("examples/hello.zig"),
-            .target = target,
-            .optimize = optimize,
-            .imports = &.{
-                .{ .name = "prism", .module = prism },
-            },
-        }),
-    });
+fn buildExamples(b: *std.Build, prism: *std.Build.Module, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) void {
+    for (examples) |name| {
+        const exe = b.addExecutable(.{
+            .name = b.fmt("example - {s}", .{name}),
+            .root_module = b.createModule(.{
+                .root_source_file = b.path(b.fmt("examples/{s}.zig", .{name})),
+                .target = target,
+                .optimize = optimize,
+                .imports = &.{
+                    .{ .name = "prism", .module = prism },
+                },
+            }),
+        });
 
-    b.installArtifact(exe);
+        b.installArtifact(exe);
 
-    const run = b.addRunArtifact(exe);
-    run.step.dependOn(b.getInstallStep());
-    if (b.args) |args| run.addArgs(args);
+        const run = b.addRunArtifact(exe);
+        if (b.args) |args| run.addArgs(args);
 
-    const step = b.step("run", "Run the app");
-    step.dependOn(&run.step);
+        const step = b.step(b.fmt("run-{s}", .{name}), b.fmt("Run example: {s}", .{name}));
+        step.dependOn(&run.step);
+    }
 }
 
 fn buildTest(b: *std.Build, prism: *std.Build.Module, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) void {

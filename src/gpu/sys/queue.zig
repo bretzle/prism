@@ -60,13 +60,11 @@ pub const Queue = opaque {
         try queue.submit(commands);
     }
 
-    pub inline fn writeBuffer(self: *Queue, buffer: *Buffer, buffer_offset_bytes: u64, data_slice: anytype) void {
+    pub inline fn writeBuffer(self: *Queue, buffer_: *Buffer, buffer_offset_bytes: u64, data_slice: anytype) !void {
         const queue: *impl.Queue = @alignCast(@ptrCast(self));
-        _ = queue; // autofix
-        _ = buffer; // autofix
-        _ = buffer_offset_bytes; // autofix
-        _ = data_slice; // autofix
-        unreachable;
+        const buffer: *impl.Buffer = @alignCast(@ptrCast(buffer_));
+        const data = std.mem.sliceAsBytes(data_slice);
+        try queue.writeBuffer(buffer, buffer_offset_bytes, data.ptr, data.len);
     }
 
     pub inline fn writeTexture(self: *Queue, destination: *const ImageCopyTexture, data_layout: *const Texture.DataLayout, write_size: *const Extent3D, data_slice: anytype) void {

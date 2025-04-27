@@ -92,15 +92,10 @@ pub const RenderPassEncoder = opaque {
         unreachable;
     }
 
-    /// Default `dynamic_offsets_count`: 0
-    /// Default `dynamic_offsets`: `null`
-    pub inline fn setBindGroup(self: *RenderPassEncoder, group_index: u32, group: *BindGroup, dynamic_offsets: []const u32) void {
+    pub inline fn setBindGroup(self: *RenderPassEncoder, group_index: u32, group_: *BindGroup, dynamic_offsets: []const u32) !void {
         const encoder: *impl.RenderPassEncoder = @alignCast(@ptrCast(self));
-        _ = encoder; // autofix
-        _ = group_index; // autofix
-        _ = group; // autofix
-        _ = dynamic_offsets; // autofix
-        unreachable;
+        const group: *impl.BindGroup = @alignCast(@ptrCast(group_));
+        try encoder.setBindGroup(group_index, group, dynamic_offsets);
     }
 
     pub inline fn setBlendConstant(self: *RenderPassEncoder, color: *const Color) void {
@@ -145,16 +140,10 @@ pub const RenderPassEncoder = opaque {
         unreachable;
     }
 
-    /// Default `offset`: 0
-    /// Default `size`: `gpu.whole_size`
-    pub inline fn setVertexBuffer(self: *RenderPassEncoder, slot: u32, buffer: *Buffer, offset: u64, size: u64) void {
+    pub inline fn setVertexBuffer(self: *RenderPassEncoder, slot: u32, buffer_: *Buffer, offset: u64, size: u64) !void {
         const encoder: *impl.RenderPassEncoder = @alignCast(@ptrCast(self));
-        _ = encoder; // autofix
-        _ = slot; // autofix
-        _ = buffer; // autofix
-        _ = offset; // autofix
-        _ = size; // autofix
-        unreachable;
+        const buffer: *impl.Buffer = @alignCast(@ptrCast(buffer_));
+        try encoder.setVertexBuffer(slot, buffer, offset, size);
     }
 
     pub inline fn setViewport(self: *RenderPassEncoder, x: f32, y: f32, width: f32, height: f32, min_depth: f32, max_depth: f32) void {

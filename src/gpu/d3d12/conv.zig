@@ -114,7 +114,7 @@ pub fn d3d12DepthStencilOpDesc(opt_stencil: ?types.StencilFaceState) d3d12.DEPTH
     };
 }
 
-pub fn d3d12DescriptorRangeType(entry: types.BindGroupLayout.Entry) d3d12.DESCRIPTOR_RANGE_TYPE {
+pub fn d3d12DescriptorRangeType(entry: gpu.BindGroupLayout.Entry) d3d12.DESCRIPTOR_RANGE_TYPE {
     if (entry.buffer.type != .undefined) {
         return switch (entry.buffer.type) {
             .undefined => unreachable,
@@ -351,7 +351,7 @@ pub fn d3d12ResourceDimension(dimension: gpu.Texture.Dimension) d3d12.RESOURCE_D
     };
 }
 
-pub fn d3d12RootParameterType(entry: types.BindGroupLayout.Entry) d3d12.ROOT_PARAMETER_TYPE {
+pub fn d3d12RootParameterType(entry: gpu.BindGroupLayout.Entry) d3d12.ROOT_PARAMETER_TYPE {
     return switch (entry.buffer.type) {
         .undefined => unreachable,
         .uniform => .CBV,
@@ -712,6 +712,6 @@ pub fn dxgiUsage(usage: gpu.Texture.UsageFlags) dxgi.USAGE {
     };
 }
 
-fn alignUp(x: usize, a: usize) usize {
+pub fn alignUp(x: usize, a: usize) usize {
     return (x + a - 1) / a * a;
 }

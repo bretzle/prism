@@ -8,6 +8,7 @@ const limits = @import("../limits.zig");
 const gpu_allocator = @import("../allocator.zig");
 
 const Manager = @import("../../util.zig").Manager;
+const MemoryAllocator = @import("MemoryAllocator.zig");
 
 const general_heap_size = 1024;
 const general_block_size = 16;
@@ -192,6 +193,7 @@ pub const Device = struct {
     rtv_heap: DescriptorHeap = undefined,
     dsv_heap: DescriptorHeap = undefined,
     command_manager: CommandManager = undefined,
+    streaming_manager: StreamingManager = undefined,
     reference_trackers: std.ArrayListUnmanaged(*ReferenceTracker) = .empty,
     mem_allocator: MemoryAllocator = undefined,
 
@@ -250,7 +252,8 @@ pub const Device = struct {
 
         self.command_manager = .create(self);
 
-        // TODO streaming manager
+        self.streaming_manager = try StreamingManager.create(self);
+        errdefer self.streaming_manager.deinit();
 
         try self.mem_allocator.init(self);
 
@@ -263,7 +266,7 @@ pub const Device = struct {
 
         // self.map_callbacks.deinit(allocator);
         self.reference_trackers.deinit(allocator);
-        // self.streaming_manager.deinit();
+        self.streaming_manager.deinit();
         self.command_manager.deinit();
         self.dsv_heap.deinit();
         self.rtv_heap.deinit();
@@ -271,7 +274,7 @@ pub const Device = struct {
         self.general_heap.deinit();
         self.queue.manager.release();
 
-        // self.mem_allocator.deinit();
+        self.mem_allocator.deinit();
 
         allocator.destroy(self.queue);
         allocator.destroy(self);
@@ -322,7 +325,7 @@ pub const Device = struct {
         const read_state = conv.d3d12ResourceStatesForBufferRead(usage);
         const initial_state = conv.d3d12ResourceStatesInitial(heap_type, read_state);
 
-        const create_desc = ResourceCreateDescriptor{
+        const create_desc = MemoryAllocator.ResourceCreateDescriptor{
             .location = if (usage.map_write)
                 .gpu_to_cpu
             else if (usage.map_read)
@@ -390,6 +393,11 @@ pub const Queue = struct {
         _ = self.command_queue.release();
         _ = self.fence.release();
         _ = w32.CloseHandle(self.fence_event);
+    }
+
+    pub fn writeBuffer(self: *Queue, buffer: *Buffer, offset: u64, data: [*]const u8, size: u64) !void {
+        const encoder = try self.getCommandEncoder();
+        try encoder.writeBuffer(buffer, offset, data, size);
     }
 
     pub fn submit(queue: *Queue, command_buffers: []const *CommandBuffer) !void {
@@ -1099,14 +1107,68 @@ pub const BindGroupLayout = struct {
     general_table_size: u32,
     sampler_table_size: u32,
 
-    pub fn create(device: *Device, desc: sys.BindGroupLayout.Descriptor) !*BindGroupLayout {
-        _ = device; // autofix
-        _ = desc; // autofix
-        unreachable;
+    pub fn create(_: *Device, desc: sys.BindGroupLayout.Descriptor) !*BindGroupLayout {
+        var entries = std.ArrayListUnmanaged(Entry){};
+        errdefer entries.deinit(allocator);
+
+        var dynamic_entries = std.ArrayListUnmanaged(DynamicEntry){};
+        errdefer dynamic_entries.deinit(allocator);
+
+        var general_table_size: u32 = 0;
+        var sampler_table_size: u32 = 0;
+        for (desc.entries) |entry| {
+            var table_index: ?u32 = null;
+            var dynamic_index: ?u32 = null;
+            if (entry.buffer.has_dynamic_offset == true) {
+                dynamic_index = @intCast(dynamic_entries.items.len);
+                try dynamic_entries.append(allocator, .{
+                    .parameter_type = conv.d3d12RootParameterType(entry),
+                });
+            } else if (entry.sampler.type != .undefined) {
+                table_index = sampler_table_size;
+                sampler_table_size += 1;
+            } else {
+                table_index = general_table_size;
+                general_table_size += 1;
+            }
+
+            try entries.append(allocator, .{
+                .binding = entry.binding,
+                .visibility = entry.visibility,
+                .buffer = entry.buffer,
+                .sampler = entry.sampler,
+                .texture = entry.texture,
+                .storage_texture = entry.storage_texture,
+                .range_type = conv.d3d12DescriptorRangeType(entry),
+                .table_index = table_index,
+                .dynamic_index = dynamic_index,
+            });
+        }
+
+        const self = try allocator.create(BindGroupLayout);
+        self.* = .{
+            .entries = entries,
+            .dynamic_entries = dynamic_entries,
+            .general_table_size = general_table_size,
+            .sampler_table_size = sampler_table_size,
+        };
+
+        return self;
     }
 
-    pub fn deinit(_: *BindGroupLayout) void {
-        unreachable;
+    pub fn deinit(self: *BindGroupLayout) void {
+        self.entries.deinit(allocator);
+        self.dynamic_entries.deinit(allocator);
+        allocator.destroy(self);
+    }
+
+    fn getEntry(layout: *BindGroupLayout, binding: u32) ?*const Entry {
+        for (layout.entries.items) |*entry| {
+            if (entry.binding == binding)
+                return entry;
+        }
+
+        return null;
     }
 };
 
@@ -1138,13 +1200,36 @@ pub const CommandEncoder = struct {
     }
 
     pub fn copyBufferToBuffer(self: *CommandEncoder, source: *Buffer, source_offset: u64, destination: *Buffer, destination_offset: u64, size: u64) !void {
-        _ = self; // autofix
-        _ = source; // autofix
-        _ = source_offset; // autofix
-        _ = destination; // autofix
-        _ = destination_offset; // autofix
-        _ = size; // autofix
-        unreachable;
+        try self.reference_tracker.referenceBuffer(source);
+        try self.reference_tracker.referenceBuffer(destination);
+        try self.state_tracker.transition(&source.resource, source.resource.state);
+        try self.state_tracker.transition(&destination.resource, .{ .COPY_DEST = true });
+        self.state_tracker.flush(self.command_buffer.command_list);
+
+        self.command_buffer.command_list.copyBufferRegion(
+            destination.resource.resource,
+            destination_offset,
+            source.resource.resource,
+            source_offset,
+            size,
+        );
+    }
+
+    pub fn writeBuffer(self: *CommandEncoder, buffer: *Buffer, offset: u64, data: [*]const u8, size: u64) !void {
+        const stream = try self.command_buffer.upload(size);
+        @memcpy(stream.map[0..size], data[0..size]);
+
+        try self.reference_tracker.referenceBuffer(buffer);
+        try self.state_tracker.transition(&buffer.resource, .{ .COPY_DEST = true });
+        self.state_tracker.flush(self.command_buffer.command_list);
+
+        self.command_buffer.command_list.copyBufferRegion(
+            buffer.resource.resource,
+            offset,
+            stream.resource,
+            stream.offset,
+            size,
+        );
     }
 
     pub fn beginRenderPass(self: *CommandEncoder, desc: sys.types.RenderPassDescriptor) !*RenderPassEncoder {
@@ -1214,6 +1299,35 @@ pub const CommandBuffer = struct {
         // command_allocator lifetime is managed externally
         // command_list lifetime is managed externally
         allocator.destroy(self);
+    }
+
+    fn upload(command_buffer: *CommandBuffer, size: u64) !StreamingResult {
+        if (command_buffer.upload_next_offset + size > upload_page_size) {
+            std.debug.assert(size <= upload_page_size); // TODO - support large uploads
+            const resource = try command_buffer.device.streaming_manager.acquire();
+            const d3d_resource = resource.resource;
+
+            try command_buffer.reference_tracker.referenceUploadPage(resource);
+            command_buffer.upload_buffer = d3d_resource;
+
+            var map: ?*anyopaque = null;
+            const hr = d3d_resource.map(0, null, &map);
+            if (hr != 0) {
+                return error.MapForUploadFailed;
+            }
+
+            command_buffer.upload_map = @ptrCast(map);
+            command_buffer.upload_next_offset = 0;
+        }
+
+        const offset = command_buffer.upload_next_offset;
+        command_buffer.upload_next_offset = @intCast(conv.alignUp(offset + size, limits.min_uniform_buffer_offset_alignment));
+
+        return StreamingResult{
+            .resource = command_buffer.upload_buffer.?,
+            .map = command_buffer.upload_map.? + offset,
+            .offset = offset,
+        };
     }
 
     fn allocateRtvDescriptors(self: *CommandBuffer, count: usize) !d3d12.CPU_DESCRIPTOR_HANDLE {
@@ -1405,6 +1519,45 @@ pub const RenderPassEncoder = struct {
         self.command_list.iaSetPrimitiveTopology(pipeline.topology);
     }
 
+    pub fn setVertexBuffer(self: *RenderPassEncoder, slot: u32, buffer: *Buffer, offset: u64, size: u64) !void {
+        try self.reference_tracker.referenceBuffer(buffer);
+
+        var view = &self.vertex_buffer_views[slot];
+        view.BufferLocation = buffer.resource.resource.getGpuVirtualAddress() + offset;
+        view.SizeInBytes = @intCast(size);
+
+        self.vertex_apply_count = @max(self.vertex_apply_count, slot + 1);
+    }
+
+    pub fn setBindGroup(self: *RenderPassEncoder, group_index: u32, group: *BindGroup, dynamic_offsets: []const u32) !void {
+        try self.reference_tracker.referenceBindGroup(group);
+
+        var parameter_index = self.group_parameter_indices[group_index];
+
+        if (group.general_table) |table| {
+            self.command_list.setGraphicsRootDescriptorTable(parameter_index, table);
+            parameter_index += 1;
+        }
+
+        if (group.sampler_table) |table| {
+            self.command_list.setGraphicsRootDescriptorTable(parameter_index, table);
+            parameter_index += 1;
+        }
+
+        for (dynamic_offsets, 0..) |dynamic_offset, i| {
+            const dynamic_resource = group.dynamic_resources[i];
+
+            switch (dynamic_resource.parameter_type) {
+                .CBV => self.command_list.setGraphicsRootConstantBufferView(parameter_index, dynamic_resource.address + dynamic_offset),
+                .SRV => self.command_list.setGraphicsRootShaderResourceView(parameter_index, dynamic_resource.address + dynamic_offset),
+                .UAV => self.command_list.setGraphicsRootUnorderedAccessView(parameter_index, dynamic_resource.address + dynamic_offset),
+                else => {},
+            }
+
+            parameter_index += 1;
+        }
+    }
+
     pub fn draw(self: *RenderPassEncoder, vertex_count: u32, instance_count: u32, first_vertex: u32, first_instance: u32) !void {
         self.applyVertexBuffers();
         self.command_list.drawInstanced(vertex_count, instance_count, first_vertex, first_instance);
@@ -1552,17 +1705,121 @@ pub const Buffer = struct {
 
     pub fn unmap(self: *Buffer) !void {
         var map_resource: *d3d12.IResource = undefined;
-        if (self.stage_buffer) |buffer| {
-            map_resource = buffer.resource.resource;
+        if (self.stage_buffer) |stage| {
+            map_resource = stage.resource.resource;
             const encoder = try self.device.queue.getCommandEncoder();
-            try encoder.copyBufferToBuffer(buffer, 0, self, 0, self.size);
-            buffer.manager.release();
+            try encoder.copyBufferToBuffer(stage, 0, self, 0, self.size);
+            stage.manager.release();
             self.stage_buffer = null;
         } else {
             map_resource = self.resource.resource;
         }
 
         map_resource.unmap(0, null);
+    }
+};
+
+pub const BindGroup = struct {
+    const ResourceAccess = struct {
+        resource: *Resource,
+        uav: bool,
+    };
+    const DynamicResource = struct {
+        address: d3d12.GPU_VIRTUAL_ADDRESS,
+        parameter_type: d3d12.ROOT_PARAMETER_TYPE,
+    };
+
+    manager: Manager(BindGroup) = .{},
+    device: *Device,
+    general_allocation: ?DescriptorAllocation,
+    general_table: ?d3d12.GPU_DESCRIPTOR_HANDLE,
+    sampler_allocation: ?DescriptorAllocation,
+    sampler_table: ?d3d12.GPU_DESCRIPTOR_HANDLE,
+    dynamic_resources: []DynamicResource,
+    buffers: std.ArrayListUnmanaged(*Buffer),
+    textures: std.ArrayListUnmanaged(*Texture),
+    accesses: std.ArrayListUnmanaged(ResourceAccess),
+
+    pub fn create(device: *Device, desc: sys.BindGroup.Descriptor) !*BindGroup {
+        const layout: *BindGroupLayout = @alignCast(@ptrCast(desc.layout));
+
+        // General Descriptor Table
+        const general_allocation: ?DescriptorAllocation = null;
+        const general_table: ?d3d12.GPU_DESCRIPTOR_HANDLE = null;
+        if (layout.general_table_size != 0) {
+            unreachable;
+        }
+
+        // Sampler Descriptor Table
+        const sampler_allocation: ?DescriptorAllocation = null;
+        const sampler_table: ?d3d12.GPU_DESCRIPTOR_HANDLE = null;
+        if (layout.sampler_table_size != 0) {
+            unreachable;
+        }
+
+        // Resource tracking and dynamic resources
+        const dynamic_resources = try allocator.alloc(DynamicResource, layout.dynamic_entries.items.len);
+        errdefer allocator.free(dynamic_resources);
+
+        var buffers = std.ArrayListUnmanaged(*Buffer){};
+        errdefer buffers.deinit(allocator);
+
+        var textures = std.ArrayListUnmanaged(*Texture){};
+        errdefer textures.deinit(allocator);
+
+        var accesses = std.ArrayListUnmanaged(ResourceAccess){};
+        errdefer accesses.deinit(allocator);
+
+        for (desc.entries) |entry| {
+            const layout_entry = layout.getEntry(entry.binding) orelse return error.UnknownBinding;
+
+            if (layout_entry.buffer.type != .undefined) {
+                const buffer: *Buffer = @alignCast(@ptrCast(entry.buffer.?));
+
+                try buffers.append(allocator, buffer);
+                buffer.manager.reference();
+
+                const location = buffer.resource.resource.getGpuVirtualAddress() + entry.offset;
+                if (layout_entry.dynamic_index) |dynamic_index| {
+                    const layout_dynamic_entry = layout.dynamic_entries.items[dynamic_index];
+                    dynamic_resources[dynamic_index] = .{
+                        .address = location,
+                        .parameter_type = layout_dynamic_entry.parameter_type,
+                    };
+                }
+
+                try accesses.append(allocator, .{ .resource = &buffer.resource, .uav = layout_entry.buffer.type == .storage });
+
+                continue;
+            }
+
+            if (layout_entry.sampler.type != .undefined and layout_entry.texture.sample_type != .undefined) {
+                unreachable;
+            }
+
+            if (layout_entry.storage_texture.format != .undefined) {
+                unreachable;
+            }
+        }
+
+        const self = try allocator.create(BindGroup);
+        self.* = .{
+            .device = device,
+            .general_allocation = general_allocation,
+            .general_table = general_table,
+            .sampler_allocation = sampler_allocation,
+            .sampler_table = sampler_table,
+            .dynamic_resources = dynamic_resources,
+            .buffers = buffers,
+            .textures = textures,
+            .accesses = accesses,
+        };
+
+        return self;
+    }
+
+    pub fn deinit(_: *BindGroup) void {
+        unreachable;
     }
 };
 
@@ -1732,23 +1989,62 @@ const CommandManager = struct {
     }
 };
 
-const Resource = struct {
+const StreamingManager = struct {
+    device: *Device,
+    free_buffers: std.ArrayListUnmanaged(Resource) = .{},
+
+    fn create(device: *Device) !StreamingManager {
+        return .{ .device = device };
+    }
+
+    fn deinit(self: *StreamingManager) void {
+        for (self.free_buffers.items) |*resource| {
+            resource.deinit();
+        }
+        self.free_buffers.deinit(allocator);
+    }
+
+    fn acquire(self: *StreamingManager) !Resource {
+        // Recycle finished buffers
+        if (self.free_buffers.items.len == 0) {
+            self.device.processQueuedOperations();
+        }
+
+        // Create new buffer
+        if (self.free_buffers.items.len == 0) {
+            var resource = try self.device.createBufferResource(.{ .map_write = true }, upload_page_size);
+            errdefer _ = resource.deinit();
+
+            setDebugName(@ptrCast(resource.resource), "upload");
+            try self.free_buffers.append(allocator, resource);
+        }
+
+        // Result
+        return self.free_buffers.pop().?;
+    }
+
+    fn release(self: *StreamingManager, resource: Resource) void {
+        self.free_buffers.append(allocator, resource) catch @panic("OutOfMemory");
+    }
+};
+
+pub const Resource = struct {
     resource: *d3d12.IResource,
     state: d3d12.RESOURCE_STATES,
     mem_allocator: ?*MemoryAllocator = null,
     allocation: ?MemoryAllocator.Allocation = null,
-    memory_location: MemoryLocation = .unknown,
+    memory_location: MemoryAllocator.MemoryLocation = .unknown,
     size: u64 = 0,
 
     fn create(resource: *d3d12.IResource, state: d3d12.RESOURCE_STATES) Resource {
         return .{ .resource = resource, .state = state };
     }
 
-    fn deinit(resource: *Resource) void {
-        if (resource.mem_allocator) |mem_allocator| {
-            mem_allocator.destroyResource(resource.*) catch {};
+    fn deinit(self: *Resource) void {
+        if (self.mem_allocator) |mem_allocator| {
+            mem_allocator.destroyResource(self.*) catch unreachable;
         } else {
-            _ = resource.resource.release();
+            _ = self.resource.release();
         }
     }
 };
@@ -1908,7 +2204,7 @@ const ReferenceTracker = struct {
     fence_value: u64 = 0,
     buffers: std.ArrayListUnmanaged(*Buffer) = .{},
     textures: std.ArrayListUnmanaged(*Texture) = .{},
-    // bind_groups: std.ArrayListUnmanaged(*BindGroup) = .{},
+    bind_groups: std.ArrayListUnmanaged(*BindGroup) = .{},
     // compute_pipelines: std.ArrayListUnmanaged(*ComputePipeline) = .{},
     render_pipelines: std.ArrayListUnmanaged(*RenderPipeline) = .{},
     rtv_descriptor_blocks: std.ArrayListUnmanaged(DescriptorAllocation) = .{},
@@ -1936,10 +2232,10 @@ const ReferenceTracker = struct {
             texture.manager.release();
         }
 
-        // for (self.bind_groups.items) |group| {
-        //     for (group.buffers.items) |buffer| buffer.gpu_count -= 1;
-        //     group.manager.release();
-        // }
+        for (self.bind_groups.items) |group| {
+            for (group.buffers.items) |buffer| buffer.gpu_count -= 1;
+            group.manager.release();
+        }
 
         // for (self.compute_pipelines.items) |pipeline| {
         //     pipeline.manager.release();
@@ -1958,14 +2254,12 @@ const ReferenceTracker = struct {
         }
 
         for (self.upload_pages.items) |resource| {
-            _ = resource; // autofix
-            // self.device.streaming_manager.release(resource);
-            unreachable;
+            self.device.streaming_manager.release(resource);
         }
 
         self.buffers.deinit(allocator);
         self.textures.deinit(allocator);
-        // self.bind_groups.deinit(allocator);
+        self.bind_groups.deinit(allocator);
         // self.compute_pipelines.deinit(allocator);
         self.render_pipelines.deinit(allocator);
         self.rtv_descriptor_blocks.deinit(allocator);
@@ -1992,6 +2286,20 @@ const ReferenceTracker = struct {
         try self.render_pipelines.append(allocator, pipeline);
     }
 
+    fn referenceBuffer(tracker: *ReferenceTracker, buffer: *Buffer) !void {
+        buffer.manager.reference();
+        try tracker.buffers.append(allocator, buffer);
+    }
+
+    fn referenceUploadPage(tracker: *ReferenceTracker, upload_page: Resource) !void {
+        try tracker.upload_pages.append(allocator, upload_page);
+    }
+
+    fn referenceBindGroup(tracker: *ReferenceTracker, group: *BindGroup) !void {
+        group.manager.reference();
+        try tracker.bind_groups.append(allocator, group);
+    }
+
     fn submit(self: *ReferenceTracker, queue: *Queue) !void {
         self.fence_value = queue.fence_value;
 
@@ -1999,9 +2307,9 @@ const ReferenceTracker = struct {
             buffer.gpu_count += 1;
         }
 
-        // for (self.bind_groups.items) |group| {
-        //     for (group.buffers.items) |buffer| buffer.gpu_count += 1;
-        // }
+        for (self.bind_groups.items) |group| {
+            for (group.buffers.items) |buffer| buffer.gpu_count += 1;
+        }
 
         try self.device.reference_trackers.append(allocator, self);
     }
@@ -2077,430 +2385,6 @@ const StateTracker = struct {
                 },
             },
         });
-    }
-};
-
-const HeapCategory = enum {
-    all,
-    buffer,
-    rtv_dsv_texture,
-    other_texture,
-};
-
-const ResourceCategory = enum {
-    buffer,
-    rtv_dsv_texture,
-    other_texture,
-
-    pub inline fn heapUsable(self: ResourceCategory, heap: HeapCategory) bool {
-        return switch (heap) {
-            .all => true,
-            .buffer => self == .buffer,
-            .rtv_dsv_texture => self == .rtv_dsv_texture,
-            .other_texture => self == .other_texture,
-        };
-    }
-};
-
-const ResourceCreateDescriptor = struct {
-    location: MemoryLocation,
-    resource_category: ResourceCategory,
-    resource_desc: *const d3d12.RESOURCE_DESC,
-    clear_value: ?*const d3d12.CLEAR_VALUE,
-    initial_state: d3d12.RESOURCE_STATES,
-};
-
-const MemoryLocation = enum {
-    unknown,
-    gpu_only,
-    cpu_to_gpu,
-    gpu_to_cpu,
-};
-
-const AllocationCreateDescriptor = struct {
-    location: MemoryLocation,
-    size: u64,
-    alignment: u64,
-    resource_category: ResourceCategory,
-};
-
-const AllocationSizes = struct {
-    const four_mb = 4 * 1024 * 1024;
-    const two_hundred_fifty_six_mb = 256 * 1024 * 1024;
-
-    device_memblock_size: u64 = 256 * 1024 * 1024,
-    host_memblock_size: u64 = 64 * 1024 * 1024,
-
-    fn create(device_memblock_size: u64, host_memblock_size: u64) AllocationSizes {
-        var use_device_memblock_size = std.math.clamp(device_memblock_size, four_mb, two_hundred_fifty_six_mb);
-        var use_host_memblock_size = std.math.clamp(host_memblock_size, four_mb, two_hundred_fifty_six_mb);
-
-        if (use_device_memblock_size % four_mb != 0) {
-            use_device_memblock_size = four_mb * (@divFloor(use_device_memblock_size, four_mb) + 1);
-        }
-        if (use_host_memblock_size % four_mb != 0) {
-            use_host_memblock_size = four_mb * (@divFloor(use_host_memblock_size, four_mb) + 1);
-        }
-
-        return .{
-            .device_memblock_size = use_device_memblock_size,
-            .host_memblock_size = use_host_memblock_size,
-        };
-    }
-};
-
-/// Stores a group of heaps
-const MemoryAllocator = struct {
-    const max_memory_groups = 9;
-    device: *Device,
-
-    memory_groups: std.BoundedArray(MemoryGroup, max_memory_groups),
-    allocation_sizes: AllocationSizes,
-
-    /// a single heap,
-    /// use the gpu_allocator field to allocate chunks of memory
-    pub const MemoryHeap = struct {
-        index: usize,
-        heap: *d3d12.IHeap,
-        size: u64,
-        gpu_allocator: gpu_allocator.Allocator,
-
-        pub fn init(
-            group: *MemoryGroup,
-            index: usize,
-            size: u64,
-            dedicated: bool,
-        ) gpu_allocator.Error!MemoryHeap {
-            const heap = blk: {
-                var desc = d3d12.HEAP_DESC{
-                    .SizeInBytes = size,
-                    .Properties = group.heap_properties,
-                    .Alignment = @intCast(d3d12.DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT),
-                    .Flags = switch (group.heap_category) {
-                        .all => .{},
-                        .buffer => .ALLOW_ONLY_BUFFERS,
-                        .rtv_dsv_texture => .ALLOW_ONLY_RT_DS_TEXTURES,
-                        .other_texture => .ALLOW_ONLY_NON_RT_DS_TEXTURES,
-                    },
-                };
-                var heap: ?*d3d12.IHeap = null;
-                const hr = group.owning_pool.device.device.createHeap(
-                    &desc,
-                    &d3d12.IHeap.IID,
-                    @ptrCast(&heap),
-                );
-                if (hr == 0x887A0024) return gpu_allocator.Error.OutOfMemory;
-                if (hr != 0) return gpu_allocator.Error.Other;
-
-                break :blk heap.?;
-            };
-
-            return MemoryHeap{
-                .index = index,
-                .heap = heap,
-                .size = size,
-                .gpu_allocator = if (dedicated)
-                    try gpu_allocator.Allocator.initDedicatedBlockAllocator(size)
-                else
-                    try gpu_allocator.Allocator.initOffsetAllocator(allocator, @intCast(size), null),
-            };
-        }
-
-        pub fn deinit(self: *MemoryHeap) void {
-            _ = self.heap.release();
-            self.gpu_allocator.deinit();
-        }
-    };
-
-    /// a group of multiple heaps with a single heap type
-    pub const MemoryGroup = struct {
-        owning_pool: *MemoryAllocator,
-
-        memory_location: MemoryLocation,
-        heap_category: HeapCategory,
-        heap_properties: d3d12.HEAP_PROPERTIES,
-
-        heaps: std.ArrayListUnmanaged(?MemoryHeap),
-
-        pub const GroupAllocation = struct {
-            allocation: gpu_allocator.Allocation,
-            heap: *MemoryHeap,
-            size: u64,
-        };
-
-        pub fn init(owner: *MemoryAllocator, memory_location: MemoryLocation, category: HeapCategory, properties: d3d12.HEAP_PROPERTIES) MemoryGroup {
-            return .{
-                .owning_pool = owner,
-                .memory_location = memory_location,
-                .heap_category = category,
-                .heap_properties = properties,
-                .heaps = .{},
-            };
-        }
-
-        pub fn deinit(self: *MemoryGroup) void {
-            for (self.heaps.items) |*heap| {
-                if (heap.*) |*h| h.deinit();
-            }
-            self.heaps.deinit(allocator);
-        }
-
-        pub fn allocate(self: *MemoryGroup, size: u64) gpu_allocator.Error!GroupAllocation {
-            const memblock_size: u64 = if (self.heap_properties.Type == .DEFAULT)
-                self.owning_pool.allocation_sizes.device_memblock_size
-            else
-                self.owning_pool.allocation_sizes.host_memblock_size;
-            if (size > memblock_size) {
-                return self.allocateDedicated(size);
-            }
-
-            var empty_heap_index: ?usize = null;
-            for (self.heaps.items, 0..) |*heap, index| {
-                if (heap.*) |*h| {
-                    const allocation = h.gpu_allocator.allocate(@intCast(size)) catch |err| switch (err) {
-                        gpu_allocator.Error.OutOfMemory => continue,
-                        else => return err,
-                    };
-                    return GroupAllocation{
-                        .allocation = allocation,
-                        .heap = h,
-                        .size = size,
-                    };
-                } else if (empty_heap_index == null) {
-                    empty_heap_index = index;
-                }
-            }
-
-            // couldn't allocate, use the empty heap if we got one
-            const heap = try self.addHeap(memblock_size, false, empty_heap_index);
-            const allocation = try heap.gpu_allocator.allocate(@intCast(size));
-            return GroupAllocation{
-                .allocation = allocation,
-                .heap = heap,
-                .size = size,
-            };
-        }
-
-        fn allocateDedicated(self: *MemoryGroup, size: u64) gpu_allocator.Error!GroupAllocation {
-            const memory_block = try self.addHeap(size, true, blk: {
-                for (self.heaps.items, 0..) |heap, index| {
-                    if (heap == null) break :blk index;
-                }
-                break :blk null;
-            });
-            const allocation = try memory_block.gpu_allocator.allocate(@intCast(size));
-            return GroupAllocation{
-                .allocation = allocation,
-                .heap = memory_block,
-                .size = size,
-            };
-        }
-
-        pub fn free(self: *MemoryGroup, allocation: GroupAllocation) gpu_allocator.Error!void {
-            const heap = allocation.heap;
-            try heap.gpu_allocator.free(allocation.allocation);
-
-            if (heap.gpu_allocator.isEmpty()) {
-                const index = heap.index;
-                heap.deinit();
-                self.heaps.items[index] = null;
-            }
-        }
-
-        fn addHeap(self: *MemoryGroup, size: u64, dedicated: bool, replace: ?usize) gpu_allocator.Error!*MemoryHeap {
-            const heap_index: usize = blk: {
-                if (replace) |index| {
-                    if (self.heaps.items[index]) |*heap| {
-                        heap.deinit();
-                    }
-                    self.heaps.items[index] = null;
-                    break :blk index;
-                } else {
-                    _ = try self.heaps.addOne(allocator);
-                    break :blk self.heaps.items.len - 1;
-                }
-            };
-            errdefer _ = self.heaps.pop();
-
-            const heap = &self.heaps.items[heap_index].?;
-            heap.* = try MemoryHeap.init(
-                self,
-                heap_index,
-                size,
-                dedicated,
-            );
-            return heap;
-        }
-    };
-
-    pub const Allocation = struct {
-        allocation: gpu_allocator.Allocation,
-        heap: *MemoryHeap,
-        size: u64,
-        group: *MemoryGroup,
-    };
-
-    pub fn init(self: *MemoryAllocator, device: *Device) !void {
-        const HeapType = struct {
-            location: MemoryLocation,
-            properties: d3d12.HEAP_PROPERTIES,
-        };
-        const heap_types = [_]HeapType{ .{
-            .location = .gpu_only,
-            .properties = d3d12.HEAP_PROPERTIES{
-                .Type = .DEFAULT,
-                .CPUPageProperty = .UNKNOWN,
-                .MemoryPoolPreference = .UNKNOWN,
-                .CreationNodeMask = 0,
-                .VisibleNodeMask = 0,
-            },
-        }, .{
-            .location = .cpu_to_gpu,
-            .properties = d3d12.HEAP_PROPERTIES{
-                .Type = .CUSTOM,
-                .CPUPageProperty = .WRITE_COMBINE,
-                .MemoryPoolPreference = .L0,
-                .CreationNodeMask = 0,
-                .VisibleNodeMask = 0,
-            },
-        }, .{
-            .location = .gpu_to_cpu,
-            .properties = d3d12.HEAP_PROPERTIES{
-                .Type = .CUSTOM,
-                .CPUPageProperty = .WRITE_BACK,
-                .MemoryPoolPreference = .L0,
-                .CreationNodeMask = 0,
-                .VisibleNodeMask = 0,
-            },
-        } };
-
-        self.* = .{
-            .device = device,
-            .memory_groups = std.BoundedArray(MemoryGroup, max_memory_groups).init(0) catch unreachable,
-            .allocation_sizes = .{},
-        };
-
-        var options: d3d12.FEATURE_DATA_D3D12_OPTIONS = undefined;
-        const hr = device.device.checkFeatureSupport(.OPTIONS, @ptrCast(&options), @sizeOf(@TypeOf(options)));
-        if (hr != 0) return gpu_allocator.Error.Other;
-
-        const tier_one_heap = options.ResourceHeapTier == .TIER_1;
-
-        self.memory_groups = std.BoundedArray(MemoryGroup, max_memory_groups).init(0) catch unreachable;
-        inline for (heap_types) |heap_type| {
-            if (tier_one_heap) {
-                self.memory_groups.appendAssumeCapacity(MemoryGroup.init(self, heap_type.location, .buffer, heap_type.properties));
-                self.memory_groups.appendAssumeCapacity(MemoryGroup.init(self, heap_type.location, .rtv_dsv_texture, heap_type.properties));
-                self.memory_groups.appendAssumeCapacity(MemoryGroup.init(self, heap_type.location, .other_texture, heap_type.properties));
-            } else {
-                self.memory_groups.appendAssumeCapacity(MemoryGroup.init(self, heap_type.location, .all, heap_type.properties));
-            }
-        }
-    }
-
-    pub fn deinit(self: *MemoryAllocator) void {
-        for (self.memory_groups.slice()) |*group| {
-            group.deinit();
-        }
-    }
-
-    pub fn reportMemoryLeaks(self: *const MemoryAllocator) void {
-        std.log.info("memory leaks:", .{});
-        var total_blocks: u64 = 0;
-        for (self.memory_groups.constSlice(), 0..) |mem_group, mem_group_index| {
-            std.log.info("   memory group {} ({s}, {s}):", .{
-                mem_group_index,
-                @tagName(mem_group.heap_category),
-                @tagName(mem_group.memory_location),
-            });
-            for (mem_group.heaps.items, 0..) |block, block_index| {
-                if (block) |found_block| {
-                    std.log.info("       block {}; total size: {}; allocated: {};", .{
-                        block_index,
-                        found_block.size,
-                        found_block.gpu_allocator.getAllocated(),
-                    });
-                    total_blocks += 1;
-                }
-            }
-        }
-        std.log.info("total blocks: {}", .{total_blocks});
-    }
-
-    pub fn allocate(self: *MemoryAllocator, desc: *const AllocationCreateDescriptor) gpu_allocator.Error!Allocation {
-        // TODO: handle alignment
-        for (self.memory_groups.slice()) |*memory_group| {
-            if (memory_group.memory_location != desc.location and desc.location != .unknown) continue;
-            if (!desc.resource_category.heapUsable(memory_group.heap_category)) continue;
-            const allocation = try memory_group.allocate(desc.size);
-            return Allocation{
-                .allocation = allocation.allocation,
-                .heap = allocation.heap,
-                .size = allocation.size,
-                .group = memory_group,
-            };
-        }
-        return gpu_allocator.Error.NoCompatibleMemoryFound;
-    }
-
-    pub fn free(self: *MemoryAllocator, allocation: Allocation) gpu_allocator.Error!void {
-        _ = self;
-        const group = allocation.group;
-        try group.free(MemoryGroup.GroupAllocation{
-            .allocation = allocation.allocation,
-            .heap = allocation.heap,
-            .size = allocation.size,
-        });
-    }
-
-    pub fn createResource(self: *MemoryAllocator, desc: *const ResourceCreateDescriptor) gpu_allocator.Error!Resource {
-        const allocation_desc = blk: {
-            var allocation_info: d3d12.RESOURCE_ALLOCATION_INFO = undefined;
-            self.device.device.getResourceAllocationInfo(
-                &allocation_info,
-                0,
-                1,
-                @ptrCast(desc.resource_desc),
-            );
-            // TODO: If size in bytes == UINT64_MAX then an error occured
-
-            break :blk AllocationCreateDescriptor{
-                .location = desc.location,
-                .size = allocation_info.SizeInBytes,
-                .alignment = allocation_info.Alignment,
-                .resource_category = desc.resource_category,
-            };
-        };
-
-        const allocation = try self.allocate(&allocation_desc);
-
-        var d3d_resource: ?*d3d12.IResource = null;
-        const hr = self.device.device.createPlacedResource(
-            allocation.heap.heap,
-            allocation.allocation.offset,
-            desc.resource_desc,
-            desc.initial_state,
-            desc.clear_value,
-            &d3d12.IResource.IID,
-            @ptrCast(&d3d_resource),
-        );
-        if (hr != 0) return gpu_allocator.Error.Other;
-
-        return Resource{
-            .mem_allocator = self,
-            .state = desc.initial_state,
-            .allocation = allocation,
-            .resource = d3d_resource.?,
-            .memory_location = desc.location,
-            .size = allocation.size,
-        };
-    }
-
-    pub fn destroyResource(self: *MemoryAllocator, resource: Resource) gpu_allocator.Error!void {
-        if (resource.allocation) |allocation| {
-            try self.free(allocation);
-        }
-        _ = resource.resource.release();
     }
 };
 

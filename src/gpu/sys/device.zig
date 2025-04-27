@@ -47,14 +47,13 @@ pub const Device = opaque {
         // device_lost_userdata: ?*anyopaque,
     };
 
-    pub inline fn createBindGroup(self: *Device, desc: BindGroup.Descriptor) *BindGroup {
+    pub inline fn createBindGroup(self: *Device, desc: BindGroup.Descriptor) !*BindGroup {
         const device: *impl.Device = @alignCast(@ptrCast(self));
-        _ = device; // autofix
-        _ = desc; // autofix
-        unreachable;
+        const group = try impl.BindGroup.create(device, desc);
+        return @ptrCast(group);
     }
 
-    pub inline fn createBindGroupLayout(self: *Device, desc: BindGroupLayout.Descriptor) *BindGroupLayout {
+    pub inline fn createBindGroupLayout(self: *Device, desc: BindGroupLayout.Descriptor) !*BindGroupLayout {
         const device: *impl.Device = @alignCast(@ptrCast(self));
         const layout = try impl.BindGroupLayout.create(device, desc);
         return @ptrCast(layout);
