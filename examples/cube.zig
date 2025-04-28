@@ -72,7 +72,7 @@ pub fn main() !void {
     const swapchain = window.getSwapchain();
     const queue = window.getQueue();
 
-    const shader = try device.createShaderModuleWGSL("cube.wgsl", @embedFile("cube.wgsl"));
+    const shader = try device.createShaderModuleHLSL("cube.hlsl", @embedFile("cube.hlsl"));
     defer shader.release();
 
     const vertex_attributes = [_]gpu.types.VertexAttribute{
