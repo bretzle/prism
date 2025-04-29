@@ -610,6 +610,65 @@ pub const Texture = struct {
     mip_level_count: u32,
     sample_count: u32,
 
+    pub fn create(device: *Device, desc: sys.Texture.Descriptor) !*Texture {
+        const resource_desc = d3d12.RESOURCE_DESC{
+            .Dimension = conv.d3d12ResourceDimension(desc.dimension),
+            .Alignment = 0,
+            .Width = desc.size.width,
+            .Height = desc.size.height,
+            .DepthOrArraySize = @intCast(desc.size.depth_or_array_layers),
+            .MipLevels = @intCast(desc.mip_level_count),
+            .Format = conv.dxgiFormatForTextureResource(desc.format, desc.usage, desc.view_formats.len),
+            .SampleDesc = .{ .Count = desc.sample_count, .Quality = 0 },
+            .Layout = .UNKNOWN,
+            .Flags = conv.d3d12ResourceFlagsForTexture(desc.usage, desc.format),
+        };
+        const read_state = conv.d3d12ResourceStatesForTextureRead(desc.usage);
+        const initial_state = read_state;
+
+        const clear_value = std.mem.zeroInit(d3d12.CLEAR_VALUE, .{ .Format = resource_desc.Format });
+
+        // TODO: the code below was terribly broken, I rewrote it, Is it correct?
+        // const create_desc = ResourceCreateDescriptor{
+        //     .location = .gpu_only,
+        //     .resource_desc = if (utils.formatHasDepthOrStencil(desc.format) or desc.usage.render_attachment)
+        //         &clear_value
+        //     else
+        //         null,
+        //     .clear_value = null,
+        //     .resource_category = .buffer,
+        //     .initial_state = initial_state,
+        // };
+        const create_desc = MemoryAllocator.ResourceCreateDescriptor{
+            .location = .gpu_only,
+            .resource_desc = &resource_desc,
+            .clear_value = if (conv.formatHasDepthOrStencil(desc.format) or desc.usage.render_attachment)
+                &clear_value
+            else
+                null,
+            // TODO check if different textures need different resource categories.
+            .resource_category = .other_texture,
+            .initial_state = initial_state,
+        };
+        const resource = device.mem_allocator.createResource(&create_desc) catch return error.CreateTextureFailed;
+
+        setDebugName(@ptrCast(resource.resource), desc.label);
+
+        const self = try allocator.create(Texture);
+        self.* = .{
+            .device = device,
+            .resource = resource,
+            .usage = desc.usage,
+            .dimension = desc.dimension,
+            .size = desc.size,
+            .format = desc.format,
+            .mip_level_count = desc.mip_level_count,
+            .sample_count = desc.sample_count,
+        };
+
+        return self;
+    }
+
     pub fn deinit(self: *Texture) void {
         self.resource.deinit();
         allocator.destroy(self);
@@ -678,12 +737,84 @@ pub const TextureView = struct {
         allocator.destroy(self);
     }
 
-    fn width(view: *TextureView) u32 {
-        return @max(1, view.texture.size.width >> @intCast(view.base_mip_level));
+    fn width(self: *TextureView) u32 {
+        return @max(1, self.texture.size.width >> @intCast(self.base_mip_level));
     }
 
-    fn height(view: *TextureView) u32 {
-        return @max(1, view.texture.size.height >> @intCast(view.base_mip_level));
+    fn height(self: *TextureView) u32 {
+        return @max(1, self.texture.size.height >> @intCast(self.base_mip_level));
+    }
+
+    fn srvDesc(view: *TextureView) d3d12.SHADER_RESOURCE_VIEW_DESC {
+        var desc = d3d12.SHADER_RESOURCE_VIEW_DESC{
+            .Format = conv.dxgiFormatForTextureView(view.format, view.aspect),
+            .ViewDimension = conv.d3d12SrvDimension(view.dimension, view.texture.sample_count),
+            .Shader4ComponentMapping = d3d12.DEFAULT_SHADER_4_COMPONENT_MAPPING,
+            .u = undefined,
+        };
+
+        desc.u = switch (desc.ViewDimension) {
+            .UNKNOWN => unreachable,
+            .BUFFER => .{ .Buffer = unreachable },
+            .TEXTURE1D => .{
+                .Texture1D = .{
+                    .MostDetailedMip = view.base_mip_level,
+                    .MipLevels = view.mip_level_count,
+                    .ResourceMinLODClamp = 0.0,
+                },
+            },
+            .TEXTURE1DARRAY => .{ .Texture1DArray = unreachable },
+            .TEXTURE2D => .{
+                .Texture2D = .{
+                    .MostDetailedMip = view.base_mip_level,
+                    .MipLevels = view.mip_level_count,
+                    .PlaneSlice = 0, // TODO
+                    .ResourceMinLODClamp = 0.0,
+                },
+            },
+            .TEXTURE2DARRAY => .{
+                .Texture2DArray = .{
+                    .MostDetailedMip = view.base_mip_level,
+                    .MipLevels = view.mip_level_count,
+                    .FirstArraySlice = view.base_array_layer,
+                    .ArraySize = view.array_layer_count,
+                    .PlaneSlice = 0,
+                    .ResourceMinLODClamp = 0.0,
+                },
+            },
+            .TEXTURE2DMS => .{ .Texture2DMS = unreachable },
+            .TEXTURE2DMSARRAY => .{
+                .Texture2DMSArray = .{
+                    .FirstArraySlice = view.base_array_layer,
+                    .ArraySize = view.array_layer_count,
+                },
+            },
+            .TEXTURE3D => .{
+                .Texture3D = .{
+                    .MostDetailedMip = view.base_mip_level,
+                    .MipLevels = view.mip_level_count,
+                    .ResourceMinLODClamp = 0.0,
+                },
+            },
+            .TEXTURECUBE => .{
+                .TextureCube = .{
+                    .MostDetailedMip = view.base_mip_level,
+                    .MipLevels = view.mip_level_count,
+                    .ResourceMinLODClamp = 0.0,
+                },
+            },
+            .TEXTURECUBEARRAY => .{
+                .TextureCubeArray = .{
+                    .MostDetailedMip = view.base_mip_level,
+                    .MipLevels = view.mip_level_count,
+                    .First2DArrayFace = view.base_array_layer, // TODO - does this need a conversion?
+                    .NumCubes = view.array_layer_count, // TODO - does this need a conversion?
+                    .ResourceMinLODClamp = 0.0,
+                },
+            },
+        };
+
+        return desc;
     }
 };
 
@@ -1212,6 +1343,55 @@ pub const CommandEncoder = struct {
             source.resource.resource,
             source_offset,
             size,
+        );
+    }
+
+    pub fn copyTextureToTexture(encoder: *CommandEncoder, source: *const sys.types.ImageCopyTexture, destination: *const sys.types.ImageCopyTexture, copy_size_raw: *const sys.types.Extent3D) !void {
+        const command_list = encoder.command_buffer.command_list;
+        const source_texture: *Texture = @alignCast(@ptrCast(source.texture));
+        const destination_texture: *Texture = @alignCast(@ptrCast(destination.texture));
+
+        try encoder.reference_tracker.referenceTexture(source_texture);
+        try encoder.reference_tracker.referenceTexture(destination_texture);
+        try encoder.state_tracker.transition(&source_texture.resource, source_texture.resource.state);
+        try encoder.state_tracker.transition(&destination_texture.resource, .{ .COPY_DEST = true });
+        encoder.state_tracker.flush(command_list);
+
+        const copy_size = calcExtent(destination_texture.dimension, copy_size_raw.*);
+        const source_origin = calcOrigin(source_texture.dimension, source.origin);
+        const destination_origin = calcOrigin(destination_texture.dimension, destination.origin);
+
+        const source_subresource_index = source_texture.calcSubresource(source.mip_level, source_origin.array_slice);
+        const destination_subresource_index = destination_texture.calcSubresource(destination.mip_level, destination_origin.array_slice);
+
+        std.debug.assert(copy_size.array_count == 1); // TODO
+
+        command_list.copyTextureRegion(
+            &.{
+                .pResource = destination_texture.resource.resource,
+                .Type = .SUBRESOURCE_INDEX,
+                .u = .{
+                    .SubresourceIndex = destination_subresource_index,
+                },
+            },
+            destination_origin.x,
+            destination_origin.y,
+            destination_origin.z,
+            &.{
+                .pResource = source_texture.resource.resource,
+                .Type = .SUBRESOURCE_INDEX,
+                .u = .{
+                    .SubresourceIndex = source_subresource_index,
+                },
+            },
+            &.{
+                .left = source_origin.x,
+                .top = source_origin.y,
+                .front = source_origin.z,
+                .right = source_origin.x + copy_size.width,
+                .bottom = source_origin.y + copy_size.height,
+                .back = source_origin.z + copy_size.depth,
+            },
         );
     }
 
@@ -1744,17 +1924,59 @@ pub const BindGroup = struct {
         const layout: *BindGroupLayout = @alignCast(@ptrCast(desc.layout));
 
         // General Descriptor Table
-        const general_allocation: ?DescriptorAllocation = null;
-        const general_table: ?d3d12.GPU_DESCRIPTOR_HANDLE = null;
+        var general_allocation: ?DescriptorAllocation = null;
+        var general_table: ?d3d12.GPU_DESCRIPTOR_HANDLE = null;
         if (layout.general_table_size != 0) {
-            unreachable;
+            const allocation = try device.general_heap.alloc();
+            general_allocation = allocation;
+            general_table = device.general_heap.gpuDescriptor(allocation.index);
+
+            for (desc.entries) |entry| {
+                const layout_entry = layout.getEntry(entry.binding) orelse return error.UnknownBinding;
+                if (layout_entry.sampler.type != .undefined) continue;
+
+                if (layout_entry.table_index) |table_index| {
+                    const dest_descriptor = device.general_heap.cpuDescriptor(allocation.index + table_index);
+
+                    if (layout_entry.buffer.type != .undefined) {
+                        unreachable;
+                    }
+
+                    if (layout_entry.texture.sample_type != .undefined) {
+                        const view: *TextureView = @alignCast(@ptrCast(entry.texture_view));
+                        const resource = view.texture.resource.resource;
+
+                        device.device.createShaderResourceView(resource, &view.srvDesc(), dest_descriptor);
+                        continue;
+                    }
+
+                    if (layout_entry.storage_texture.format != .undefined) {
+                        unreachable;
+                    }
+                }
+            }
         }
 
         // Sampler Descriptor Table
-        const sampler_allocation: ?DescriptorAllocation = null;
-        const sampler_table: ?d3d12.GPU_DESCRIPTOR_HANDLE = null;
+        var sampler_allocation: ?DescriptorAllocation = null;
+        var sampler_table: ?d3d12.GPU_DESCRIPTOR_HANDLE = null;
         if (layout.sampler_table_size != 0) {
-            unreachable;
+            const allocation = try device.sampler_heap.alloc();
+            sampler_allocation = allocation;
+            sampler_table = device.sampler_heap.gpuDescriptor(allocation.index);
+
+            for (desc.entries) |entry| {
+                const layout_entry = layout.getEntry(entry.binding) orelse return error.UnknownBinding;
+                if (layout_entry.sampler.type == .undefined) continue;
+
+                if (layout_entry.table_index) |table_index| {
+                    const dest_descriptor = device.sampler_heap.cpuDescriptor(allocation.index + table_index);
+
+                    const sampler: *Sampler = @alignCast(@ptrCast(entry.sampler));
+
+                    device.device.createSampler(&sampler.desc, dest_descriptor);
+                }
+            }
         }
 
         // Resource tracking and dynamic resources
@@ -1819,6 +2041,36 @@ pub const BindGroup = struct {
     }
 
     pub fn deinit(_: *BindGroup) void {
+        unreachable;
+    }
+};
+
+pub const Sampler = struct {
+    manager: Manager(Sampler) = .{},
+    desc: d3d12.SAMPLER_DESC,
+
+    pub fn create(_: *Device, desc: sys.Sampler.Descriptor) !*Sampler {
+        const self = try allocator.create(Sampler);
+        self.* = .{
+            .desc = .{
+                .Filter = @enumFromInt(conv.d3d12Filter(desc.mag_filter, desc.min_filter, desc.mipmap_filter, desc.max_anisotropy)),
+                .AddressU = conv.d3d12TextureAddressMode(desc.address_mode_u),
+                .AddressV = conv.d3d12TextureAddressMode(desc.address_mode_v),
+                .AddressW = conv.d3d12TextureAddressMode(desc.address_mode_w),
+                .MipLODBias = 0.0,
+                .MaxAnisotropy = desc.max_anisotropy,
+                .ComparisonFunc = if (desc.compare != .undefined) conv.d3d12ComparisonFunc(desc.compare) else .NEVER,
+                .BorderColor = [4]f32{ 0.0, 0.0, 0.0, 0.0 },
+                .MinLOD = desc.lod_min_clamp,
+                .MaxLOD = desc.lod_max_clamp,
+            },
+        };
+
+        return self;
+    }
+
+    pub fn deinit(self: *Sampler) void {
+        _ = self; // autofix
         unreachable;
     }
 };
@@ -2390,4 +2642,32 @@ const StateTracker = struct {
 
 fn setDebugName(object: *d3d12.IObject, label: [:0]const u8) void {
     _ = object.setPrivateData(&d3d12.IObject.DebugObjectName, @intCast(label.len), @ptrCast(label.ptr));
+}
+
+fn calcExtent(dimension: sys.Texture.Dimension, extent: sys.types.Extent3D) struct {
+    width: u32,
+    height: u32,
+    depth: u32,
+    array_count: u32,
+} {
+    return .{
+        .width = extent.width,
+        .height = extent.height,
+        .depth = if (dimension == .@"3d") extent.depth_or_array_layers else 1,
+        .array_count = if (dimension == .@"3d") 0 else extent.depth_or_array_layers,
+    };
+}
+
+fn calcOrigin(dimension: sys.Texture.Dimension, origin: sys.types.Origin3D) struct {
+    x: u32,
+    y: u32,
+    z: u32,
+    array_slice: u32,
+} {
+    return .{
+        .x = origin.x,
+        .y = origin.y,
+        .z = if (dimension == .@"3d") origin.z else 0,
+        .array_slice = if (dimension == .@"3d") 0 else origin.z,
+    };
 }

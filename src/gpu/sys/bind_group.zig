@@ -19,6 +19,34 @@ pub const BindGroupLayout = opaque {
         sampler: Sampler.BindingLayout = .{},
         texture: Texture.BindingLayout = .{},
         storage_texture: StorageTextureBindingLayout = .{},
+
+        pub inline fn newBuffer(binding: u32, visibility: ShaderStageFlags, binding_type: Buffer.BindingType, has_dynamic_offset: bool, min_binding_size: u64) Entry {
+            return .{
+                .binding = binding,
+                .visibility = visibility,
+                .buffer = .{ .type = binding_type, .has_dynamic_offset = has_dynamic_offset, .min_binding_size = min_binding_size },
+            };
+        }
+
+        pub inline fn newSampler(binding: u32, visibility: ShaderStageFlags, binding_type: Sampler.BindingType) Entry {
+            return .{
+                .binding = binding,
+                .visibility = visibility,
+                .sampler = .{ .type = binding_type },
+            };
+        }
+
+        pub inline fn newTexture(binding: u32, visibility: ShaderStageFlags, sample_type: Texture.SampleType, view_dimension: TextureView.Dimension, multisampled: bool) Entry {
+            return .{
+                .binding = binding,
+                .visibility = visibility,
+                .texture = .{
+                    .sample_type = sample_type,
+                    .view_dimension = view_dimension,
+                    .multisampled = multisampled,
+                },
+            };
+        }
     };
 
     pub const Descriptor = struct {
@@ -51,6 +79,31 @@ pub const BindGroup = opaque {
         elem_size: u32 = 0, // TEMP - using StructuredBuffer until we switch to DXC for templatized raw buffers
         sampler: ?*Sampler = null,
         texture_view: ?*TextureView = null,
+
+        pub inline fn newBuffer(binding: u32, buf: *Buffer, offset: u64, size: u64) Entry {
+            return .{
+                .binding = binding,
+                .buffer = buf,
+                .offset = offset,
+                .size = size,
+            };
+        }
+
+        pub inline fn newSampler(binding: u32, sampler: *Sampler) Entry {
+            return .{
+                .binding = binding,
+                .sampler = sampler,
+                .size = 0,
+            };
+        }
+
+        pub inline fn newTextureView(binding: u32, texture_view: *TextureView) Entry {
+            return .{
+                .binding = binding,
+                .texture_view = texture_view,
+                .size = 0,
+            };
+        }
     };
 
     pub const Descriptor = struct {

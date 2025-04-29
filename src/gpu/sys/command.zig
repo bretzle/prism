@@ -93,13 +93,9 @@ pub const CommandEncoder = opaque {
         unreachable;
     }
 
-    pub inline fn copyTextureToTexture(self: *CommandEncoder, source: *const ImageCopyTexture, destination: *const ImageCopyTexture, copy_size: *const Extent3D) void {
+    pub inline fn copyTextureToTexture(self: *CommandEncoder, source: *const ImageCopyTexture, destination: *const ImageCopyTexture, copy_size: *const Extent3D) !void {
         const encoder: *impl.CommandEncoder = @alignCast(@ptrCast(self));
-        _ = encoder; // autofix
-        _ = source; // autofix
-        _ = destination; // autofix
-        _ = copy_size; // autofix
-        unreachable;
+        try encoder.copyTextureToTexture(source, destination, copy_size);
     }
 
     pub inline fn finish(self: *CommandEncoder, desc: CommandBuffer.Descriptor) !*CommandBuffer {

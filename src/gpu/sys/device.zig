@@ -131,11 +131,10 @@ pub const Device = opaque {
         return @ptrCast(render_pipeline);
     }
 
-    pub inline fn createSampler(self: *Device, desc: ?Sampler.Descriptor) *Sampler {
+    pub inline fn createSampler(self: *Device, desc: Sampler.Descriptor) !*Sampler {
         const device: *impl.Device = @alignCast(@ptrCast(self));
-        _ = device; // autofix
-        _ = desc; // autofix
-        unreachable;
+        const sampler: *impl.Sampler = try impl.Sampler.create(device, desc);
+        return @ptrCast(sampler);
     }
 
     pub inline fn createShaderModule(self: *Device, desc: ShaderModule.Descriptor) !*ShaderModule {
@@ -186,10 +185,9 @@ pub const Device = opaque {
     }
 
     pub inline fn createTexture(self: *Device, desc: Texture.Descriptor) !*Texture {
-        _ = desc; // autofix
         const device: *impl.Device = @alignCast(@ptrCast(self));
-        _ = device; // autofix
-        unreachable;
+        const texture = try impl.Texture.create(device, desc);
+        return @ptrCast(texture);
     }
 
     pub inline fn destroy(self: *Device) void {

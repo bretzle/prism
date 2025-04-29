@@ -106,11 +106,11 @@ define IDevice : IObject {
     fn getDescriptorHandleIncrementSize(self, heap_type: DESCRIPTOR_HEAP_TYPE) UINT
     fn createRootSignature(self, node_mask: u32, blob: *anyopaque, blob_length: SIZE_T, riid: *const GUID, root_signature: *?*anyopaque) HRESULT
     fn createConstantBufferView(self) noreturn
-    fn createShaderResourceView(self) noreturn
+    fn createShaderResourceView(self, resource: ?*IResource, desc: ?*const SHADER_RESOURCE_VIEW_DESC, dst_descriptor: CPU_DESCRIPTOR_HANDLE) void
     fn createUnorderedAccessView(self) noreturn
     fn createRenderTargetView(self, resource: ?*IResource, desc: ?*const RENDER_TARGET_VIEW_DESC, dst_descriptor: CPU_DESCRIPTOR_HANDLE) void
     fn createDepthStencilView(self, resource: ?*IResource, desc: ?*const DEPTH_STENCIL_VIEW_DESC, dst_descriptor: CPU_DESCRIPTOR_HANDLE) void
-    fn createSampler(self) noreturn
+    fn createSampler(self, desc: *const SAMPLER_DESC, handle: CPU_DESCRIPTOR_HANDLE) void
     fn copyDescriptors(self) noreturn
     fn copyDescriptorsSimple(self) noreturn
     fn getResourceAllocationInfo(self, info: *RESOURCE_ALLOCATION_INFO, visible_mask: UINT, num_descs: UINT, descs: [*]const RESOURCE_DESC) void

@@ -29,6 +29,15 @@ pub const DESCRIPTOR_RANGE_OFFSET_APPEND = 0xffffffff; // defined as -1
 pub const RESOURCE_BARRIER_ALL_SUBRESOURCES = 0xffffffff;
 pub const DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT = 0x400000;
 
+pub const FILTER_TYPE_POINT = 0;
+pub const FILTER_TYPE_LINEAR = 1;
+pub const MIN_FILTER_SHIFT = 4;
+pub const MAG_FILTER_SHIFT = 2;
+pub const MIP_FILTER_SHIFT = 0;
+pub const ANISOTROPIC_FILTERING_BIT = 0x40;
+
+pub const DEFAULT_SHADER_4_COMPONENT_MAPPING = 0x1688;
+
 pub const CPU_DESCRIPTOR_HANDLE = extern struct {
     ptr: UINT64,
 };
@@ -133,6 +142,7 @@ pub const FILTER = enum(UINT) {
     MAXIMUM_MIN_MAG_LINEAR_MIP_POINT = 0x194,
     MAXIMUM_MIN_MAG_MIP_LINEAR = 0x195,
     MAXIMUM_ANISOTROPIC = 0x1d5,
+    _,
 };
 
 pub const STATIC_BORDER_COLOR = enum(UINT) {
@@ -2120,6 +2130,122 @@ pub const RESOURCE_ALLOCATION_INFO = extern struct {
     Alignment: UINT64,
 };
 
+pub const SAMPLER_DESC = extern struct {
+    Filter: FILTER,
+    AddressU: TEXTURE_ADDRESS_MODE,
+    AddressV: TEXTURE_ADDRESS_MODE,
+    AddressW: TEXTURE_ADDRESS_MODE,
+    MipLODBias: FLOAT,
+    MaxAnisotropy: UINT,
+    ComparisonFunc: COMPARISON_FUNC,
+    BorderColor: [4]FLOAT,
+    MinLOD: FLOAT,
+    MaxLOD: FLOAT,
+};
+
+pub const SRV_DIMENSION = enum(UINT) {
+    UNKNOWN = 0,
+    BUFFER = 1,
+    TEXTURE1D = 2,
+    TEXTURE1DARRAY = 3,
+    TEXTURE2D = 4,
+    TEXTURE2DARRAY = 5,
+    TEXTURE2DMS = 6,
+    TEXTURE2DMSARRAY = 7,
+    TEXTURE3D = 8,
+    TEXTURECUBE = 9,
+    TEXTURECUBEARRAY = 10,
+};
+
+pub const BUFFER_SRV_FLAGS = packed struct(UINT) {
+    RAW: bool = false,
+    __unused: u31 = 0,
+};
+
+pub const BUFFER_SRV = extern struct {
+    FirstElement: UINT64,
+    NumElements: UINT,
+    StructureByteStride: UINT,
+    Flags: BUFFER_SRV_FLAGS,
+};
+
+pub const TEX1D_SRV = extern struct {
+    MostDetailedMip: UINT,
+    MipLevels: UINT,
+    ResourceMinLODClamp: FLOAT,
+};
+
+pub const TEX1D_ARRAY_SRV = extern struct {
+    MostDetailedMip: UINT,
+    MipLevels: UINT,
+    FirstArraySlice: UINT,
+    ArraySize: UINT,
+    ResourceMinLODClamp: FLOAT,
+};
+
+pub const TEX2D_SRV = extern struct {
+    MostDetailedMip: UINT,
+    MipLevels: UINT,
+    PlaneSlice: UINT,
+    ResourceMinLODClamp: FLOAT,
+};
+
+pub const TEX2D_ARRAY_SRV = extern struct {
+    MostDetailedMip: UINT,
+    MipLevels: UINT,
+    FirstArraySlice: UINT,
+    ArraySize: UINT,
+    PlaneSlice: UINT,
+    ResourceMinLODClamp: FLOAT,
+};
+
+pub const TEX3D_SRV = extern struct {
+    MostDetailedMip: UINT,
+    MipLevels: UINT,
+    ResourceMinLODClamp: FLOAT,
+};
+
+pub const TEXCUBE_SRV = extern struct {
+    MostDetailedMip: UINT,
+    MipLevels: UINT,
+    ResourceMinLODClamp: FLOAT,
+};
+
+pub const TEXCUBE_ARRAY_SRV = extern struct {
+    MostDetailedMip: UINT,
+    MipLevels: UINT,
+    First2DArrayFace: UINT,
+    NumCubes: UINT,
+    ResourceMinLODClamp: FLOAT,
+};
+
+pub const TEX2DMS_SRV = extern struct {
+    UnusedField_NothingToDefine: UINT,
+};
+
+pub const TEX2DMS_ARRAY_SRV = extern struct {
+    FirstArraySlice: UINT,
+    ArraySize: UINT,
+};
+
+pub const SHADER_RESOURCE_VIEW_DESC = extern struct {
+    Format: dxgi.FORMAT,
+    ViewDimension: SRV_DIMENSION,
+    Shader4ComponentMapping: UINT,
+    u: extern union {
+        Buffer: BUFFER_SRV,
+        Texture1D: TEX1D_SRV,
+        Texture1DArray: TEX1D_ARRAY_SRV,
+        Texture2D: TEX2D_SRV,
+        Texture2DArray: TEX2D_ARRAY_SRV,
+        Texture2DMS: TEX2DMS_SRV,
+        Texture2DMSArray: TEX2DMS_ARRAY_SRV,
+        Texture3D: TEX3D_SRV,
+        TextureCube: TEXCUBE_SRV,
+        TextureCubeArray: TEXCUBE_ARRAY_SRV,
+    },
+};
+
 // functions
 // ---------
 
@@ -2619,11 +2745,11 @@ pub const IDevice = extern struct {
         get_descriptor_handle_increment_size: *const fn (*IDevice, heap_type: DESCRIPTOR_HEAP_TYPE) callconv(.winapi) UINT,
         create_root_signature: *const fn (*IDevice, node_mask: u32, blob: *anyopaque, blob_length: SIZE_T, riid: *const GUID, root_signature: *?*anyopaque) callconv(.winapi) HRESULT,
         create_constant_buffer_view: *const fn (*IDevice) callconv(.winapi) noreturn,
-        create_shader_resource_view: *const fn (*IDevice) callconv(.winapi) noreturn,
+        create_shader_resource_view: *const fn (*IDevice, resource: ?*IResource, desc: ?*const SHADER_RESOURCE_VIEW_DESC, dst_descriptor: CPU_DESCRIPTOR_HANDLE) callconv(.winapi) void,
         create_unordered_access_view: *const fn (*IDevice) callconv(.winapi) noreturn,
         create_render_target_view: *const fn (*IDevice, resource: ?*IResource, desc: ?*const RENDER_TARGET_VIEW_DESC, dst_descriptor: CPU_DESCRIPTOR_HANDLE) callconv(.winapi) void,
         create_depth_stencil_view: *const fn (*IDevice, resource: ?*IResource, desc: ?*const DEPTH_STENCIL_VIEW_DESC, dst_descriptor: CPU_DESCRIPTOR_HANDLE) callconv(.winapi) void,
-        create_sampler: *const fn (*IDevice) callconv(.winapi) noreturn,
+        create_sampler: *const fn (*IDevice, desc: *const SAMPLER_DESC, handle: CPU_DESCRIPTOR_HANDLE) callconv(.winapi) void,
         copy_descriptors: *const fn (*IDevice) callconv(.winapi) noreturn,
         copy_descriptors_simple: *const fn (*IDevice) callconv(.winapi) noreturn,
         get_resource_allocation_info: *const fn (*IDevice, info: *RESOURCE_ALLOCATION_INFO, visible_mask: UINT, num_descs: UINT, descs: [*]const RESOURCE_DESC) callconv(.winapi) void,
@@ -2680,8 +2806,8 @@ pub const IDevice = extern struct {
     pub fn createConstantBufferView(self: *IDevice) noreturn {
         return (self.vtable.create_constant_buffer_view)(self);
     }
-    pub fn createShaderResourceView(self: *IDevice) noreturn {
-        return (self.vtable.create_shader_resource_view)(self);
+    pub fn createShaderResourceView(self: *IDevice, resource: ?*IResource, desc: ?*const SHADER_RESOURCE_VIEW_DESC, dst_descriptor: CPU_DESCRIPTOR_HANDLE) void {
+        return (self.vtable.create_shader_resource_view)(self, resource, desc, dst_descriptor);
     }
     pub fn createUnorderedAccessView(self: *IDevice) noreturn {
         return (self.vtable.create_unordered_access_view)(self);
@@ -2692,8 +2818,8 @@ pub const IDevice = extern struct {
     pub fn createDepthStencilView(self: *IDevice, resource: ?*IResource, desc: ?*const DEPTH_STENCIL_VIEW_DESC, dst_descriptor: CPU_DESCRIPTOR_HANDLE) void {
         return (self.vtable.create_depth_stencil_view)(self, resource, desc, dst_descriptor);
     }
-    pub fn createSampler(self: *IDevice) noreturn {
-        return (self.vtable.create_sampler)(self);
+    pub fn createSampler(self: *IDevice, desc: *const SAMPLER_DESC, handle: CPU_DESCRIPTOR_HANDLE) void {
+        return (self.vtable.create_sampler)(self, desc, handle);
     }
     pub fn copyDescriptors(self: *IDevice) noreturn {
         return (self.vtable.copy_descriptors)(self);
