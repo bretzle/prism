@@ -2040,8 +2040,20 @@ pub const BindGroup = struct {
         return self;
     }
 
-    pub fn deinit(_: *BindGroup) void {
-        unreachable;
+    pub fn deinit(self: *BindGroup) void {
+        if (self.general_allocation) |allocation|
+            self.device.general_heap.free(allocation);
+        if (self.sampler_allocation) |allocation|
+            self.device.sampler_heap.free(allocation);
+
+        for (self.buffers.items) |buffer| buffer.manager.release();
+        for (self.textures.items) |texture| texture.manager.release();
+
+        self.buffers.deinit(allocator);
+        self.textures.deinit(allocator);
+        self.accesses.deinit(allocator);
+        allocator.free(self.dynamic_resources);
+        allocator.destroy(self);
     }
 };
 
@@ -2070,8 +2082,7 @@ pub const Sampler = struct {
     }
 
     pub fn deinit(self: *Sampler) void {
-        _ = self; // autofix
-        unreachable;
+        allocator.destroy(self);
     }
 };
 

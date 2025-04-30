@@ -73,6 +73,9 @@ fn buildExamples(b: *std.Build, prism: *std.Build.Module, target: std.Build.Reso
             }),
         });
 
+        if (target.result.os.tag == .windows and optimize != .Debug)
+            exe.subsystem = .Windows;
+
         b.installArtifact(exe);
 
         const run = b.addRunArtifact(exe);

@@ -15,7 +15,7 @@ pub fn main() !void {
     var app = try prism.Application.create();
     defer app.deinit();
 
-    const window = try app.createWindow(.{});
+    const window = try app.createWindow(.{ .width = 800, .height = 800 });
     const device = window.getDevice();
     const swapchain = window.getSwapchain();
     const queue = window.getQueue();
@@ -39,40 +39,38 @@ pub fn main() !void {
         .blend = &blend,
     };
 
-    const bgle_buffer = gpu.BindGroupLayout.Entry.newBuffer(0, .{ .vertex = true }, .uniform, true, 0);
-    const bgle_sampler = gpu.BindGroupLayout.Entry.newSampler(1, .{ .fragment = true }, .filtering);
-    const bgle_textureview = gpu.BindGroupLayout.Entry.newTexture(2, .{ .fragment = true }, .float, .@"2d", false);
     const bgl = try device.createBindGroupLayout(.{
-        .entries = &.{ bgle_buffer, bgle_sampler, bgle_textureview },
+        .entries = &.{
+            .newBuffer(0, .{ .vertex = true }, .uniform, true, 0),
+            .newSampler(1, .{ .fragment = true }, .filtering),
+            .newTexture(2, .{ .fragment = true }, .float, .@"2d", false),
+        },
     });
+    defer bgl.release();
 
     const pipeline_layout = try device.createPipelineLayout(.{
         .bind_group_layouts = &.{bgl},
     });
+    defer pipeline_layout.release();
 
-    const pipeline_descriptor = gpu.RenderPipeline.Descriptor{
+    const pipeline = try device.createRenderPipeline(.{
         .vertex = .{ .module = shader, .entrypoint = "vertex_main", .buffers = &.{vertex_buffer_layout} },
         .fragment = &.{ .module = shader, .entrypoint = "frag_main", .targets = &.{color_target} },
         .layout = pipeline_layout,
-        .depth_stencil = &.{
-            .format = .depth24_plus,
-            .depth_write_enabled = true,
-            .depth_compare = .less,
-        },
-        .primitive = .{
-            .cull_mode = .back,
-        },
-    };
-
-    const pipeline = try device.createRenderPipeline(pipeline_descriptor);
+        .depth_stencil = &.{ .format = .depth24_plus, .depth_write_enabled = true, .depth_compare = .less },
+        .primitive = .{ .cull_mode = .back },
+    });
+    defer pipeline.release();
 
     const vertex_buffer = try device.createBuffer(.{
         .usage = .{ .vertex = true },
         .size = @sizeOf(Vertex) * vertices.len,
         .mapped_at_creation = true,
     });
-    const vertex_mapped = vertex_buffer.getMappedRange(Vertex, 0, vertices.len);
-    @memcpy(vertex_mapped, &vertices);
+    defer vertex_buffer.release();
+
+    const map = vertex_buffer.getMappedRange(Vertex, 0, vertices.len);
+    @memcpy(map, &vertices);
     try vertex_buffer.unmap();
 
     const uniform_buffer = try device.createBuffer(.{
@@ -80,17 +78,18 @@ pub fn main() !void {
         .size = @sizeOf(Unfiorms),
         .mapped_at_creation = false,
     });
+    defer uniform_buffer.release();
 
     // The texture to put on the cube
     const cube_texture = try device.createTexture(.{
         .usage = .{ .texture_binding = true, .copy_dst = true },
-        .size = .{ .width = 800, .height = 600 },
+        .size = .{ .width = window.width(), .height = window.height() },
         .format = .bgra8_unorm,
     });
     // The texture on which we render
     const cube_texture_render = try device.createTexture(.{
         .usage = .{ .render_attachment = true, .copy_src = true },
-        .size = .{ .width = 800, .height = 600 },
+        .size = .{ .width = window.width(), .height = window.height() },
         .format = .bgra8_unorm,
     });
 
@@ -115,15 +114,15 @@ pub fn main() !void {
     const bind_group = try device.createBindGroup(.{
         .layout = bgl,
         .entries = &.{
-            gpu.BindGroup.Entry.newBuffer(0, uniform_buffer, 0, @sizeOf(Unfiorms)),
-            gpu.BindGroup.Entry.newSampler(1, sampler),
-            gpu.BindGroup.Entry.newTextureView(2, cube_texture_view),
+            .newBuffer(0, uniform_buffer, 0, @sizeOf(Unfiorms)),
+            .newSampler(1, sampler),
+            .newTextureView(2, cube_texture_view),
         },
     });
 
     const depth_texture = try device.createTexture(.{
         .usage = .{ .render_attachment = true },
-        .size = .{ .width = 800, .height = 600 },
+        .size = .{ .width = window.width(), .height = window.height() },
         .format = .depth24_plus,
     });
     const depth_texture_view = try depth_texture.createView(.{
@@ -132,6 +131,17 @@ pub fn main() !void {
         .array_layer_count = 1,
         .mip_level_count = 1,
     });
+
+    defer {
+        cube_texture.release();
+        cube_texture_render.release();
+        sampler.release();
+        cube_texture_view.release();
+        cube_texture_view_render.release();
+        bind_group.release();
+        depth_texture.release();
+        depth_texture_view.release();
+    }
 
     var timer = try prism.time.Timer.start();
 
@@ -184,7 +194,7 @@ pub fn main() !void {
                 vec3(0, 0, 0),
                 vec3(0, 0, 1),
             );
-            const proj = math.Mat4x4.perspectiveFov(math.pi * 2.0 / 5.0, 800.0 / 600.0, 1, 100);
+            const proj = math.Mat4x4.perspectiveFov(math.pi * 2.0 / 5.0, window.aspectRatio(), 1, 100);
             const mvp = model.mul(&view).mul(&proj);
             try queue.writeBuffer(uniform_buffer, 0, &[_]Unfiorms{.{ .mvp = mvp }});
         }
@@ -200,7 +210,7 @@ pub fn main() !void {
         try encoder.copyTextureToTexture(
             &.{ .texture = cube_texture_render },
             &.{ .texture = cube_texture },
-            &.{ .width = 800, .height = 600 },
+            &.{ .width = window.width(), .height = window.height() },
         );
 
         const cube_pass = try encoder.beginRenderPass(cube_render_pass_info);

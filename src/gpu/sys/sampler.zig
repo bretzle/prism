@@ -31,18 +31,17 @@ pub const Sampler = opaque {
     };
 
     pub inline fn setLabel(self: *Sampler, label: [:0]const u8) void {
-        _ = self; // autofix
-        _ = label; // autofix
-        unreachable;
+        const sampler: *impl.Sampler = @alignCast(@ptrCast(self));
+        sampler.setLabel(label);
     }
 
     pub inline fn reference(self: *Sampler) void {
-        _ = self; // autofix
-        unreachable;
+        const sampler: *impl.Sampler = @alignCast(@ptrCast(self));
+        sampler.manager.reference();
     }
 
     pub inline fn release(self: *Sampler) void {
-        _ = self; // autofix
-        unreachable;
+        const sampler: *impl.Sampler = @alignCast(@ptrCast(self));
+        sampler.manager.release();
     }
 };

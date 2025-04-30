@@ -112,7 +112,7 @@ pub fn main() !void {
                 vec3(0, 0, 0),
                 vec3(0, 0, 1),
             );
-            const proj = math.Mat4x4.perspectiveFov(math.pi / 4.0, 800.0 / 600.0, 0.1, 10);
+            const proj = math.Mat4x4.perspectiveFov(math.pi / 4.0, window.aspectRatio(), 0.1, 10);
             const mvp = model.mul(&view).mul(&proj);
             try queue.writeBuffer(uniform_buffer, 0, &[_]Unfiorms{.{ .mvp = mvp }});
         }

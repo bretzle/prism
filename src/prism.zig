@@ -12,7 +12,7 @@ pub const math = @import("math/math.zig");
 pub const time = @import("time.zig");
 
 pub var gpa: std.heap.GeneralPurposeAllocator(.{}) = .init;
-pub const allocator = gpa.allocator();
+pub const allocator = if (builtin.mode == .Debug) gpa.allocator() else std.heap.smp_allocator;
 
 pub const Application = struct {
     windows: std.ArrayListUnmanaged(*Window),
@@ -48,6 +48,21 @@ pub const Window = opaque {
     pub inline fn getEvents(self: *Window) []const Event {
         const window: *platform.Window = @alignCast(@ptrCast(self));
         return window.getEvents();
+    }
+
+    pub inline fn width(self: *Window) u32 {
+        const window: *platform.Window = @alignCast(@ptrCast(self));
+        return window.width;
+    }
+
+    pub inline fn height(self: *Window) u32 {
+        const window: *platform.Window = @alignCast(@ptrCast(self));
+        return window.height;
+    }
+
+    pub inline fn aspectRatio(self: *Window) f32 {
+        const window: *platform.Window = @alignCast(@ptrCast(self));
+        return @as(f32, @floatFromInt(window.width)) / @as(f32, @floatFromInt(window.height));
     }
 
     pub inline fn getDevice(self: *Window) *gpu.Device {

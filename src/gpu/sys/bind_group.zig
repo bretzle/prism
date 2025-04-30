@@ -113,18 +113,17 @@ pub const BindGroup = opaque {
     };
 
     pub inline fn setLabel(self: *BindGroup, label: [:0]const u8) void {
-        _ = self; // autofix
-        _ = label; // autofix
-        unreachable;
+        const group: *impl.BindGroup = @alignCast(@ptrCast(self));
+        group.setLabel(label);
     }
 
     pub inline fn reference(self: *BindGroup) void {
-        _ = self; // autofix
-        unreachable;
+        const group: *impl.BindGroup = @alignCast(@ptrCast(self));
+        group.manager.reference();
     }
 
     pub inline fn release(self: *BindGroup) void {
-        _ = self; // autofix
-        unreachable;
+        const group: *impl.BindGroup = @alignCast(@ptrCast(self));
+        group.manager.release();
     }
 };
