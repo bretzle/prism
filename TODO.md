@@ -1,5 +1,5 @@
 # Big Things
-- [ ] gpu mvp
+- [X] gpu mvp
 - [ ] flush out the window interface
 - [ ] high level renderer
     - [ ] text rendering

@@ -1,8 +1,8 @@
 const std = @import("std");
-const builtin = @import("builtin");
+const options = @import("options");
 
-const platform = switch (builtin.target.os.tag) {
-    .windows => @import("platform/win32.zig"),
+const platform = switch (options.platform) {
+    .win32 => @import("platform/win32.zig"),
     else => unreachable,
 };
 
@@ -12,7 +12,7 @@ pub const math = @import("math/math.zig");
 pub const time = @import("time.zig");
 
 pub var gpa: std.heap.GeneralPurposeAllocator(.{}) = .init;
-pub const allocator = if (builtin.mode == .Debug) gpa.allocator() else std.heap.smp_allocator;
+pub const allocator = if (options.mode == .Debug) gpa.allocator() else std.heap.smp_allocator;
 
 pub const Application = struct {
     windows: std.ArrayListUnmanaged(*Window),

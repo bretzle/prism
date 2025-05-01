@@ -1,8 +1,8 @@
 const std = @import("std");
-const builtin = @import("builtin");
+const options = @import("options");
 
-pub const impl = switch (builtin.os.tag) {
-    .windows => @import("d3d12/d3d12.zig"),
+pub const impl = switch (options.backend) {
+    .d3d12 => @import("d3d12/d3d12.zig"),
     else => unreachable,
 };
 

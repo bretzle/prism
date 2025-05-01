@@ -1,5 +1,27 @@
 const std = @import("std");
 
+pub const Platform = enum {
+    dummy,
+    win32,
+
+    fn default(target: std.Target) Platform {
+        if (target.os.tag == .windows) return .win32;
+        @panic("unsupported target");
+    }
+};
+
+pub const Backend = enum {
+    dummy,
+    d3d12,
+
+    fn default(platform: Platform) Backend {
+        return switch (platform) {
+            .dummy => .dummy,
+            .win32 => .d3d12,
+        };
+    }
+};
+
 const examples = [_][]const u8{
     "triangle",
     "cube",
@@ -10,34 +32,37 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    // const pool_mod = b.addModule("pool", .{
-    //     .root_source_file = b.path("deps/pool.zig"),
-    //     .target = target,
-    //     .optimize = optimize,
-    // });
+    const platform = b.option(Platform, "platform", "platform api") orelse Platform.default(target.result);
+    const backend = b.option(Backend, "backend", "backend api") orelse Backend.default(platform);
 
-    const w32_mod = b.addModule("w32", .{
-        .root_source_file = b.path("deps/w32/windows.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-
-    const shader_mod = b.addModule("shader", .{
-        .root_source_file = b.path("deps/shader.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const options = b.addOptions();
+    options.addOption(Platform, "platform", platform);
+    options.addOption(Backend, "backend", backend);
+    options.addOption(std.builtin.OptimizeMode, "mode", optimize);
 
     const prism = b.addModule("prism", .{
         .root_source_file = b.path("src/prism.zig"),
         .target = target,
         .optimize = optimize,
-        .imports = &.{
-            .{ .name = "w32", .module = w32_mod },
-            .{ .name = "shader", .module = shader_mod },
-            // .{ .name = "truetype", .module = truetype.module("TrueType") },
-        },
     });
+
+    prism.addOptions("options", options);
+
+    if (platform == .win32) {
+        prism.addAnonymousImport("w32", .{
+            .root_source_file = b.path("deps/w32/windows.zig"),
+            .target = target,
+            .optimize = optimize,
+        });
+    }
+
+    if (backend != .dummy) {
+        prism.addAnonymousImport("shader", .{
+            .root_source_file = b.path("deps/shader.zig"),
+            .target = target,
+            .optimize = optimize,
+        });
+    }
 
     buildTools(b, target, optimize);
     buildExamples(b, prism, target, optimize);
@@ -79,8 +104,6 @@ fn buildExamples(b: *std.Build, prism: *std.Build.Module, target: std.Build.Reso
         b.installArtifact(exe);
 
         const run = b.addRunArtifact(exe);
-        if (b.args) |args| run.addArgs(args);
-
         const step = b.step(b.fmt("run-{s}", .{name}), b.fmt("Run example: {s}", .{name}));
         step.dependOn(&run.step);
     }
@@ -92,8 +115,8 @@ fn buildTest(b: *std.Build, prism: *std.Build.Module, target: std.Build.Resolved
         .target = target,
         .optimize = optimize,
     });
-    const run_tests = b.addRunArtifact(tests);
 
-    const test_step = b.step("test", "Run unit tests");
-    test_step.dependOn(&run_tests.step);
+    const run = b.addRunArtifact(tests);
+    const step = b.step("test", "Run unit tests");
+    step.dependOn(&run.step);
 }
