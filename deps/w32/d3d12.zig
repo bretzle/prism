@@ -481,10 +481,10 @@ pub const MEMORY_POOL = enum(UINT) {
 
 pub const HEAP_PROPERTIES = extern struct {
     Type: HEAP_TYPE,
-    CPUPageProperty: CPU_PAGE_PROPERTY,
-    MemoryPoolPreference: MEMORY_POOL,
-    CreationNodeMask: UINT,
-    VisibleNodeMask: UINT,
+    CPUPageProperty: CPU_PAGE_PROPERTY = .UNKNOWN,
+    MemoryPoolPreference: MEMORY_POOL = .UNKNOWN,
+    CreationNodeMask: UINT = 0,
+    VisibleNodeMask: UINT = 0,
 };
 
 pub const HEAP_FLAGS = packed struct(UINT) {
@@ -2759,7 +2759,7 @@ pub const IDevice = extern struct {
         copy_descriptors_simple: *const fn (*IDevice) callconv(.winapi) noreturn,
         get_resource_allocation_info: *const fn (*IDevice, info: *RESOURCE_ALLOCATION_INFO, visible_mask: UINT, num_descs: UINT, descs: [*]const RESOURCE_DESC) callconv(.winapi) void,
         get_custom_heap_properties: *const fn (*IDevice) callconv(.winapi) noreturn,
-        create_committed_resource: *const fn (*IDevice) callconv(.winapi) noreturn,
+        create_committed_resource: *const fn (*IDevice, heap_props: *const HEAP_PROPERTIES, heap_flags: HEAP_FLAGS, desc: *const RESOURCE_DESC, state: RESOURCE_STATES, clear_value: ?*const CLEAR_VALUE, guid: *const GUID, resource: ?*?*anyopaque) callconv(.winapi) HRESULT,
         create_heap: *const fn (*IDevice, desc: *const HEAP_DESC, guid: *const GUID, heap: *?*anyopaque) callconv(.winapi) HRESULT,
         create_placed_resource: *const fn (*IDevice, heap: *IHeap, heap_offset: UINT64, desc: *const RESOURCE_DESC, state: RESOURCE_STATES, clear_value: ?*const CLEAR_VALUE, guid: *const GUID, resource: *?*anyopaque) callconv(.winapi) HRESULT,
         create_reserved_resource: *const fn (*IDevice) callconv(.winapi) noreturn,
@@ -2838,8 +2838,8 @@ pub const IDevice = extern struct {
     pub fn getCustomHeapProperties(self: *IDevice) noreturn {
         return (self.vtable.get_custom_heap_properties)(self);
     }
-    pub fn createCommittedResource(self: *IDevice) noreturn {
-        return (self.vtable.create_committed_resource)(self);
+    pub fn createCommittedResource(self: *IDevice, heap_props: *const HEAP_PROPERTIES, heap_flags: HEAP_FLAGS, desc: *const RESOURCE_DESC, state: RESOURCE_STATES, clear_value: ?*const CLEAR_VALUE, guid: *const GUID, resource: ?*?*anyopaque) HRESULT {
+        return (self.vtable.create_committed_resource)(self, heap_props, heap_flags, desc, state, clear_value, guid, resource);
     }
     pub fn createHeap(self: *IDevice, desc: *const HEAP_DESC, guid: *const GUID, heap: *?*anyopaque) HRESULT {
         return (self.vtable.create_heap)(self, desc, guid, heap);

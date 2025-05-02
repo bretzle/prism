@@ -115,7 +115,7 @@ define IDevice : IObject {
     fn copyDescriptorsSimple(self) noreturn
     fn getResourceAllocationInfo(self, info: *RESOURCE_ALLOCATION_INFO, visible_mask: UINT, num_descs: UINT, descs: [*]const RESOURCE_DESC) void
     fn getCustomHeapProperties(self) noreturn
-    fn createCommittedResource(self) noreturn
+    fn createCommittedResource(self, heap_props: *const HEAP_PROPERTIES, heap_flags: HEAP_FLAGS, desc: *const RESOURCE_DESC, state: RESOURCE_STATES, clear_value: ?*const CLEAR_VALUE, guid: *const GUID, resource: ?*?*anyopaque) HRESULT
     fn createHeap(self, desc: *const HEAP_DESC, guid: *const GUID, heap: *?*anyopaque) HRESULT
     fn createPlacedResource(self, heap: *IHeap, heap_offset: UINT64, desc: *const RESOURCE_DESC, state: RESOURCE_STATES, clear_value: ?*const CLEAR_VALUE, guid: *const GUID, resource: *?*anyopaque) HRESULT
     fn createReservedResource(self) noreturn

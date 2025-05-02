@@ -5,10 +5,8 @@ const dxgi = w32.dxgi;
 const d3d12 = w32.d3d12;
 const conv = @import("conv.zig");
 const limits = @import("../limits.zig");
-const gpu_allocator = @import("../allocator.zig");
 
 const Manager = @import("../../util.zig").Manager;
-const MemoryAllocator = @import("MemoryAllocator.zig");
 
 const general_heap_size = 1024;
 const general_block_size = 16;
@@ -195,7 +193,6 @@ pub const Device = struct {
     command_manager: CommandManager = undefined,
     streaming_manager: StreamingManager = undefined,
     reference_trackers: std.ArrayListUnmanaged(*ReferenceTracker) = .empty,
-    mem_allocator: MemoryAllocator = undefined,
 
     pub fn create(adapter: *Adapter, _: sys.Device.Descriptor) !*Device {
         if (debug) {
@@ -254,8 +251,6 @@ pub const Device = struct {
 
         self.streaming_manager = try StreamingManager.create(self);
         errdefer self.streaming_manager.deinit();
-
-        try self.mem_allocator.init(self);
 
         return self;
     }
@@ -325,20 +320,25 @@ pub const Device = struct {
         const read_state = conv.d3d12ResourceStatesForBufferRead(usage);
         const initial_state = conv.d3d12ResourceStatesInitial(heap_type, read_state);
 
-        const create_desc = MemoryAllocator.ResourceCreateDescriptor{
-            .location = if (usage.map_write)
-                .gpu_to_cpu
-            else if (usage.map_read)
-                .cpu_to_gpu
-            else
-                .gpu_only,
-            .resource_desc = &resource_desc,
-            .clear_value = null,
-            .resource_category = .buffer,
-            .initial_state = initial_state,
-        };
+        const properties: d3d12.HEAP_PROPERTIES = if (usage.map_write)
+            d3d12.HEAP_PROPERTIES{ .Type = .CUSTOM, .CPUPageProperty = .WRITE_BACK, .MemoryPoolPreference = .L0 }
+        else if (usage.map_read)
+            d3d12.HEAP_PROPERTIES{ .Type = .CUSTOM, .CPUPageProperty = .WRITE_COMBINE, .MemoryPoolPreference = .L0 }
+        else
+            d3d12.HEAP_PROPERTIES{ .Type = .DEFAULT };
 
-        return try self.mem_allocator.createResource(&create_desc);
+        var d3d_resource: ?*d3d12.IResource = null;
+        _ = self.device.createCommittedResource(
+            &properties,
+            d3d12.HEAP_FLAGS{},
+            &resource_desc,
+            initial_state,
+            null,
+            &d3d12.IResource.IID,
+            @ptrCast(&d3d_resource),
+        );
+
+        return Resource.create(d3d_resource.?, initial_state);
     }
 
     fn logger(category: d3d12.MESSAGE_CATEGORY, severity: d3d12.MESSAGE_SEVERITY, id: d3d12.MESSAGE_ID, description: [*c]const u8, _: ?*anyopaque) callconv(.winapi) void {
@@ -628,29 +628,27 @@ pub const Texture = struct {
 
         const clear_value = std.mem.zeroInit(d3d12.CLEAR_VALUE, .{ .Format = resource_desc.Format });
 
-        // TODO: the code below was terribly broken, I rewrote it, Is it correct?
-        // const create_desc = ResourceCreateDescriptor{
-        //     .location = .gpu_only,
-        //     .resource_desc = if (utils.formatHasDepthOrStencil(desc.format) or desc.usage.render_attachment)
-        //         &clear_value
-        //     else
-        //         null,
-        //     .clear_value = null,
-        //     .resource_category = .buffer,
-        //     .initial_state = initial_state,
-        // };
-        const create_desc = MemoryAllocator.ResourceCreateDescriptor{
-            .location = .gpu_only,
-            .resource_desc = &resource_desc,
-            .clear_value = if (conv.formatHasDepthOrStencil(desc.format) or desc.usage.render_attachment)
+        var d3d_resource: ?*d3d12.IResource = null;
+        _ = device.device.createCommittedResource(
+            &d3d12.HEAP_PROPERTIES{
+                .Type = .DEFAULT,
+                .CPUPageProperty = .UNKNOWN,
+                .MemoryPoolPreference = .UNKNOWN,
+                .CreationNodeMask = 0,
+                .VisibleNodeMask = 0,
+            },
+            d3d12.HEAP_FLAGS{},
+            &resource_desc,
+            initial_state,
+            if (conv.formatHasDepthOrStencil(desc.format) or desc.usage.render_attachment)
                 &clear_value
             else
                 null,
-            // TODO check if different textures need different resource categories.
-            .resource_category = .other_texture,
-            .initial_state = initial_state,
-        };
-        const resource = device.mem_allocator.createResource(&create_desc) catch return error.CreateTextureFailed;
+            &d3d12.IResource.IID,
+            @ptrCast(&d3d_resource),
+        );
+
+        const resource = Resource.create(d3d_resource.?, initial_state);
 
         setDebugName(@ptrCast(resource.resource), desc.label);
 
@@ -2325,21 +2323,13 @@ const StreamingManager = struct {
 pub const Resource = struct {
     resource: *d3d12.IResource,
     state: d3d12.RESOURCE_STATES,
-    mem_allocator: ?*MemoryAllocator = null,
-    allocation: ?MemoryAllocator.Allocation = null,
-    memory_location: MemoryAllocator.MemoryLocation = .unknown,
-    size: u64 = 0,
 
     fn create(resource: *d3d12.IResource, state: d3d12.RESOURCE_STATES) Resource {
         return .{ .resource = resource, .state = state };
     }
 
     fn deinit(self: *Resource) void {
-        if (self.mem_allocator) |mem_allocator| {
-            mem_allocator.destroyResource(self.*) catch unreachable;
-        } else {
-            _ = self.resource.release();
-        }
+        _ = self.resource.release();
     }
 };
 
