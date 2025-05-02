@@ -33,7 +33,7 @@ pub const RenderPassEncoder = opaque {
     /// Default `first_index`: 0
     /// Default `base_vertex`: 0
     /// Default `first_instance`: 0
-    pub inline fn drawIndexed(self: *RenderPassEncoder, index_count: u32, instance_count: u32, first_index: u32, base_vertex: i32, first_instance: u32) void {
+    pub inline fn drawIndexed(self: *RenderPassEncoder, index_count: u32, instance_count: u32, first_index: u32, base_vertex: i32, first_instance: u32) !void {
         const encoder: *impl.RenderPassEncoder = @alignCast(@ptrCast(self));
         try encoder.drawIndexed(index_count, instance_count, first_index, base_vertex, first_instance);
     }
@@ -107,14 +107,10 @@ pub const RenderPassEncoder = opaque {
 
     /// Default `offset`: 0
     /// Default `size`: `gpu.whole_size`
-    pub inline fn setIndexBuffer(self: *RenderPassEncoder, buffer: *Buffer, format: IndexFormat, offset: u64, size: u64) void {
+    pub inline fn setIndexBuffer(self: *RenderPassEncoder, buffer_: *Buffer, format: IndexFormat, offset: u64, size: u64) !void {
         const encoder: *impl.RenderPassEncoder = @alignCast(@ptrCast(self));
-        _ = encoder; // autofix
-        _ = buffer; // autofix
-        _ = format; // autofix
-        _ = offset; // autofix
-        _ = size; // autofix
-        unreachable;
+        const buffer: *impl.Buffer = @alignCast(@ptrCast(buffer_));
+        try encoder.setIndexBuffer(buffer, format, offset, size);
     }
 
     pub inline fn setPipeline(self: *RenderPassEncoder, pipeline_: *RenderPipeline) !void {

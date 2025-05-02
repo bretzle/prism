@@ -2246,6 +2246,11 @@ pub const SHADER_RESOURCE_VIEW_DESC = extern struct {
     },
 };
 
+pub const CONSTANT_BUFFER_VIEW_DESC = extern struct {
+    BufferLocation: GPU_VIRTUAL_ADDRESS,
+    SizeInBytes: UINT,
+};
+
 // functions
 // ---------
 
@@ -2744,7 +2749,7 @@ pub const IDevice = extern struct {
         create_descriptor_heap: *const fn (*IDevice, desc: *const DESCRIPTOR_HEAP_DESC, riid: *const GUID, heap: *?*anyopaque) callconv(.winapi) HRESULT,
         get_descriptor_handle_increment_size: *const fn (*IDevice, heap_type: DESCRIPTOR_HEAP_TYPE) callconv(.winapi) UINT,
         create_root_signature: *const fn (*IDevice, node_mask: u32, blob: *anyopaque, blob_length: SIZE_T, riid: *const GUID, root_signature: *?*anyopaque) callconv(.winapi) HRESULT,
-        create_constant_buffer_view: *const fn (*IDevice) callconv(.winapi) noreturn,
+        create_constant_buffer_view: *const fn (*IDevice, desc: ?*const CONSTANT_BUFFER_VIEW_DESC, dst_descriptor: CPU_DESCRIPTOR_HANDLE) callconv(.winapi) void,
         create_shader_resource_view: *const fn (*IDevice, resource: ?*IResource, desc: ?*const SHADER_RESOURCE_VIEW_DESC, dst_descriptor: CPU_DESCRIPTOR_HANDLE) callconv(.winapi) void,
         create_unordered_access_view: *const fn (*IDevice) callconv(.winapi) noreturn,
         create_render_target_view: *const fn (*IDevice, resource: ?*IResource, desc: ?*const RENDER_TARGET_VIEW_DESC, dst_descriptor: CPU_DESCRIPTOR_HANDLE) callconv(.winapi) void,
@@ -2803,8 +2808,8 @@ pub const IDevice = extern struct {
     pub fn createRootSignature(self: *IDevice, node_mask: u32, blob: *anyopaque, blob_length: SIZE_T, riid: *const GUID, root_signature: *?*anyopaque) HRESULT {
         return (self.vtable.create_root_signature)(self, node_mask, blob, blob_length, riid, root_signature);
     }
-    pub fn createConstantBufferView(self: *IDevice) noreturn {
-        return (self.vtable.create_constant_buffer_view)(self);
+    pub fn createConstantBufferView(self: *IDevice, desc: ?*const CONSTANT_BUFFER_VIEW_DESC, dst_descriptor: CPU_DESCRIPTOR_HANDLE) void {
+        return (self.vtable.create_constant_buffer_view)(self, desc, dst_descriptor);
     }
     pub fn createShaderResourceView(self: *IDevice, resource: ?*IResource, desc: ?*const SHADER_RESOURCE_VIEW_DESC, dst_descriptor: CPU_DESCRIPTOR_HANDLE) void {
         return (self.vtable.create_shader_resource_view)(self, resource, desc, dst_descriptor);

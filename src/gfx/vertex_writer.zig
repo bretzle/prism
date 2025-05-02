@@ -86,7 +86,7 @@ pub fn VertexWriter(comptime V: type, comptime I: type) type {
         }
 
         pub fn indexBuffer(self: *const Self) []I {
-            return self.indices;
+            return self.indices[0..self.written_indices_count];
         }
 
         pub fn vertexBuffer(self: *const Self) []V {

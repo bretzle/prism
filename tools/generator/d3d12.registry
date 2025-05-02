@@ -105,7 +105,7 @@ define IDevice : IObject {
     fn createDescriptorHeap(self, desc: *const DESCRIPTOR_HEAP_DESC, riid: *const GUID, heap: *?*anyopaque) HRESULT
     fn getDescriptorHandleIncrementSize(self, heap_type: DESCRIPTOR_HEAP_TYPE) UINT
     fn createRootSignature(self, node_mask: u32, blob: *anyopaque, blob_length: SIZE_T, riid: *const GUID, root_signature: *?*anyopaque) HRESULT
-    fn createConstantBufferView(self) noreturn
+    fn createConstantBufferView(self, desc: ?*const CONSTANT_BUFFER_VIEW_DESC, dst_descriptor: CPU_DESCRIPTOR_HANDLE) void
     fn createShaderResourceView(self, resource: ?*IResource, desc: ?*const SHADER_RESOURCE_VIEW_DESC, dst_descriptor: CPU_DESCRIPTOR_HANDLE) void
     fn createUnorderedAccessView(self) noreturn
     fn createRenderTargetView(self, resource: ?*IResource, desc: ?*const RENDER_TARGET_VIEW_DESC, dst_descriptor: CPU_DESCRIPTOR_HANDLE) void

@@ -853,6 +853,8 @@ pub const ShaderModule = struct {
 
         defer if (self.data == .air) allocator.free(code);
 
+        // std.debug.print("{s}\n\n", .{code});
+
         const flags: u32 = 0;
         // if (debug)
         //     flags |= c.D3DCOMPILE_DEBUG | c.D3DCOMPILE_SKIP_OPTIMIZATION;
@@ -1709,6 +1711,17 @@ pub const RenderPassEncoder = struct {
         self.vertex_apply_count = @max(self.vertex_apply_count, slot + 1);
     }
 
+    pub fn setIndexBuffer(self: *RenderPassEncoder, buffer: *Buffer, format: sys.types.IndexFormat, offset: u64, size: u64) !void {
+        try self.reference_tracker.referenceBuffer(buffer);
+
+        const d3d_size: u32 = @intCast(if (size == sys.types.whole_size) buffer.size - offset else size);
+        self.command_list.iaSetIndexBuffer(&.{
+            .BufferLocation = buffer.resource.resource.getGpuVirtualAddress() + offset,
+            .SizeInBytes = d3d_size,
+            .Format = conv.dxgiFormatForIndex(format),
+        });
+    }
+
     pub fn setBindGroup(self: *RenderPassEncoder, group_index: u32, group: *BindGroup, dynamic_offsets: []const u32) !void {
         try self.reference_tracker.referenceBindGroup(group);
 
@@ -1939,7 +1952,25 @@ pub const BindGroup = struct {
                     const dest_descriptor = device.general_heap.cpuDescriptor(allocation.index + table_index);
 
                     if (layout_entry.buffer.type != .undefined) {
-                        unreachable;
+                        const buffer: *Buffer = @alignCast(@ptrCast(entry.buffer));
+                        const resource = buffer.resource.resource;
+                        const buffer_location = resource.getGpuVirtualAddress();
+
+                        switch (layout_entry.buffer.type) {
+                            .undefined => unreachable,
+                            .uniform => {
+                                const cbv_desc = d3d12.CONSTANT_BUFFER_VIEW_DESC{
+                                    .BufferLocation = buffer_location,
+                                    .SizeInBytes = @intCast(conv.alignUp(entry.size, limits.min_uniform_buffer_offset_alignment)),
+                                };
+
+                                device.device.createConstantBufferView(&cbv_desc, dest_descriptor);
+                            },
+                            .storage => unreachable,
+                            .read_only_storage => unreachable,
+                        }
+
+                        continue;
                     }
 
                     if (layout_entry.texture.sample_type != .undefined) {

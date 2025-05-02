@@ -143,13 +143,11 @@ pub const CommandEncoder = opaque {
         unreachable;
     }
 
-    pub inline fn writeBuffer(self: *CommandEncoder, buffer: *Buffer, buffer_offset_bytes: u64, data_slice: anytype) void {
+    pub inline fn writeBuffer(self: *CommandEncoder, buffer_: *Buffer, buffer_offset_bytes: u64, data_slice: anytype) !void {
         const encoder: *impl.CommandEncoder = @alignCast(@ptrCast(self));
-        _ = encoder; // autofix
-        _ = buffer; // autofix
-        _ = buffer_offset_bytes; // autofix
-        _ = data_slice; // autofix
-        unreachable;
+        const buffer: *impl.Buffer = @alignCast(@ptrCast(buffer_));
+        const data = std.mem.sliceAsBytes(data_slice);
+        try encoder.writeBuffer(buffer, buffer_offset_bytes, data.ptr, data.len);
     }
 
     pub inline fn writeTimestamp(self: *CommandEncoder, query_set: *QuerySet, query_index: u32) void {

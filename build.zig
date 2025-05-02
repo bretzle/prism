@@ -26,6 +26,7 @@ const examples = [_][]const u8{
     "triangle",
     "cube",
     "fractal",
+    "batch",
 };
 
 pub fn build(b: *std.Build) void {
