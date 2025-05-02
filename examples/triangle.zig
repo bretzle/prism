@@ -2,8 +2,6 @@ const std = @import("std");
 const prism = @import("prism");
 const gpu = prism.gpu;
 
-const code = @embedFile("triangle.hlsl");
-
 pub fn main() !void {
     var app = try prism.Application.create();
     defer app.deinit();
@@ -13,7 +11,7 @@ pub fn main() !void {
     const swapchain = window.getSwapchain();
     const queue = window.getQueue();
 
-    const shader = try device.createShaderModuleHLSL("triangle", code);
+    const shader = try device.createShaderModuleHLSL("triangle", @embedFile("shaders/triangle.hlsl"));
     defer shader.release();
 
     const blend = gpu.types.BlendState{};

@@ -20,7 +20,7 @@ pub fn main() !void {
     const swapchain = window.getSwapchain();
     const queue = window.getQueue();
 
-    const shader = try device.createShaderModuleHLSL("cube.hlsl", @embedFile("cube.hlsl"));
+    const shader = try device.createShaderModuleHLSL("cube.hlsl", @embedFile("shaders/cube.hlsl"));
     defer shader.release();
 
     const vertex_attributes = [_]gpu.types.VertexAttribute{

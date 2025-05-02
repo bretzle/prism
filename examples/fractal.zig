@@ -20,7 +20,7 @@ pub fn main() !void {
     const swapchain = window.getSwapchain();
     const queue = window.getQueue();
 
-    const shader = try device.createShaderModuleWGSL("fractal.wgsl", @embedFile("fractal.wgsl"));
+    const shader = try device.createShaderModuleWGSL("fractal.wgsl", @embedFile("shaders/fractal.wgsl"));
     defer shader.release();
 
     const vertex_attributes = [_]gpu.types.VertexAttribute{
