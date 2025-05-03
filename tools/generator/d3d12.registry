@@ -15,7 +15,7 @@ common IObject : IUnknown {
     fn setName(self) noreturn
 }
 
-define IBlob : IUnknown {
+common IBlob : IUnknown {
     iid = "8BA5FB08-5195-40E2-AC58-0D989C3A0102"
 
     fn getBufferPointer(self) *anyopaque

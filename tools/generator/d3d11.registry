@@ -1,0 +1,331 @@
+common IUnknown {
+    iid = "00000000-0000-0000-C000-000000000046"
+
+    fn queryInterface(self, riid: *const GUID, out: *?*anyopaque) HRESULT
+    fn addRef(self) ULONG
+    fn release(self) ULONG
+}
+
+common IObject : IUnknown {
+    iid = "AEC22FB8-76F3-4639-9BE0-28EB43A67A2E"
+
+    fn getPrivateData(self) noreturn
+    fn setPrivateData(self) noreturn
+    fn setPrivateDataInterface(self) noreturn
+    fn setName(self) noreturn
+}
+
+define IDevice : IUnknown {
+    iid = "DB6F6DDB-AC77-4E88-8253-819DF9BBF140"
+
+    fn createBuffer(self) noreturn
+    fn createTexture1D(self) noreturn
+    fn createTexture2D(self) noreturn
+    fn createTexture3D(self) noreturn
+    fn createShaderResourceView(self) noreturn
+    fn createUnorderedAccessView(self) noreturn
+    fn createRenderTargetView(self, resource: ?*IResource, desc: ?*const RENDER_TARGET_VIEW_DESC, view: ?*?*IRenderTargetView) HRESULT
+    fn createDepthStencilView(self) noreturn
+    fn createInputLayout(self, element_descs: ?[*]const INPUT_ELEMENT_DESC, num: u32, shader_bytecode: *const anyopaque, bytecode_length: SIZE_T, layout: *?*IInputLayout) HRESULT
+    fn createVertexShader(self, bytecode: *const anyopaque, length: SIZE_T, class_linkage: ?*IClassLinkage, shader: *?*IVertexShader) HRESULT
+    fn createGeometryShader(self) noreturn
+    fn createGeometryShaderWithStreamOutput(self) noreturn
+    fn createPixelShader(self, bytecode: *const anyopaque, length: SIZE_T, class_linkage: ?*IClassLinkage, shader: *?*IPixelShader) HRESULT
+    fn createHullShader(self) noreturn
+    fn createDomainShader(self) noreturn
+    fn createComputeShader(self) noreturn
+    fn createClassLinkage(self) noreturn
+    fn createBlendState(self, desc: *const BLEND_DESC, state: *?*IBlendState) HRESULT
+    fn createDepthStencilState(self, desc: *const DEPTH_STENCIL_DESC, state: *?*IDepthStencilState) HRESULT
+    fn createRasterizerState(self, desc: *const RASTERIZER_DESC, state: *?*IRasterizerState) HRESULT
+    fn createSamplerState(self) noreturn
+    fn createQuery(self) noreturn
+    fn createPredicate(self) noreturn
+    fn createCounter(self) noreturn
+    fn createDeferredContext(self, flags: u32, context: *?*IDeviceContext) HRESULT
+    fn openSharedResource(self) noreturn
+    fn checkFormatSupport(self) noreturn
+    fn checkMultisampleQualityLevels(self) noreturn
+    fn checkCounterInfo(self) noreturn
+    fn checkCounter(self) noreturn
+    fn checkFeatureSupport(self, feature: FEATURE, data: *anyopaque, size: u32) HRESULT
+    fn getPrivateData(self) noreturn
+    fn setPrivateData(self) noreturn
+    fn setPrivateDataInterface(self) noreturn
+    fn getFeatureLevel(self) noreturn
+    fn getCreationFlags(self) noreturn
+    fn getDeviceRemovedReason(self) noreturn
+    fn getImmediateContext(self) noreturn
+    fn setExceptionMode(self) noreturn
+    fn getExceptionMode(self) noreturn
+}
+
+define IDeviceChild : IUnknown {
+    iid = "1841E5C8-16B0-489B-BCC8-44CFB0D5DEAE"
+
+    fn getDevice(self, device: *?*IDevice) void
+    fn getPrivateData(self) noreturn
+    fn setPrivateData(self) noreturn
+    fn setPrivateDataInterface(self) noreturn
+}
+
+define IDeviceContext : IDeviceChild {
+    iid = "C0BFA96C-E089-44FB-8EAF-26F8796190DA"
+
+    fn vsSetConstantBuffers(self) noreturn
+    fn psSetShaderResources(self) noreturn
+    fn psSetShader(self, shader: ?*IPixelShader, class_instance: ?[*]const *IClassInstance, num: u32) void
+    fn psSetSamplers(self) noreturn
+    fn vsSetShader(self, shader: ?*IVertexShader, class_instance: ?[*]const *IClassInstance, num: u32) void
+    fn drawIndexed(self) noreturn
+    fn draw(self, vertex_count: u32, start_vertex_location: u32) void
+    fn map(self) noreturn
+    fn unmap(self) noreturn
+    fn psSetConstantBuffers(self) noreturn
+    fn iaSetInputLayout(self, layout: ?*IInputLayout) void
+    fn iaSetVertexBuffers(self, start_slot: u32, num: u32, buffers: ?[*]*IBuffer, strides: ?[*]u32, offsets: ?[*]u32) void
+    fn iaSetIndexBuffer(self) noreturn
+    fn drawIndexedInstanced(self, index_count_per_instance: u32, instance_count: u32, start_index_location: u32, base_vertex_location: i32, start_instance_location: u32) void
+    fn drawInstanced(self, vertex_count_per_instance: u32, instance_count: u32, start_vertex_location: u32, start_instance_location: u32) void
+    fn gsSetConstantBuffers(self) noreturn
+    fn gsSetShader(self) noreturn
+    fn iaSetPrimitiveTopology(self, topology: d3dcommon.PRIMITIVE_TOPOLOGY) void
+    fn vsSetShaderResources(self) noreturn
+    fn vsSetSamplers(self) noreturn
+    fn begin(self) noreturn
+    fn end(self) noreturn
+    fn getData(self) noreturn
+    fn setPredication(self) noreturn
+    fn gsSetShaderResources(self) noreturn
+    fn gsSetSamplers(self) noreturn
+    fn omSetRenderTargets(self, num: u32, render_target_views: ?[*]const *IRenderTargetView, depth_stencil_view: ?*IDepthStencilView) void
+    fn omSetRenderTargetsAndUnorderedAccessViews(self) noreturn
+    fn omSetBlendState(self, state: ?*IBlendState, factor: ?*const [4]f32, sample_mask: u32) void
+    fn omSetDepthStencilState(self, state: ?*IDepthStencilState, stencil_ref: u32) void
+    fn soSetTargets(self) noreturn
+    fn drawAuto(self) noreturn
+    fn drawIndexedInstancedIndirect(self) noreturn
+    fn drawInstancedIndirect(self) noreturn
+    fn dispatch(self) noreturn
+    fn dispatchIndirect(self) noreturn
+    fn rsSetState(self, state: ?*IRasterizerState) void
+    fn rsSetViewports(self, num: u32, viewports: ?[*]const VIEWPORT) void
+    fn rsSetScissorRects(self, num: u32, rects: ?[*]const RECT) void
+    fn copySubresourceRegion(self) noreturn
+    fn copyResource(self) noreturn
+    fn updateSubresource(self) noreturn
+    fn copyStructureCount(self) noreturn
+    fn clearRenderTargetView(self, target: *IRenderTargetView, color: *const [4]f32) void
+    fn clearUnorderedAccessViewUint(self) noreturn
+    fn clearUnorderedAccessViewFloat(self) noreturn
+    fn clearDepthStencilView(self) noreturn
+    fn generateMips(self) noreturn
+    fn setResourceMinLod(self) noreturn
+    fn getResourceMinLod(self) noreturn
+    fn resolveSubresource(self) noreturn
+    fn executeCommandList(self, command_list: *ICommandList, restore: BOOL) void
+    fn hsSetShaderResources(self) noreturn
+    fn hsSetShader(self) noreturn
+    fn hsSetSamplers(self) noreturn
+    fn hsSetConstantBuffers(self) noreturn
+    fn dsSetShaderResources(self) noreturn
+    fn dsSetShader(self) noreturn
+    fn dsSetSamplers(self) noreturn
+    fn dsSetConstantBuffers(self) noreturn
+    fn csSetShaderResources(self) noreturn
+    fn csSetUnorderedAccessViews(self) noreturn
+    fn csSetShader(self) noreturn
+    fn csSetSamplers(self) noreturn
+    fn csSetConstantBuffers(self) noreturn
+    fn vsGetConstantBuffers(self) noreturn
+    fn psGetShaderResources(self) noreturn
+    fn psGetShader(self) noreturn
+    fn psGetSamplers(self) noreturn
+    fn vsGetShader(self) noreturn
+    fn psGetConstantBuffers(self) noreturn
+    fn iaGetInputLayout(self) noreturn
+    fn iaGetVertexBuffers(self) noreturn
+    fn iaGetIndexBuffer(self) noreturn
+    fn gsGetConstantBuffers(self) noreturn
+    fn gsGetShader(self) noreturn
+    fn iaGetPrimitiveTopology(self) noreturn
+    fn vsGetShaderResources(self) noreturn
+    fn vsGetSamplers(self) noreturn
+    fn getPredication(self) noreturn
+    fn gsGetShaderResources(self) noreturn
+    fn gsGetSamplers(self) noreturn
+    fn omGetRenderTargets(self) noreturn
+    fn omGetRenderTargetsAndUnorderedAccessViews(self) noreturn
+    fn omGetBlendState(self) noreturn
+    fn omGetDepthStencilState(self) noreturn
+    fn soGetTargets(self) noreturn
+    fn rsGetState(self) noreturn
+    fn rsGetViewports(self) noreturn
+    fn rsGetScissorRects(self) noreturn
+    fn hsGetShaderResources(self) noreturn
+    fn hsGetShader(self) noreturn
+    fn hsGetSamplers(self) noreturn
+    fn hsGetConstantBuffers(self) noreturn
+    fn dsGetShaderResources(self) noreturn
+    fn dsGetShader(self) noreturn
+    fn dsGetSamplers(self) noreturn
+    fn dsGetConstantBuffers(self) noreturn
+    fn csGetShaderResources(self) noreturn
+    fn csGetUnorderedAccessViews(self) noreturn
+    fn csGetShader(self) noreturn
+    fn csGetSamplers(self) noreturn
+    fn csGetConstantBuffers(self) noreturn
+    fn clearState(self) noreturn
+    fn flush(self) noreturn
+    fn getType(self) noreturn
+    fn getContextFlags(self) noreturn
+    fn finishCommandList(self, restore: BOOL, command_list: *?*ICommandList) HRESULT
+}
+
+define ICommandList : IDeviceChild {
+    iid = "A24BC4D1-769E-43F7-8013-98FF566C18E2"
+
+    fn getContextFlags(self) u32
+}
+
+define IResource : IDeviceChild {
+    iid = "696442BE-A72E-4059-BC79-5B5C98040FAD"
+
+    fn getType(self) noreturn
+    fn setEvictionPriority(self) noreturn
+    fn getEvictionPriority(self) noreturn
+}
+
+define ITexture2D : IResource {
+    iid = "6F15AAF2-D208-4E89-9AB4-489535D34F9C"
+
+    fn getDesc(self) noreturn
+}
+
+define IView : IDeviceChild {
+    iid = "839D1216-BB2E-412B-B7F4-A9DBEBE08ED1"
+
+    fn getResource(self) noreturn
+}
+
+define IRenderTargetView : IView {
+    iid = "DFDBA067-0B8D-4865-875B-D7B4516CC164"
+
+    fn getDesc(self) noreturn
+}
+
+define IDepthStencilView : IView {
+    iid = "9FDAC92A-1876-48C3-AFAD-25B94F84A9B6"
+
+    fn getDesc(self) noreturn
+}
+
+define IDebug : IUnknown {
+    iid = "79CF2233-7536-4948-9D36-1E4692DC5760"
+
+    fn setFeatureMask(self, mask: DEBUG_FEATURES) HRESULT
+    fn getFeatureMask(self) DEBUG_FEATURES
+    fn setPresentPerRenderOpDelay(self, milliseconds: u32) HRESULT
+    fn getPresentPerRenderOpDelay(self) u32
+    fn setSwapChain(self, swapchain: *dxgi.ISwapChain) HRESULT
+    fn getSwapChain(self, swapchain: *?*dxgi.ISwapChain) HRESULT
+    fn validateContext(self, context: *IDeviceContext) HRESULT
+    fn reportLiveDeviceObjects(self, flags: RLDO_FLAGS) HRESULT
+    fn validateContextForDispatch(self, context: *IDeviceContext) HRESULT
+}
+
+define IInfoQueue : IUnknown {
+    iid = "6543DBB6-1B48-42F5-AB82-E97EC74326F6"
+
+    fn setMessageCountLimit(self) noreturn
+	fn clearStoredMessages(self) void
+	fn getMessage(self, index: u64, message: ?*MESSAGE, length: *SIZE_T) HRESULT
+	fn getNumMessagesAllowedByStorageFilter(self) noreturn
+	fn getNumMessagesDeniedByStorageFilter(self) noreturn
+	fn getNumStoredMessages(self) noreturn
+	fn getNumStoredMessagesAllowedByRetrievalFilter(self) u64
+	fn getNumMessagesDiscardedByMessageCountLimit(self) noreturn
+	fn getMessageCountLimit(self) noreturn
+	fn addStorageFilterEntries(self) noreturn
+	fn getStorageFilter(self) noreturn
+	fn clearStorageFilter(self) noreturn
+	fn pushEmptyStorageFilter(self) noreturn
+	fn pushCopyOfStorageFilter(self) noreturn
+	fn pushStorageFilter(self) noreturn
+	fn popStorageFilter(self) noreturn
+	fn getStorageFilterStackSize(self) noreturn
+	fn addRetrievalFilterEntries(self) noreturn
+	fn getRetrievalFilter(self) noreturn
+	fn clearRetrievalFilter(self) noreturn
+	fn pushEmptyRetrievalFilter(self) noreturn
+	fn pushCopyOfRetrievalFilter(self) noreturn
+	fn pushRetrievalFilter(self) noreturn
+	fn popRetrievalFilter(self) noreturn
+	fn getRetrievalFilterStackSize(self) noreturn
+	fn addMessage(self) noreturn
+	fn addApplicationMessage(self) noreturn
+	fn setBreakOnCategory(self) noreturn
+	fn setBreakOnSeverity(self, severity: MESSAGE_SEVERITY, enable: BOOL) HRESULT
+	fn setBreakOnID(self) noreturn
+	fn getBreakOnCategory(self) noreturn
+	fn getBreakOnSeverity(self) noreturn
+	fn getBreakOnID(self) noreturn
+	fn setMuteDebugOutput(self) noreturn
+	fn getMuteDebugOutput(self) noreturn
+}
+
+define IPixelShader : IDeviceChild {
+    iid = "EA82E40D-51DC-4F33-93D4-DB7C9125AE8C"
+
+    fn getDesc(self) noreturn
+}
+
+define IVertexShader : IDeviceChild {
+    iid = "3B301D64-D678-4289-8897-22F8928B72F3"
+
+    fn getDesc(self) noreturn
+}
+
+define IClassInstance : IDeviceChild {
+    iid = "A6CD7FAA-B0B7-4A2F-9436-8662A65797CB"
+
+    fn getClassLinkange(self) noreturn
+    fn getDesc(self) noreturn
+    fn getInstanceName(self) noreturn
+    fn getTypeName(self) noreturn
+}
+
+define IBlendState : IDeviceChild {
+    iid = "75B68FAA-347D-4159-8F45-A0640F01CD9A"
+
+    fn getDesc(self) noreturn
+}
+
+define IDepthStencilState : IDeviceChild {
+    iid = "03823EFB-8D8F-4E1C-9AA2-F64BB2CBFDF1"
+
+    fn getDesc(self) noreturn
+}
+
+define IRasterizerState : IDeviceChild {
+    iid = "9bb4ab81-ab1a-4d8f-b506-fc04200b6ee7"
+
+    fn getDesc(self) noreturn
+}
+
+define IClassLinkage : IDeviceChild {
+    iid = "DDF57CBA-9543-46E4-A12B-F207A0FE7FED"
+
+    fn getClassInstance(self) noreturn
+    fn createClassInstance(self) noreturn
+}
+
+define IInputLayout : IDeviceChild {
+    iid = "E4819DDC-4CF0-4025-BD26-5DE82A3E07B7"
+
+    fn getDesc(self) noreturn
+}
+
+define IBuffer : IResource {
+    iid = ""
+}

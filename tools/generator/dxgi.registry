@@ -167,3 +167,9 @@ define IDevice : IObject {
     fn setGpuThreadPriority(self, priority: INT) HRESULT
     fn getGpuThreadPriority(self, priority: *INT) HRESULT
 }
+
+define IDebug : IUnknown {
+    iid = "119E7452-DE9E-40fe-8806-88F90C12B441"
+
+    fn reportLiveObjects(self, riid: *const GUID, flags: DEBUG_RLO_FLAGS) void
+}

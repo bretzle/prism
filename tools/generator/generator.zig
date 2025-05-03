@@ -16,6 +16,8 @@ const mapping = [_]struct {
 }{
     .{ .source = "dxgi.registry", .target = "deps/w32/dxgi.zig" },
     .{ .source = "d3d12.registry", .target = "deps/w32/d3d12.zig" },
+    .{ .source = "d3d11.registry", .target = "deps/w32/d3d11.zig" },
+    .{ .source = "d3dcompiler.registry", .target = "deps/w32/d3dcompiler.zig" },
 };
 
 pub fn main() !void {
@@ -107,7 +109,7 @@ const gen = struct {
 
         var iter = std.mem.tokenizeAny(u8, registry, "\n\r");
         var builder: Interface = undefined;
-        var methods = std.BoundedArray(Method, 100){};
+        var methods = std.BoundedArray(Method, 200){};
 
         var order = std.ArrayList([]const u8).init(allocator);
 

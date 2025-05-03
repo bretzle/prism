@@ -1,0 +1,68 @@
+common IUnknown {
+    iid = "00000000-0000-0000-C000-000000000046"
+
+    fn queryInterface(self, riid: *const GUID, out: *?*anyopaque) HRESULT
+    fn addRef(self) ULONG
+    fn release(self) ULONG
+}
+
+define IInclude {
+    iid = ""
+}
+
+define IShaderReflection : IUnknown {
+    iid = "8d536ca1-0cca-4956-a837-786963755584"
+
+    fn getDesc(self, desc: *SHADER_DESC) HRESULT
+    fn getConstantBufferByIndex(self, index: UINT) *IShaderReflectionConstantBuffer
+    fn getConstantBufferByName(self) noreturn
+    fn getResourceBindingDesc(self, index: UINT, desc: *SHADER_INPUT_BIND_DESC) HRESULT
+    fn getBitwiseInstructionCount(self) noreturn
+    fn getConversionInstructionCount(self) noreturn
+    fn getGSInputPrimitive(self) noreturn
+    fn getInputParameterDesc(self) noreturn
+    fn getMinFeatureLevel(self) noreturn
+    fn getMovcInstructionCount(self) noreturn
+    fn getMovInstructionCount(self) noreturn
+    fn getNumInterfaceSlots(self) noreturn
+    fn getOutputParameterDesc(self) noreturn
+    fn getPatchConstantParameterDesc(self) noreturn
+    fn getRequiresFlags(self) noreturn
+    fn getResourceBindingDescByName(self) noreturn
+    fn getThreadGroupSize(self) noreturn
+    fn getVariableByName(self) noreturn
+    fn isSampleFrequencyShader(self) noreturn
+}
+
+define IShaderReflectionConstantBuffer {
+    iid = ""
+
+    fn getDesc(self, desc: *SHADER_BUFFER_DESC) void
+    fn getVariableByIndex(self, index: u32) *IShaderReflectionVariable
+    fn getVariableByName(self, name: LPCSTR) *IShaderReflectionVariable
+}
+
+define IShaderReflectionVariable {
+    iid = ""
+
+    fn getDesc(self, desc: *SHADER_VARIABLE_DESC) void
+    fn getType(self) *IShaderReflectionType
+    fn getBuffer(self) noreturn
+    fn getInterfaceSlot(self) noreturn
+}
+
+define IShaderReflectionType {
+    iid = ""
+
+    fn getDesc(self, desc: *SHADER_TYPE_DESC) HRESULT
+    fn getMemberTypeByIndex(self) noreturn
+    fn getMemberTypeByName(self) noreturn
+    fn getMemberTypeName(self) noreturn
+    fn isEqual(self) noreturn
+    fn getSubType(self) noreturn
+    fn getBaseClass(self) noreturn
+    fn getNumInterfaces(self) noreturn
+    fn getInterfaceByIndex(self) noreturn
+    fn isOfType(self) noreturn
+    fn implementsInterface(self) noreturn
+}
