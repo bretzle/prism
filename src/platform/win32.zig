@@ -1,5 +1,5 @@
 const std = @import("std");
-const gpu = @import("../gpu/gpu.zig");
+const gpu = @import("../newgpu/gpu.zig");
 const prism = @import("../prism.zig");
 const w32 = @import("w32");
 
@@ -17,12 +17,12 @@ pub const Window = struct {
     width: u32,
     height: u32,
 
-    device: *gpu.Device,
     instance: *gpu.Instance,
-    adapter: *gpu.Adapter,
-    queue: *gpu.Queue,
-    swapchain: *gpu.SwapChain,
     surface: *gpu.Surface,
+    adapter: *gpu.Adapter,
+    device: *gpu.Device,
+    swapchain: *gpu.Swapchain,
+    // queue: *gpu.Queue,
 
     pub fn create(_: *Application, desc: prism.Window.Descriptor) !*Window {
         const hinstance: w32.HINSTANCE = @ptrCast(w32.GetModuleHandleW(null) orelse return error.NoInstance);
@@ -68,22 +68,21 @@ pub const Window = struct {
 
         _ = w32.ShowWindow(hwnd, w32.SW_SHOW);
 
-        const instance = try gpu.Instance.create(.{});
-        const surface = try instance.createSurface(.windows(hinstance, hwnd));
+        const instance = try gpu.Instance.create();
+        const surface = try instance.createSurface(.{ .windows = hwnd });
         const adapter = try instance.createAdapter(.{ .surface = surface, .power_preference = .performance });
-        const device = try adapter.createDevice(.{});
-        const queue = try device.getQueue();
+        const device = try adapter.createDevice();
+        // const queue = try device.getQueue();
 
         const size = getClientSize(hwnd);
-        const swapchain_desc = gpu.SwapChain.Descriptor{
-            .label = "main swap chain",
+        const swapchain_desc = gpu.Swapchain.Descriptor{
             .usage = .{ .render_attachment = true },
             .format = .bgra8_unorm,
             .width = size[0],
             .height = size[1],
             .present_mode = .fifo,
         };
-        const swapchain = try device.createSwapChain(surface, swapchain_desc);
+        const swapchain = try device.createSwapchain(surface, swapchain_desc);
 
         const self = try allocator.create(Window);
         self.* = .{
@@ -91,12 +90,11 @@ pub const Window = struct {
             .events = .init(allocator),
             .width = size[0],
             .height = size[1],
-            .device = device,
             .instance = instance,
-            .adapter = adapter,
-            .queue = queue,
-            .swapchain = swapchain,
             .surface = surface,
+            .adapter = adapter,
+            .device = device,
+            .swapchain = swapchain,
         };
 
         _ = w32.SetWindowLongPtrW(hwnd, w32.GWLP_USERDATA, @intFromPtr(self));
@@ -116,7 +114,7 @@ pub const Window = struct {
 
     pub fn presentFrame(self: *Window) void {
         self.events.discard(self.events.readableLength());
-        self.device.tick() catch unreachable;
+        // self.device.tick() catch unreachable;
         self.swapchain.present() catch unreachable;
     }
 

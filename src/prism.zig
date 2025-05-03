@@ -6,8 +6,8 @@ const platform = switch (options.platform) {
     else => unreachable,
 };
 
-pub const gpu = @import("gpu/gpu.zig");
-pub const gfx = @import("gfx/gfx.zig");
+pub const gpu = @import("newgpu/gpu.zig");
+// pub const gfx = @import("gfx/gfx.zig");
 pub const math = @import("math/math.zig");
 pub const time = @import("time.zig");
 
@@ -85,7 +85,7 @@ pub const Window = opaque {
         return window.queue;
     }
 
-    pub inline fn getSwapchain(self: *Window) *gpu.SwapChain {
+    pub inline fn getSwapchain(self: *Window) *gpu.Swapchain {
         const window: *platform.Window = @alignCast(@ptrCast(self));
         return window.swapchain;
     }

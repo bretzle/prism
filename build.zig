@@ -12,21 +12,22 @@ pub const Platform = enum {
 
 pub const Backend = enum {
     dummy,
+    d3d11,
     d3d12,
 
     fn default(platform: Platform) Backend {
         return switch (platform) {
             .dummy => .dummy,
-            .win32 => .d3d12,
+            .win32 => .d3d11,
         };
     }
 };
 
 const examples = [_][]const u8{
     "triangle",
-    "cube",
-    "fractal",
-    "batch",
+    // "cube",
+    // "fractal",
+    // "batch",
 };
 
 pub fn build(b: *std.Build) void {

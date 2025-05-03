@@ -9,9 +9,8 @@ pub fn main() !void {
     const window = try app.createWindow(.{});
     const device = window.getDevice();
     const swapchain = window.getSwapchain();
-    const queue = window.getQueue();
 
-    const shader = try device.createShaderModuleHLSL("triangle", @embedFile("shaders/triangle.hlsl"));
+    const shader = try device.createShaderModule(.hlsl, @embedFile("shaders/triangle.hlsl"));
     defer shader.release();
 
     const blend = gpu.types.BlendState{};
@@ -20,13 +19,9 @@ pub fn main() !void {
         .blend = &blend,
     };
 
-    const layout = try device.createPipelineLayout(.{});
-    defer layout.release();
-
     const pipeline = try device.createRenderPipeline(.{
-        .layout = layout,
         .vertex = .{ .module = shader, .entrypoint = "vertex_main" },
-        .fragment = &.{ .module = shader, .entrypoint = "frag_main", .targets = &.{color_target} },
+        .fragment = .{ .module = shader, .entrypoint = "frag_main", .targets = &.{color_target} },
     });
     defer pipeline.release();
 
@@ -43,7 +38,7 @@ pub fn main() !void {
         const back_buffer_view = try swapchain.getCurrentTextureView();
         defer back_buffer_view.release();
 
-        const encoder = try device.createCommandEncoder(.{});
+        const encoder = try device.createCommandEncoder();
         defer encoder.release();
 
         const render_pass = try encoder.beginRenderPass(.{
@@ -54,15 +49,15 @@ pub fn main() !void {
                 .store_op = .store,
             }},
         });
-        defer render_pass.release();
 
         try render_pass.setPipeline(pipeline);
         try render_pass.draw(3, 1, 0, 0);
         try render_pass.end();
+        render_pass.release();
 
-        var command = try encoder.finish(.{});
+        const command = try encoder.finish();
         defer command.release();
 
-        try queue.submit(&.{command});
+        try device.submit(&.{command});
     }
 }
