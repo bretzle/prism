@@ -118,7 +118,7 @@ define IDeviceContext : IDeviceChild {
     fn clearRenderTargetView(self, target: *IRenderTargetView, color: *const [4]f32) void
     fn clearUnorderedAccessViewUint(self) noreturn
     fn clearUnorderedAccessViewFloat(self) noreturn
-    fn clearDepthStencilView(self) noreturn
+    fn clearDepthStencilView(self, view: *IDepthStencilView, flags: CLEAR_FLAGS, depth: f32, stencil: u8) void
     fn generateMips(self) noreturn
     fn setResourceMinLod(self) noreturn
     fn getResourceMinLod(self) noreturn

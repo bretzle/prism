@@ -18,40 +18,15 @@ pub fn main() !void {
     const window = try app.createWindow(.{ .width = 800, .height = 800 });
     const device = window.getDevice();
     const swapchain = window.getSwapchain();
-    // const queue = window.getQueue();
 
     const shader = try device.createShaderModule(.hlsl, @embedFile("shaders/fractal.hlsl"));
     defer shader.release();
-
-    // const vertex_attributes = [_]gpu.types.VertexAttribute{
-    //     .{ .format = .float32x4, .offset = @offsetOf(Vertex, "pos"), .shader_location = 0 },
-    //     .{ .format = .float32x2, .offset = @offsetOf(Vertex, "uv"), .shader_location = 1 },
-    // };
-
-    // const vertex_buffer_layout = gpu.types.VertexBufferLayout{
-    //     .array_stride = @sizeOf(Vertex),
-    //     .attributes = &vertex_attributes,
-    // };
 
     const blend = gpu.types.BlendState{};
     const color_target = gpu.types.ColorTargetState{
         .format = .bgra8_unorm,
         .blend = &blend,
     };
-
-    // const bgl = try device.createBindGroupLayout(.{
-    //     .entries = &.{
-    //         .newBuffer(0, .{ .vertex = true }, .uniform, true, 0),
-    //         .newSampler(1, .{ .fragment = true }, .filtering),
-    //         .newTexture(2, .{ .fragment = true }, .float, .@"2d", false),
-    //     },
-    // });
-    // defer bgl.release();
-
-    // const pipeline_layout = try device.createPipelineLayout(.{
-    //     .bind_group_layouts = &.{bgl},
-    // });
-    // defer pipeline_layout.release();
 
     const pipeline = try device.createRenderPipeline(.{
         .vertex = .{ .module = shader, .entrypoint = "vertex_main" },
@@ -106,15 +81,6 @@ pub fn main() !void {
         .array_layer_count = 1,
     });
 
-    // const bind_group = try device.createBindGroup(.{
-    //     .layout = bgl,
-    //     .entries = &.{
-    //         .newBuffer(0, uniform_buffer, 0, @sizeOf(Unfiorms)),
-    //         .newSampler(1, sampler),
-    //         .newTextureView(2, cube_texture_view),
-    //     },
-    // });
-
     const depth_texture = try device.createTexture(.{
         .usage = .{ .render_attachment = true },
         .size = .{ .width = window.width(), .height = window.height() },
@@ -127,16 +93,15 @@ pub fn main() !void {
         .mip_level_count = 1,
     });
 
-    // defer {
-    //     cube_texture.release();
-    //     cube_texture_render.release();
-    //     sampler.release();
-    //     cube_texture_view.release();
-    //     cube_texture_view_render.release();
-    //     bind_group.release();
-    //     depth_texture.release();
-    //     depth_texture_view.release();
-    // }
+    defer {
+        cube_texture.release();
+        cube_texture_render.release();
+        sampler.release();
+        cube_texture_view.release();
+        cube_texture_view_render.release();
+        depth_texture.release();
+        depth_texture_view.release();
+    }
 
     var timer = try prism.time.Timer.start();
 
@@ -157,7 +122,7 @@ pub fn main() !void {
         };
         const color_attachment = gpu.types.RenderPassColorAttachment{
             .view = back_buffer_view,
-            .clear_value = .{ .r = 0.5, .g = 0.5, .b = 0.5, .a = 1 },
+            .clear_value = .{ .r = 0.1, .g = 0.1, .b = 0.1, .a = 1 },
             .load_op = .clear,
             .store_op = .store,
         };
@@ -196,7 +161,6 @@ pub fn main() !void {
 
         const pass = try encoder.beginRenderPass(render_pass_info);
         try pass.setPipeline(pipeline);
-        // try pass.setBindGroup(0, bind_group, &.{0});
         try pass.setVertexBuffer(0, vertex_buffer, 0, @sizeOf(Vertex));
         try pass.setUniformBuffer(0, uniform_buffer);
         try pass.setTexture(0, cube_texture_view, sampler);
@@ -204,15 +168,14 @@ pub fn main() !void {
         try pass.end();
         pass.release();
 
-        // try encoder.copyTexture(
-        //     .{ .texture = cube_texture_render },
-        //     .{ .texture = cube_texture },
-        //     .{ .width = window.width(), .height = window.height() },
-        // );
+        try encoder.copyTexture(
+            .{ .texture = cube_texture_render },
+            .{ .texture = cube_texture },
+            .{ .width = window.width(), .height = window.height() },
+        );
 
         const cube_pass = try encoder.beginRenderPass(cube_render_pass_info);
         try cube_pass.setPipeline(pipeline);
-        // try cube_pass.setBindGroup(0, bind_group, &.{0});
         try cube_pass.setVertexBuffer(0, vertex_buffer, 0, @sizeOf(Vertex));
         try cube_pass.setUniformBuffer(0, uniform_buffer);
         try cube_pass.setTexture(0, cube_texture_view, sampler);
@@ -221,7 +184,7 @@ pub fn main() !void {
         cube_pass.release();
 
         const command = try encoder.finish();
-        defer encoder.release();
+        defer command.release();
 
         try device.submit(&.{command});
     }

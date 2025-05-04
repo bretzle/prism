@@ -26,7 +26,7 @@ pub const RenderPassDepthStencilAttachment = struct {
     depth_read_only: bool = false,
     stencil_load_op: LoadOp = .undefined,
     stencil_store_op: StoreOp = .undefined,
-    stencil_clear_value: u32 = 0,
+    stencil_clear_value: u8 = 0,
     stencil_read_only: bool = false,
 };
 

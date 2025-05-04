@@ -13,7 +13,7 @@ pub const Platform = enum {
 pub const Backend = enum {
     dummy,
     d3d11,
-    d3d12,
+    // d3d12,
 
     fn default(platform: Platform) Backend {
         return switch (platform) {

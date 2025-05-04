@@ -919,9 +919,14 @@ pub const RenderPassEncoder = struct {
         var height: u32 = 0;
 
         var render_targets: std.BoundedArray(*d3d11.IRenderTargetView, 8) = .{};
+        var depth_stencil_view: ?*d3d11.IDepthStencilView = null;
+
         defer {
             for (render_targets.constSlice()) |rtv| {
                 _ = rtv.release();
+            }
+            if (depth_stencil_view) |dsv| {
+                _ = dsv.release();
             }
         }
 
@@ -945,17 +950,16 @@ pub const RenderPassEncoder = struct {
             }
         }
 
-        const depth_stencil_view: ?*d3d11.IDepthStencilView = null;
         if (desc.depth_stencil_attachment) |attach| {
             const view: *TextureView = @alignCast(@ptrCast(attach.view));
             const texture = view.texture;
 
             try encoder.reference_tracker.referenceTexture(texture);
 
-            // const hr = encoder.device.device.createDepthStencilView(texture.resource, null, &depth_stencil_view);
-            // if (hr != 0) {
-            //     unreachable;
-            // }
+            const hr = encoder.device.device.createDepthStencilView(texture.resource, null, &depth_stencil_view);
+            if (hr != 0) {
+                unreachable;
+            }
         }
 
         const self = try allocator.create(RenderPassEncoder);
@@ -979,11 +983,34 @@ pub const RenderPassEncoder = struct {
             .bottom = @intCast(height),
         };
 
-        std.debug.assert(render_targets.len != 0);
         self.dcontext.omSetRenderTargets(@intCast(render_targets.len), @ptrCast(&render_targets.buffer), depth_stencil_view);
         self.dcontext.rsSetViewports(1, @ptrCast(&viewport));
         self.dcontext.rsSetScissorRects(1, @ptrCast(&scissor));
-        self.dcontext.clearRenderTargetView(render_targets.buffer[0], &[4]f32{ 0.1, 0.1, 0.1, 1.0 });
+
+        for (desc.color_attachments, 0..) |attach, i| {
+            if (attach.load_op == .clear) {
+                const target = render_targets.buffer[i];
+                const clear_color = [4]f32{
+                    @floatCast(attach.clear_value.r),
+                    @floatCast(attach.clear_value.g),
+                    @floatCast(attach.clear_value.b),
+                    @floatCast(attach.clear_value.a),
+                };
+
+                self.dcontext.clearRenderTargetView(target, &clear_color);
+            }
+        }
+
+        if (desc.depth_stencil_attachment) |attach| {
+            const flags = d3d11.CLEAR_FLAGS{
+                .DEPTH = attach.depth_load_op == .clear,
+                .STENCIL = attach.stencil_load_op == .clear,
+            };
+
+            if (flags != d3d11.CLEAR_FLAGS{}) {
+                self.dcontext.clearDepthStencilView(depth_stencil_view.?, flags, attach.depth_clear_value, attach.stencil_clear_value);
+            }
+        }
 
         return self;
     }

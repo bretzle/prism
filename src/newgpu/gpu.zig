@@ -6,7 +6,6 @@ pub const types = @import("types.zig");
 const impl = switch (options.backend) {
     .dummy => unreachable,
     .d3d11 => @import("d3d11/d3d11.zig"),
-    .d3d12 => unreachable,
 };
 
 pub const Instance = opaque {
