@@ -18,21 +18,15 @@ pub const RECT = w32.RECT;
 
 pub const SDK_VERSION = 7;
 
+pub const FILTER_TYPE_POINT = 0;
+pub const FILTER_TYPE_LINEAR = 1;
+pub const MIN_FILTER_SHIFT = 4;
+pub const MAG_FILTER_SHIFT = 2;
+pub const MIP_FILTER_SHIFT = 0;
+pub const ANISOTROPIC_FILTERING_BIT = 0x40;
+
 // functions
 // ---------
-
-// HRESULT D3D11CreateDevice(
-//   [in, optional]  IDXGIAdapter            *pAdapter,
-//                   D3D_DRIVER_TYPE         DriverType,
-//                   HMODULE                 Software,
-//                   UINT                    Flags,
-//   [in, optional]  const D3D_FEATURE_LEVEL *pFeatureLevels,
-//                   UINT                    FeatureLevels,
-//                   UINT                    SDKVersion,
-//   [out, optional] ID3D11Device            **ppDevice,
-//   [out, optional] D3D_FEATURE_LEVEL       *pFeatureLevel,
-//   [out, optional] ID3D11DeviceContext     **ppImmediateContext
-// );
 
 pub extern "d3d11" fn D3D11CreateDevice(
     adapter: ?*dxgi.IAdapter,
@@ -46,21 +40,6 @@ pub extern "d3d11" fn D3D11CreateDevice(
     feature_level: ?*d3dcommon.FEATURE_LEVEL,
     immediate_context: ?*?*IDeviceContext,
 ) callconv(.winapi) HRESULT;
-
-// pub extern "d3d11" fn D3D11CreateDeviceAndSwapChain(
-//     pAdapter: ?*dxgi.IAdapter,
-//     DriverType: DRIVER_TYPE,
-//     Software: ?HINSTANCE,
-//     Flags: CREATE_DEVICE_FLAG,
-//     pFeatureLevels: ?[*]const FEATURE_LEVEL,
-//     FeatureLevels: UINT,
-//     SDKVersion: UINT,
-//     pSwapChainDesc: ?*const dxgi.SWAP_CHAIN_DESC,
-//     ppSwapChain: ?*?*dxgi.ISwapChain,
-//     ppDevice: ?*?*IDevice,
-//     pFeatureLevel: ?*FEATURE_LEVEL,
-//     ppImmediateContext: ?*?*IDeviceContext,
-// ) callconv(WINAPI) HRESULT;
 
 // types
 // -----
@@ -166,14 +145,14 @@ pub const RTV_DIMENSION = enum(u32) {
     TEXTURE3D = 8,
 };
 
-// pub const BOX = extern struct {
-//     left: UINT,
-//     top: UINT,
-//     front: UINT,
-//     right: UINT,
-//     bottom: UINT,
-//     back: UINT,
-// };
+pub const BOX = extern struct {
+    left: u32,
+    top: u32,
+    front: u32,
+    right: u32,
+    bottom: u32,
+    back: u32,
+};
 
 pub const BUFFER_RTV = extern struct {
     u0: extern union {
@@ -233,6 +212,65 @@ pub const RENDER_TARGET_VIEW_DESC = extern struct {
         Texture2DMS: TEX2DMS_RTV,
         Texture2DMSArray: TEX2DMS_ARRAY_RTV,
         Texture3D: TEX3D_RTV,
+    },
+};
+
+pub const DSV_DIMENSION = enum(u32) {
+    UNKNOWN = 0,
+    TEXTURE1D = 1,
+    TEXTURE1DARRAY = 2,
+    TEXTURE2D = 3,
+    TEXTURE2DARRAY = 4,
+    TEXTURE2DMS = 5,
+    TEXTURE2DMSARRAY = 6,
+};
+
+pub const DSV_FLAGS = packed struct(u32) {
+    depth: bool = false,
+    stencil: bool = false,
+    _: u30 = 0,
+};
+
+pub const TEX1D_DSV = extern struct {
+    MipSlice: u32,
+};
+
+pub const TEX1D_ARRAY_DSV = extern struct {
+    MipSlice: u32,
+    FirstArraySlice: u32,
+    ArraySize: u32,
+};
+
+pub const TEX2D_DSV = extern struct {
+    MipSlice: u32,
+};
+
+pub const TEX2D_ARRAY_DSV = extern struct {
+    MipSlice: u32,
+    FirstArraySlice: u32,
+    ArraySize: u32,
+};
+
+pub const TEX2DMS_DSV = extern struct {
+    UnusedField_NothingToDefine: u32,
+};
+
+pub const TEX2DMS_ARRAY_DSV = extern struct {
+    FirstArraySlice: u32,
+    ArraySize: u32,
+};
+
+pub const DEPTH_STENCIL_VIEW_DESC = extern struct {
+    Format: dxgi.FORMAT,
+    ViewDimension: DSV_DIMENSION,
+    Flags: DSV_FLAGS,
+    u: extern union {
+        Texture1D: TEX1D_DSV,
+        Texture1DArray: TEX1D_ARRAY_DSV,
+        Texture2D: TEX2D_DSV,
+        Texture2DArray: TEX2D_ARRAY_DSV,
+        Texture2DMS: TEX2DMS_DSV,
+        Texture2DMSArray: TEX2DMS_ARRAY_DSV,
     },
 };
 
@@ -417,164 +455,165 @@ pub const BLEND_DESC = extern struct {
     RenderTarget: [8]RENDER_TARGET_BLEND_DESC,
 };
 
-// pub const TEXTURE2D_DESC = struct {
-//     Width: UINT,
-//     Height: UINT,
-//     MipLevels: UINT,
-//     ArraySize: UINT,
-//     Format: dxgi.FORMAT,
-//     SampleDesc: dxgi.SAMPLE_DESC,
-//     Usage: USAGE,
-//     BindFlags: BIND_FLAG,
-//     CPUAccessFlags: CPU_ACCCESS_FLAG,
-//     MiscFlags: RESOURCE_MISC_FLAG,
-// };
+pub const TEXTURE2D_DESC = struct {
+    Width: u32,
+    Height: u32,
+    MipLevels: u32,
+    ArraySize: u32,
+    Format: dxgi.FORMAT,
+    SampleDesc: dxgi.SAMPLE_DESC,
+    Usage: USAGE,
+    BindFlags: BIND_FLAG,
+    CPUAccessFlags: CPU_ACCCESS_FLAG,
+    MiscFlags: RESOURCE_MISC_FLAG,
+};
 
-// pub const BUFFER_SRV = extern struct {
-//     FirstElement: UINT,
-//     NumElements: UINT,
-// };
+pub const BUFFER_SRV = extern struct {
+    FirstElement: u32,
+    NumElements: u32,
+};
 
-// pub const TEX1D_SRV = extern struct {
-//     MostDetailedMip: UINT,
-//     MipLevels: UINT,
-// };
+pub const TEX1D_SRV = extern struct {
+    MostDetailedMip: u32,
+    MipLevels: u32,
+};
 
-// pub const TEX1D_ARRAY_SRV = extern struct {
-//     MostDetailedMip: UINT,
-//     MipLevels: UINT,
-//     FirstArraySlice: UINT,
-//     ArraySize: UINT,
-// };
+pub const TEX1D_ARRAY_SRV = extern struct {
+    MostDetailedMip: u32,
+    MipLevels: u32,
+    FirstArraySlice: u32,
+    ArraySize: u32,
+};
 
-// pub const TEX2D_SRV = extern struct {
-//     MostDetailedMip: UINT,
-//     MipLevels: UINT,
-// };
+pub const TEX2D_SRV = extern struct {
+    MostDetailedMip: u32,
+    MipLevels: u32,
+};
 
-// pub const TEX2D_ARRAY_SRV = extern struct {
-//     MostDetailedMip: UINT,
-//     MipLevels: UINT,
-//     FirstArraySlice: UINT,
-//     ArraySize: UINT,
-// };
+pub const TEX2D_ARRAY_SRV = extern struct {
+    MostDetailedMip: u32,
+    MipLevels: u32,
+    FirstArraySlice: u32,
+    ArraySize: u32,
+};
 
-// pub const TEX3D_SRV = extern struct {
-//     MostDetailedMip: UINT,
-//     MipLevels: UINT,
-// };
+pub const TEX3D_SRV = extern struct {
+    MostDetailedMip: u32,
+    MipLevels: u32,
+};
 
-// pub const TEXCUBE_SRV = extern struct {
-//     MostDetailedMip: UINT,
-//     MipLevels: UINT,
-// };
+pub const TEXCUBE_SRV = extern struct {
+    MostDetailedMip: u32,
+    MipLevels: u32,
+};
 
-// pub const TEXCUBE_ARRAY_SRV = extern struct {
-//     MostDetailedMip: UINT,
-//     MipLevels: UINT,
-//     First2DArrayFace: UINT,
-//     NumCubes: UINT,
-// };
+pub const TEXCUBE_ARRAY_SRV = extern struct {
+    MostDetailedMip: u32,
+    MipLevels: u32,
+    First2DArrayFace: u32,
+    NumCubes: u32,
+};
 
-// pub const TEX2DMS_SRV = extern struct {
-//     UnusedField_NothingToDefine: UINT,
-// };
+pub const TEX2DMS_SRV = extern struct {
+    UnusedField_NothingToDefine: u32,
+};
 
-// pub const TEX2DMS_ARRAY_SRV = extern struct {
-//     FirstArraySlice: UINT,
-//     ArraySize: UINT,
-// };
+pub const TEX2DMS_ARRAY_SRV = extern struct {
+    FirstArraySlice: u32,
+    ArraySize: u32,
+};
 
-// pub const BUFFEREX_SRV_FLAG = packed struct(UINT) {
-//     RAW: bool = false,
-//     __unused: u31 = 0,
-// };
+pub const BUFFEREX_SRV_FLAG = packed struct(u32) {
+    RAW: bool = false,
+    __unused: u31 = 0,
+};
 
-// pub const BUFFEREX_SRV = extern struct {
-//     FirstElement: UINT,
-//     NumElements: UINT,
-//     Flags: BUFFEREX_SRV_FLAG,
-// };
+pub const BUFFEREX_SRV = extern struct {
+    FirstElement: u32,
+    NumElements: u32,
+    Flags: BUFFEREX_SRV_FLAG,
+};
 
-// pub const SRV_DIMENSION = enum(UINT) {
-//     UNKNOWN = 0,
-//     BUFFER = 1,
-//     TEXTURE1D = 2,
-//     TEXTURE1DARRAY = 3,
-//     TEXTURE2D = 4,
-//     TEXTURE2DARRAY = 5,
-//     TEXTURE2DMS = 6,
-//     TEXTURE2DMSARRAY = 7,
-//     TEXTURE3D = 8,
-//     TEXTURECUBE = 9,
-//     TEXTURECUBEARRAY = 10,
-//     BUFFEREX = 11,
-// };
+pub const SRV_DIMENSION = enum(u32) {
+    UNKNOWN = 0,
+    BUFFER = 1,
+    TEXTURE1D = 2,
+    TEXTURE1DARRAY = 3,
+    TEXTURE2D = 4,
+    TEXTURE2DARRAY = 5,
+    TEXTURE2DMS = 6,
+    TEXTURE2DMSARRAY = 7,
+    TEXTURE3D = 8,
+    TEXTURECUBE = 9,
+    TEXTURECUBEARRAY = 10,
+    BUFFEREX = 11,
+};
 
-// pub const SHADER_RESOURCE_VIEW_DESC = extern struct {
-//     Format: dxgi.FORMAT,
-//     ViewDimension: SRV_DIMENSION,
-//     u: extern union {
-//         Buffer: BUFFER_SRV,
-//         Texture1D: TEX1D_SRV,
-//         Texture1DArray: TEX1D_ARRAY_SRV,
-//         Texture2D: TEX2D_SRV,
-//         Texture2DArray: TEX2D_ARRAY_SRV,
-//         Texture2DMS: TEX2DMS_SRV,
-//         Texture2DMSArray: TEX2DMS_ARRAY_SRV,
-//         Texture3D: TEX3D_SRV,
-//         TextureCube: TEXCUBE_SRV,
-//         TextureCubeArray: TEXCUBE_ARRAY_SRV,
-//         BufferEx: BUFFEREX_SRV,
-//     },
-// };
+pub const SHADER_RESOURCE_VIEW_DESC = extern struct {
+    Format: dxgi.FORMAT,
+    ViewDimension: SRV_DIMENSION,
+    u: extern union {
+        Buffer: BUFFER_SRV,
+        Texture1D: TEX1D_SRV,
+        Texture1DArray: TEX1D_ARRAY_SRV,
+        Texture2D: TEX2D_SRV,
+        Texture2DArray: TEX2D_ARRAY_SRV,
+        Texture2DMS: TEX2DMS_SRV,
+        Texture2DMSArray: TEX2DMS_ARRAY_SRV,
+        Texture3D: TEX3D_SRV,
+        TextureCube: TEXCUBE_SRV,
+        TextureCubeArray: TEXCUBE_ARRAY_SRV,
+        BufferEx: BUFFEREX_SRV,
+    },
+};
 
-// pub const FILTER = enum(UINT) {
-//     MIN_MAG_MIP_POINT = 0,
-//     MIN_MAG_POINT_MIP_LINEAR = 0x1,
-//     MIN_POINT_MAG_LINEAR_MIP_POINT = 0x4,
-//     MIN_POINT_MAG_MIP_LINEAR = 0x5,
-//     MIN_LINEAR_MAG_MIP_POINT = 0x10,
-//     MIN_LINEAR_MAG_POINT_MIP_LINEAR = 0x11,
-//     MIN_MAG_LINEAR_MIP_POINT = 0x14,
-//     MIN_MAG_MIP_LINEAR = 0x15,
-//     ANISOTROPIC = 0x55,
-//     COMPARISON_MIN_MAG_MIP_POINT = 0x80,
-//     COMPARISON_MIN_MAG_POINT_MIP_LINEAR = 0x81,
-//     COMPARISON_MIN_POINT_MAG_LINEAR_MIP_POINT = 0x84,
-//     COMPARISON_MIN_POINT_MAG_MIP_LINEAR = 0x85,
-//     COMPARISON_MIN_LINEAR_MAG_MIP_POINT = 0x90,
-//     COMPARISON_MIN_LINEAR_MAG_POINT_MIP_LINEAR = 0x91,
-//     COMPARISON_MIN_MAG_LINEAR_MIP_POINT = 0x94,
-//     COMPARISON_MIN_MAG_MIP_LINEAR = 0x95,
-//     COMPARISON_ANISOTROPIC = 0xd5,
-//     MINIMUM_MIN_MAG_MIP_POINT = 0x100,
-//     MINIMUM_MIN_MAG_POINT_MIP_LINEAR = 0x101,
-//     MINIMUM_MIN_POINT_MAG_LINEAR_MIP_POINT = 0x104,
-//     MINIMUM_MIN_POINT_MAG_MIP_LINEAR = 0x105,
-//     MINIMUM_MIN_LINEAR_MAG_MIP_POINT = 0x110,
-//     MINIMUM_MIN_LINEAR_MAG_POINT_MIP_LINEAR = 0x111,
-//     MINIMUM_MIN_MAG_LINEAR_MIP_POINT = 0x114,
-//     MINIMUM_MIN_MAG_MIP_LINEAR = 0x115,
-//     MINIMUM_ANISOTROPIC = 0x155,
-//     MAXIMUM_MIN_MAG_MIP_POINT = 0x180,
-//     MAXIMUM_MIN_MAG_POINT_MIP_LINEAR = 0x181,
-//     MAXIMUM_MIN_POINT_MAG_LINEAR_MIP_POINT = 0x184,
-//     MAXIMUM_MIN_POINT_MAG_MIP_LINEAR = 0x185,
-//     MAXIMUM_MIN_LINEAR_MAG_MIP_POINT = 0x190,
-//     MAXIMUM_MIN_LINEAR_MAG_POINT_MIP_LINEAR = 0x191,
-//     MAXIMUM_MIN_MAG_LINEAR_MIP_POINT = 0x194,
-//     MAXIMUM_MIN_MAG_MIP_LINEAR = 0x195,
-//     MAXIMUM_ANISOTROPIC = 0x1d5,
-// };
+pub const FILTER = enum(u32) {
+    MIN_MAG_MIP_POINT = 0,
+    MIN_MAG_POINT_MIP_LINEAR = 0x1,
+    MIN_POINT_MAG_LINEAR_MIP_POINT = 0x4,
+    MIN_POINT_MAG_MIP_LINEAR = 0x5,
+    MIN_LINEAR_MAG_MIP_POINT = 0x10,
+    MIN_LINEAR_MAG_POINT_MIP_LINEAR = 0x11,
+    MIN_MAG_LINEAR_MIP_POINT = 0x14,
+    MIN_MAG_MIP_LINEAR = 0x15,
+    ANISOTROPIC = 0x55,
+    COMPARISON_MIN_MAG_MIP_POINT = 0x80,
+    COMPARISON_MIN_MAG_POINT_MIP_LINEAR = 0x81,
+    COMPARISON_MIN_POINT_MAG_LINEAR_MIP_POINT = 0x84,
+    COMPARISON_MIN_POINT_MAG_MIP_LINEAR = 0x85,
+    COMPARISON_MIN_LINEAR_MAG_MIP_POINT = 0x90,
+    COMPARISON_MIN_LINEAR_MAG_POINT_MIP_LINEAR = 0x91,
+    COMPARISON_MIN_MAG_LINEAR_MIP_POINT = 0x94,
+    COMPARISON_MIN_MAG_MIP_LINEAR = 0x95,
+    COMPARISON_ANISOTROPIC = 0xd5,
+    MINIMUM_MIN_MAG_MIP_POINT = 0x100,
+    MINIMUM_MIN_MAG_POINT_MIP_LINEAR = 0x101,
+    MINIMUM_MIN_POINT_MAG_LINEAR_MIP_POINT = 0x104,
+    MINIMUM_MIN_POINT_MAG_MIP_LINEAR = 0x105,
+    MINIMUM_MIN_LINEAR_MAG_MIP_POINT = 0x110,
+    MINIMUM_MIN_LINEAR_MAG_POINT_MIP_LINEAR = 0x111,
+    MINIMUM_MIN_MAG_LINEAR_MIP_POINT = 0x114,
+    MINIMUM_MIN_MAG_MIP_LINEAR = 0x115,
+    MINIMUM_ANISOTROPIC = 0x155,
+    MAXIMUM_MIN_MAG_MIP_POINT = 0x180,
+    MAXIMUM_MIN_MAG_POINT_MIP_LINEAR = 0x181,
+    MAXIMUM_MIN_POINT_MAG_LINEAR_MIP_POINT = 0x184,
+    MAXIMUM_MIN_POINT_MAG_MIP_LINEAR = 0x185,
+    MAXIMUM_MIN_LINEAR_MAG_MIP_POINT = 0x190,
+    MAXIMUM_MIN_LINEAR_MAG_POINT_MIP_LINEAR = 0x191,
+    MAXIMUM_MIN_MAG_LINEAR_MIP_POINT = 0x194,
+    MAXIMUM_MIN_MAG_MIP_LINEAR = 0x195,
+    MAXIMUM_ANISOTROPIC = 0x1d5,
+    _,
+};
 
-// pub const TEXTURE_ADDRESS_MODE = enum(UINT) {
-//     WRAP = 1,
-//     MIRROR = 2,
-//     CLAMP = 3,
-//     BORDER = 4,
-//     MIRROR_ONCE = 5,
-// };
+pub const TEXTURE_ADDRESS_MODE = enum(u32) {
+    WRAP = 1,
+    MIRROR = 2,
+    CLAMP = 3,
+    BORDER = 4,
+    MIRROR_ONCE = 5,
+};
 
 pub const COMPARISON_FUNC = enum(u32) {
     NEVER = 1,
@@ -587,33 +626,18 @@ pub const COMPARISON_FUNC = enum(u32) {
     ALWAYS = 8,
 };
 
-// pub const SAMPLER_DESC = extern struct {
-//     Filter: FILTER,
-//     AddressU: TEXTURE_ADDRESS_MODE,
-//     AddressV: TEXTURE_ADDRESS_MODE,
-//     AddressW: TEXTURE_ADDRESS_MODE,
-//     MipLODBias: FLOAT = 0,
-//     MaxAnisotropy: UINT = 0,
-//     ComparisonFunc: COMPARISON_FUNC,
-//     BorderColor: [4]FLOAT = .{ 0, 0, 0, 0 },
-//     MinLOD: FLOAT = 0,
-//     MaxLOD: FLOAT = 0,
-// };
-
-// pub extern "d3d11" fn D3D11CreateDeviceAndSwapChain(
-//     pAdapter: ?*dxgi.IAdapter,
-//     DriverType: DRIVER_TYPE,
-//     Software: ?HINSTANCE,
-//     Flags: CREATE_DEVICE_FLAG,
-//     pFeatureLevels: ?[*]const FEATURE_LEVEL,
-//     FeatureLevels: UINT,
-//     SDKVersion: UINT,
-//     pSwapChainDesc: ?*const dxgi.SWAP_CHAIN_DESC,
-//     ppSwapChain: ?*?*dxgi.ISwapChain,
-//     ppDevice: ?*?*IDevice,
-//     pFeatureLevel: ?*FEATURE_LEVEL,
-//     ppImmediateContext: ?*?*IDeviceContext,
-// ) callconv(WINAPI) HRESULT;
+pub const SAMPLER_DESC = extern struct {
+    Filter: FILTER,
+    AddressU: TEXTURE_ADDRESS_MODE,
+    AddressV: TEXTURE_ADDRESS_MODE,
+    AddressW: TEXTURE_ADDRESS_MODE,
+    MipLODBias: f32 = 0,
+    MaxAnisotropy: u32 = 0,
+    ComparisonFunc: COMPARISON_FUNC,
+    BorderColor: [4]f32 = .{ 0, 0, 0, 0 },
+    MinLOD: f32 = 0,
+    MaxLOD: f32 = 0,
+};
 
 // // Return codes as defined here:
 // // https://docs.microsoft.com/en-us/windows/win32/direct3d11/d3d11-graphics-reference-returnvalues
@@ -932,12 +956,12 @@ pub const IDevice = extern struct {
         base: IUnknown.VTable,
         create_buffer: *const fn (*IDevice, desc: *const BUFFER_DESC, initial_data: ?*const SUBRESOURCE_DATA, buffer: *?*IBuffer) callconv(.winapi) HRESULT,
         create_texture1_d: *const fn (*IDevice) callconv(.winapi) noreturn,
-        create_texture2_d: *const fn (*IDevice) callconv(.winapi) noreturn,
+        create_texture2_d: *const fn (*IDevice, desc: *const TEXTURE2D_DESC, initial_data: ?*const SUBRESOURCE_DATA, texture: *?*ITexture2D) callconv(.winapi) HRESULT,
         create_texture3_d: *const fn (*IDevice) callconv(.winapi) noreturn,
-        create_shader_resource_view: *const fn (*IDevice) callconv(.winapi) noreturn,
+        create_shader_resource_view: *const fn (*IDevice, resource: *IResource, desc: ?*const SHADER_RESOURCE_VIEW_DESC, view: *?*IShaderResourceView) callconv(.winapi) HRESULT,
         create_unordered_access_view: *const fn (*IDevice) callconv(.winapi) noreturn,
-        create_render_target_view: *const fn (*IDevice, resource: ?*IResource, desc: ?*const RENDER_TARGET_VIEW_DESC, view: ?*?*IRenderTargetView) callconv(.winapi) HRESULT,
-        create_depth_stencil_view: *const fn (*IDevice) callconv(.winapi) noreturn,
+        create_render_target_view: *const fn (*IDevice, resource: ?*IResource, desc: ?*const RENDER_TARGET_VIEW_DESC, view: *?*IRenderTargetView) callconv(.winapi) HRESULT,
+        create_depth_stencil_view: *const fn (*IDevice, resource: ?*IResource, desc: ?*const DEPTH_STENCIL_VIEW_DESC, view: *?*IDepthStencilView) callconv(.winapi) HRESULT,
         create_input_layout: *const fn (*IDevice, element_descs: ?[*]const INPUT_ELEMENT_DESC, num: u32, shader_bytecode: *const anyopaque, bytecode_length: SIZE_T, layout: *?*IInputLayout) callconv(.winapi) HRESULT,
         create_vertex_shader: *const fn (*IDevice, bytecode: *const anyopaque, length: SIZE_T, class_linkage: ?*IClassLinkage, shader: *?*IVertexShader) callconv(.winapi) HRESULT,
         create_geometry_shader: *const fn (*IDevice) callconv(.winapi) noreturn,
@@ -950,7 +974,7 @@ pub const IDevice = extern struct {
         create_blend_state: *const fn (*IDevice, desc: *const BLEND_DESC, state: *?*IBlendState) callconv(.winapi) HRESULT,
         create_depth_stencil_state: *const fn (*IDevice, desc: *const DEPTH_STENCIL_DESC, state: *?*IDepthStencilState) callconv(.winapi) HRESULT,
         create_rasterizer_state: *const fn (*IDevice, desc: *const RASTERIZER_DESC, state: *?*IRasterizerState) callconv(.winapi) HRESULT,
-        create_sampler_state: *const fn (*IDevice) callconv(.winapi) noreturn,
+        create_sampler_state: *const fn (*IDevice, desc: *const SAMPLER_DESC, sampler: *?*ISamplerState) callconv(.winapi) HRESULT,
         create_query: *const fn (*IDevice) callconv(.winapi) noreturn,
         create_predicate: *const fn (*IDevice) callconv(.winapi) noreturn,
         create_counter: *const fn (*IDevice) callconv(.winapi) noreturn,
@@ -978,23 +1002,23 @@ pub const IDevice = extern struct {
     pub fn createTexture1D(self: *IDevice) noreturn {
         return (self.vtable.create_texture1_d)(self);
     }
-    pub fn createTexture2D(self: *IDevice) noreturn {
-        return (self.vtable.create_texture2_d)(self);
+    pub fn createTexture2D(self: *IDevice, desc: *const TEXTURE2D_DESC, initial_data: ?*const SUBRESOURCE_DATA, texture: *?*ITexture2D) HRESULT {
+        return (self.vtable.create_texture2_d)(self, desc, initial_data, texture);
     }
     pub fn createTexture3D(self: *IDevice) noreturn {
         return (self.vtable.create_texture3_d)(self);
     }
-    pub fn createShaderResourceView(self: *IDevice) noreturn {
-        return (self.vtable.create_shader_resource_view)(self);
+    pub fn createShaderResourceView(self: *IDevice, resource: *IResource, desc: ?*const SHADER_RESOURCE_VIEW_DESC, view: *?*IShaderResourceView) HRESULT {
+        return (self.vtable.create_shader_resource_view)(self, resource, desc, view);
     }
     pub fn createUnorderedAccessView(self: *IDevice) noreturn {
         return (self.vtable.create_unordered_access_view)(self);
     }
-    pub fn createRenderTargetView(self: *IDevice, resource: ?*IResource, desc: ?*const RENDER_TARGET_VIEW_DESC, view: ?*?*IRenderTargetView) HRESULT {
+    pub fn createRenderTargetView(self: *IDevice, resource: ?*IResource, desc: ?*const RENDER_TARGET_VIEW_DESC, view: *?*IRenderTargetView) HRESULT {
         return (self.vtable.create_render_target_view)(self, resource, desc, view);
     }
-    pub fn createDepthStencilView(self: *IDevice) noreturn {
-        return (self.vtable.create_depth_stencil_view)(self);
+    pub fn createDepthStencilView(self: *IDevice, resource: ?*IResource, desc: ?*const DEPTH_STENCIL_VIEW_DESC, view: *?*IDepthStencilView) HRESULT {
+        return (self.vtable.create_depth_stencil_view)(self, resource, desc, view);
     }
     pub fn createInputLayout(self: *IDevice, element_descs: ?[*]const INPUT_ELEMENT_DESC, num: u32, shader_bytecode: *const anyopaque, bytecode_length: SIZE_T, layout: *?*IInputLayout) HRESULT {
         return (self.vtable.create_input_layout)(self, element_descs, num, shader_bytecode, bytecode_length, layout);
@@ -1032,8 +1056,8 @@ pub const IDevice = extern struct {
     pub fn createRasterizerState(self: *IDevice, desc: *const RASTERIZER_DESC, state: *?*IRasterizerState) HRESULT {
         return (self.vtable.create_rasterizer_state)(self, desc, state);
     }
-    pub fn createSamplerState(self: *IDevice) noreturn {
-        return (self.vtable.create_sampler_state)(self);
+    pub fn createSamplerState(self: *IDevice, desc: *const SAMPLER_DESC, sampler: *?*ISamplerState) HRESULT {
+        return (self.vtable.create_sampler_state)(self, desc, sampler);
     }
     pub fn createQuery(self: *IDevice) noreturn {
         return (self.vtable.create_query)(self);
@@ -1149,9 +1173,9 @@ pub const IDeviceContext = extern struct {
     const VTable = extern struct {
         base: IDeviceChild.VTable,
         vs_set_constant_buffers: *const fn (*IDeviceContext, slot: u32, num: u32, buffers: [*]*IBuffer) callconv(.winapi) void,
-        ps_set_shader_resources: *const fn (*IDeviceContext) callconv(.winapi) noreturn,
+        ps_set_shader_resources: *const fn (*IDeviceContext, slot: u32, num: u32, views: ?[*]const *IShaderResourceView) callconv(.winapi) void,
         ps_set_shader: *const fn (*IDeviceContext, shader: ?*IPixelShader, class_instance: ?[*]const *IClassInstance, num: u32) callconv(.winapi) void,
-        ps_set_samplers: *const fn (*IDeviceContext) callconv(.winapi) noreturn,
+        ps_set_samplers: *const fn (*IDeviceContext, slot: u32, num: u32, samplers: ?[*]const *ISamplerState) callconv(.winapi) void,
         vs_set_shader: *const fn (*IDeviceContext, shader: ?*IVertexShader, class_instance: ?[*]const *IClassInstance, num: u32) callconv(.winapi) void,
         draw_indexed: *const fn (*IDeviceContext) callconv(.winapi) noreturn,
         draw: *const fn (*IDeviceContext, vertex_count: u32, start_vertex_location: u32) callconv(.winapi) void,
@@ -1187,7 +1211,7 @@ pub const IDeviceContext = extern struct {
         rs_set_state: *const fn (*IDeviceContext, state: ?*IRasterizerState) callconv(.winapi) void,
         rs_set_viewports: *const fn (*IDeviceContext, num: u32, viewports: ?[*]const VIEWPORT) callconv(.winapi) void,
         rs_set_scissor_rects: *const fn (*IDeviceContext, num: u32, rects: ?[*]const RECT) callconv(.winapi) void,
-        copy_subresource_region: *const fn (*IDeviceContext) callconv(.winapi) noreturn,
+        copy_subresource_region: *const fn (*IDeviceContext, dst: *IResource, dst_sub: u32, x: u32, y: u32, z: u32, src: *IResource, src_sub: u32, src_box: *const BOX) callconv(.winapi) void,
         copy_resource: *const fn (*IDeviceContext) callconv(.winapi) noreturn,
         update_subresource: *const fn (*IDeviceContext) callconv(.winapi) noreturn,
         copy_structure_count: *const fn (*IDeviceContext) callconv(.winapi) noreturn,
@@ -1261,14 +1285,14 @@ pub const IDeviceContext = extern struct {
     pub fn vsSetConstantBuffers(self: *IDeviceContext, slot: u32, num: u32, buffers: [*]*IBuffer) void {
         return (self.vtable.vs_set_constant_buffers)(self, slot, num, buffers);
     }
-    pub fn psSetShaderResources(self: *IDeviceContext) noreturn {
-        return (self.vtable.ps_set_shader_resources)(self);
+    pub fn psSetShaderResources(self: *IDeviceContext, slot: u32, num: u32, views: ?[*]const *IShaderResourceView) void {
+        return (self.vtable.ps_set_shader_resources)(self, slot, num, views);
     }
     pub fn psSetShader(self: *IDeviceContext, shader: ?*IPixelShader, class_instance: ?[*]const *IClassInstance, num: u32) void {
         return (self.vtable.ps_set_shader)(self, shader, class_instance, num);
     }
-    pub fn psSetSamplers(self: *IDeviceContext) noreturn {
-        return (self.vtable.ps_set_samplers)(self);
+    pub fn psSetSamplers(self: *IDeviceContext, slot: u32, num: u32, samplers: ?[*]const *ISamplerState) void {
+        return (self.vtable.ps_set_samplers)(self, slot, num, samplers);
     }
     pub fn vsSetShader(self: *IDeviceContext, shader: ?*IVertexShader, class_instance: ?[*]const *IClassInstance, num: u32) void {
         return (self.vtable.vs_set_shader)(self, shader, class_instance, num);
@@ -1375,8 +1399,8 @@ pub const IDeviceContext = extern struct {
     pub fn rsSetScissorRects(self: *IDeviceContext, num: u32, rects: ?[*]const RECT) void {
         return (self.vtable.rs_set_scissor_rects)(self, num, rects);
     }
-    pub fn copySubresourceRegion(self: *IDeviceContext) noreturn {
-        return (self.vtable.copy_subresource_region)(self);
+    pub fn copySubresourceRegion(self: *IDeviceContext, dst: *IResource, dst_sub: u32, x: u32, y: u32, z: u32, src: *IResource, src_sub: u32, src_box: *const BOX) void {
+        return (self.vtable.copy_subresource_region)(self, dst, dst_sub, x, y, z, src, src_sub, src_box);
     }
     pub fn copyResource(self: *IDeviceContext) noreturn {
         return (self.vtable.copy_resource)(self);
@@ -2438,6 +2462,86 @@ pub const IBuffer = extern struct {
         return (@as(*const IUnknown.VTable, @ptrCast(self.vtable)).add_ref)(@ptrCast(self));
     }
     pub fn release(self: *IBuffer) ULONG {
+        return (@as(*const IUnknown.VTable, @ptrCast(self.vtable)).release)(@ptrCast(self));
+    }
+};
+
+pub const ISamplerState = extern struct {
+    pub const IID = GUID.parse("{DA6FEA51-564C-4487-9810-F0D0F9B4E3A5}");
+
+    vtable: *const VTable,
+
+    const VTable = extern struct {
+        base: IDeviceChild.VTable,
+        get_desc: *const fn (*ISamplerState) callconv(.winapi) noreturn,
+    };
+
+    pub fn getDesc(self: *ISamplerState) noreturn {
+        return (self.vtable.get_desc)(self);
+    }
+    // IDeviceChild methods
+    pub fn getDevice(self: *ISamplerState, device: *?*IDevice) void {
+        return (@as(*const IDeviceChild.VTable, @ptrCast(self.vtable)).get_device)(@ptrCast(self), device);
+    }
+    pub fn getPrivateData(self: *ISamplerState) noreturn {
+        return (@as(*const IDeviceChild.VTable, @ptrCast(self.vtable)).get_private_data)(@ptrCast(self));
+    }
+    pub fn setPrivateData(self: *ISamplerState) noreturn {
+        return (@as(*const IDeviceChild.VTable, @ptrCast(self.vtable)).set_private_data)(@ptrCast(self));
+    }
+    pub fn setPrivateDataInterface(self: *ISamplerState) noreturn {
+        return (@as(*const IDeviceChild.VTable, @ptrCast(self.vtable)).set_private_data_interface)(@ptrCast(self));
+    }
+    // IUnknown methods
+    pub fn queryInterface(self: *ISamplerState, riid: *const GUID, out: *?*anyopaque) HRESULT {
+        return (@as(*const IUnknown.VTable, @ptrCast(self.vtable)).query_interface)(@ptrCast(self), riid, out);
+    }
+    pub fn addRef(self: *ISamplerState) ULONG {
+        return (@as(*const IUnknown.VTable, @ptrCast(self.vtable)).add_ref)(@ptrCast(self));
+    }
+    pub fn release(self: *ISamplerState) ULONG {
+        return (@as(*const IUnknown.VTable, @ptrCast(self.vtable)).release)(@ptrCast(self));
+    }
+};
+
+pub const IShaderResourceView = extern struct {
+    pub const IID = GUID.parse("{B0E06FE0-8192-4E1A-B1CA-36D7414710B2}");
+
+    vtable: *const VTable,
+
+    const VTable = extern struct {
+        base: IView.VTable,
+        get_desc: *const fn (*IShaderResourceView) callconv(.winapi) noreturn,
+    };
+
+    pub fn getDesc(self: *IShaderResourceView) noreturn {
+        return (self.vtable.get_desc)(self);
+    }
+    // IView methods
+    pub fn getResource(self: *IShaderResourceView) noreturn {
+        return (@as(*const IView.VTable, @ptrCast(self.vtable)).get_resource)(@ptrCast(self));
+    }
+    // IDeviceChild methods
+    pub fn getDevice(self: *IShaderResourceView, device: *?*IDevice) void {
+        return (@as(*const IDeviceChild.VTable, @ptrCast(self.vtable)).get_device)(@ptrCast(self), device);
+    }
+    pub fn getPrivateData(self: *IShaderResourceView) noreturn {
+        return (@as(*const IDeviceChild.VTable, @ptrCast(self.vtable)).get_private_data)(@ptrCast(self));
+    }
+    pub fn setPrivateData(self: *IShaderResourceView) noreturn {
+        return (@as(*const IDeviceChild.VTable, @ptrCast(self.vtable)).set_private_data)(@ptrCast(self));
+    }
+    pub fn setPrivateDataInterface(self: *IShaderResourceView) noreturn {
+        return (@as(*const IDeviceChild.VTable, @ptrCast(self.vtable)).set_private_data_interface)(@ptrCast(self));
+    }
+    // IUnknown methods
+    pub fn queryInterface(self: *IShaderResourceView, riid: *const GUID, out: *?*anyopaque) HRESULT {
+        return (@as(*const IUnknown.VTable, @ptrCast(self.vtable)).query_interface)(@ptrCast(self), riid, out);
+    }
+    pub fn addRef(self: *IShaderResourceView) ULONG {
+        return (@as(*const IUnknown.VTable, @ptrCast(self.vtable)).add_ref)(@ptrCast(self));
+    }
+    pub fn release(self: *IShaderResourceView) ULONG {
         return (@as(*const IUnknown.VTable, @ptrCast(self.vtable)).release)(@ptrCast(self));
     }
 };

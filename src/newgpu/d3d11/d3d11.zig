@@ -330,7 +330,7 @@ pub const Swapchain = struct {
 
         var buffer: *d3d11.ITexture2D = undefined;
         _ = self.swapchain.getBuffer(0, &d3d11.ITexture2D.IID, @ptrCast(&buffer));
-        self.textures.resource = buffer;
+        self.textures.resource = @ptrCast(buffer);
         self.textures.size.width = width;
         self.textures.size.height = height;
     }
@@ -397,10 +397,12 @@ pub const Buffer = struct {
             },
         };
 
-        const initial_data = d3d11.SUBRESOURCE_DATA{ .pSysMem = @ptrCast(desc.data) };
+        // const initial_data = d3d11.SUBRESOURCE_DATA{ .pSysMem = @ptrCast(desc.data) };
+        const data = d3d11.SUBRESOURCE_DATA{ .pSysMem = @ptrCast(desc.data) };
+        const initial_data = if (desc.data == null) null else &data;
 
         var buffer: *d3d11.IBuffer = undefined;
-        const hr = device.device.createBuffer(&buffer_desc, if (desc.data == null) null else &initial_data, @ptrCast(&buffer));
+        const hr = device.device.createBuffer(&buffer_desc, initial_data, @ptrCast(&buffer));
         if (hr != 0) {
             unreachable;
         }
@@ -416,15 +418,16 @@ pub const Buffer = struct {
         return self;
     }
 
-    pub fn deinit(_: *Buffer) void {
-        unreachable;
+    pub fn deinit(self: *Buffer) void {
+        _ = self.resource.release();
+        allocator.destroy(self);
     }
 };
 
 pub const Texture = struct {
     manager: Manager(Texture) = .{},
     device: *Device,
-    resource: *d3d11.ITexture2D,
+    resource: *d3d11.IResource,
 
     usage: gpu.Texture.UsageFlags,
     dimension: gpu.Texture.Dimension,
@@ -432,31 +435,81 @@ pub const Texture = struct {
     format: gpu.Texture.Format,
     mip_level_count: u32,
     sample_count: u32,
+    has_shader_view: bool,
 
     pub fn create(device: *Device, desc: gpu.Texture.Descriptor) !*Texture {
-        _ = device; // autofix
-        _ = desc; // autofix
-        unreachable;
+        var has_shader_view = false;
+
+        const data = d3d11.SUBRESOURCE_DATA{ .pSysMem = @ptrCast(desc.data) };
+        const initial_data = if (desc.data == null) null else &data;
+
+        const resource: *d3d11.IResource = switch (desc.dimension) {
+            .@"1d" => unreachable,
+            .@"2d" => blk: {
+                const texture_desc = d3d11.TEXTURE2D_DESC{
+                    .Width = desc.size.width,
+                    .Height = desc.size.height,
+                    .MipLevels = desc.mip_level_count,
+                    .ArraySize = desc.size.depth_or_array_layers,
+                    .Format = conv.dxgiFormatForTexture(desc.format),
+                    .SampleDesc = .{ .Count = desc.sample_count, .Quality = 0 },
+                    .Usage = .DEFAULT,
+                    .BindFlags = conv.ResourceFlagsForTexture(desc.usage, desc.format),
+                    .CPUAccessFlags = .{},
+                    .MiscFlags = .{},
+                };
+
+                has_shader_view = texture_desc.BindFlags.SHADER_RESOURCE;
+
+                var texture: *d3d11.ITexture2D = undefined;
+                const hr = device.device.createTexture2D(&texture_desc, initial_data, @ptrCast(&texture));
+                if (hr != 0) {
+                    unreachable;
+                }
+                break :blk @ptrCast(texture);
+            },
+            .@"3d" => unreachable,
+        };
+
+        const self = try allocator.create(Texture);
+        self.* = .{
+            .device = device,
+            .resource = resource,
+            .usage = desc.usage,
+            .dimension = desc.dimension,
+            .size = desc.size,
+            .format = desc.format,
+            .mip_level_count = desc.mip_level_count,
+            .sample_count = desc.sample_count,
+            .has_shader_view = has_shader_view,
+        };
+
+        return self;
     }
 
     pub fn createForSwapchain(device: *Device, desc: gpu.Swapchain.Descriptor, resource: *d3d11.ITexture2D) !*Texture {
         const texture = try allocator.create(Texture);
         texture.* = .{
             .device = device,
-            .resource = resource,
+            .resource = @ptrCast(resource),
             .usage = desc.usage,
             .dimension = .@"2d",
             .size = .{ .width = desc.width, .height = desc.height, .depth_or_array_layers = 1 },
             .format = desc.format,
             .mip_level_count = 1,
             .sample_count = 1,
+            .has_shader_view = false,
         };
 
         return texture;
     }
 
     pub fn deinit(self: *Texture) void {
-        _ = self.resource.release();
+        switch (self.dimension) {
+            .@"1d" => unreachable,
+            .@"2d" => _ = @as(*d3d11.ITexture2D, @ptrCast(self.resource)).release(),
+            .@"3d" => unreachable,
+        }
         allocator.destroy(self);
     }
 
@@ -468,6 +521,8 @@ pub const Texture = struct {
 pub const TextureView = struct {
     manager: Manager(TextureView) = .{},
     texture: *Texture,
+    shader_view: ?*d3d11.IShaderResourceView,
+
     format: gpu.Texture.Format,
     dimension: gpu.TextureView.Dimension,
     base_mip_level: u32,
@@ -486,9 +541,15 @@ pub const TextureView = struct {
             .@"3d" => .@"3d",
         };
 
+        var shader_view: ?*d3d11.IShaderResourceView = null;
+        if (texture.has_shader_view) {
+            _ = texture.device.device.createShaderResourceView(texture.resource, null, @ptrCast(&shader_view));
+        }
+
         const self = try allocator.create(TextureView);
         self.* = .{
             .texture = texture,
+            .shader_view = shader_view,
             .format = if (desc.format != .undefined) desc.format else texture.format,
             .dimension = if (desc.dimension != .undefined) desc.dimension else texture_dimension,
             .base_mip_level = desc.base_mip_level,
@@ -772,6 +833,41 @@ pub const CommandEncoder = struct {
         @memcpy(dest[offset..][0..len], ptr[0..len]);
     }
 
+    pub fn copyTexture(self: *CommandEncoder, source: gpu.types.ImageCopyTexture, destination: gpu.types.ImageCopyTexture, copy_size_raw: gpu.types.Extent3D) !void {
+        const source_texture: *Texture = @alignCast(@ptrCast(source.texture));
+        const destination_texture: *Texture = @alignCast(@ptrCast(destination.texture));
+
+        try self.reference_tracker.referenceTexture(source_texture);
+        try self.reference_tracker.referenceTexture(destination_texture);
+
+        const copy_size = calcExtent(destination_texture.dimension, copy_size_raw);
+        const source_origin = calcOrigin(source_texture.dimension, source.origin);
+        const destination_origin = calcOrigin(destination_texture.dimension, destination.origin);
+
+        const source_subresource_index = source_texture.calcSubresource(source.mip_level, source_origin.array_slice);
+        const destination_subresource_index = destination_texture.calcSubresource(destination.mip_level, destination_origin.array_slice);
+
+        std.debug.assert(copy_size.array_count == 1); // TODO
+
+        self.command_buffer.dcontext.copySubresourceRegion(
+            destination_texture.resource,
+            destination_subresource_index,
+            destination_origin.x,
+            destination_origin.y,
+            destination_origin.z,
+            source_texture.resource,
+            source_subresource_index,
+            &.{
+                .left = source_origin.x,
+                .top = source_origin.y,
+                .front = source_origin.z,
+                .right = source_origin.x + copy_size.width,
+                .bottom = source_origin.y + copy_size.height,
+                .back = source_origin.z + copy_size.depth,
+            },
+        );
+    }
+
     pub fn beginRenderPass(self: *CommandEncoder, desc: gpu.types.RenderPassDescriptor) !*RenderPassEncoder {
         return try RenderPassEncoder.create(self, desc);
     }
@@ -849,6 +945,19 @@ pub const RenderPassEncoder = struct {
             }
         }
 
+        const depth_stencil_view: ?*d3d11.IDepthStencilView = null;
+        if (desc.depth_stencil_attachment) |attach| {
+            const view: *TextureView = @alignCast(@ptrCast(attach.view));
+            const texture = view.texture;
+
+            try encoder.reference_tracker.referenceTexture(texture);
+
+            // const hr = encoder.device.device.createDepthStencilView(texture.resource, null, &depth_stencil_view);
+            // if (hr != 0) {
+            //     unreachable;
+            // }
+        }
+
         const self = try allocator.create(RenderPassEncoder);
         self.* = .{
             .reference_tracker = encoder.reference_tracker,
@@ -871,7 +980,7 @@ pub const RenderPassEncoder = struct {
         };
 
         std.debug.assert(render_targets.len != 0);
-        self.dcontext.omSetRenderTargets(@intCast(render_targets.len), @ptrCast(&render_targets.buffer), null); // TODO depth
+        self.dcontext.omSetRenderTargets(@intCast(render_targets.len), @ptrCast(&render_targets.buffer), depth_stencil_view);
         self.dcontext.rsSetViewports(1, @ptrCast(&viewport));
         self.dcontext.rsSetScissorRects(1, @ptrCast(&scissor));
         self.dcontext.clearRenderTargetView(render_targets.buffer[0], &[4]f32{ 0.1, 0.1, 0.1, 1.0 });
@@ -906,12 +1015,54 @@ pub const RenderPassEncoder = struct {
         self.dcontext.vsSetConstantBuffers(slot, 1, @ptrCast(&buffer.resource));
     }
 
+    pub fn setTexture(self: *RenderPassEncoder, slot: u32, view: *TextureView, sampler: *Sampler) !void {
+        self.dcontext.psSetShaderResources(slot, 1, @ptrCast(&view.shader_view));
+        self.dcontext.psSetSamplers(slot, 1, @ptrCast(&sampler.sampler));
+    }
+
     pub fn draw(self: *RenderPassEncoder, vertex_count: u32, instance_count: u32, first_vertex: u32, first_instance: u32) !void {
         self.dcontext.drawInstanced(vertex_count, instance_count, first_vertex, first_instance);
     }
 
     pub fn end(_: *RenderPassEncoder) !void {
         // Do nothing
+    }
+};
+
+pub const Sampler = struct {
+    manager: Manager(Sampler) = .{},
+    sampler: *d3d11.ISamplerState,
+
+    pub fn create(device: *Device, desc: gpu.Sampler.Descriptor) !*Sampler {
+        const sampler_desc = d3d11.SAMPLER_DESC{
+            .Filter = @enumFromInt(conv.Filter(desc.mag_filter, desc.min_filter, desc.mipmap_filter, desc.max_anisotropy)),
+            .AddressU = conv.TextureAddressMode(desc.address_mode_u),
+            .AddressV = conv.TextureAddressMode(desc.address_mode_v),
+            .AddressW = conv.TextureAddressMode(desc.address_mode_w),
+            .MipLODBias = 0.0,
+            .MaxAnisotropy = desc.max_anisotropy,
+            .ComparisonFunc = if (desc.compare != .undefined) conv.ComparisonFunc(desc.compare) else .NEVER,
+            .BorderColor = [4]f32{ 0.0, 0.0, 0.0, 0.0 },
+            .MinLOD = desc.lod_min_clamp,
+            .MaxLOD = desc.lod_max_clamp,
+        };
+
+        var sampler: *d3d11.ISamplerState = undefined;
+        const hr = device.device.createSamplerState(&sampler_desc, @ptrCast(&sampler));
+        if (hr != 0) {
+            unreachable;
+        }
+
+        const self = try allocator.create(Sampler);
+        self.* = .{
+            .sampler = sampler,
+        };
+
+        return self;
+    }
+
+    pub fn deinit(self: *Sampler) void {
+        allocator.destroy(self);
     }
 };
 
@@ -965,3 +1116,31 @@ const ReferenceTracker = struct {
         try self.textures.append(allocator, texture);
     }
 };
+
+fn calcExtent(dimension: gpu.Texture.Dimension, extent: gpu.types.Extent3D) struct {
+    width: u32,
+    height: u32,
+    depth: u32,
+    array_count: u32,
+} {
+    return .{
+        .width = extent.width,
+        .height = extent.height,
+        .depth = if (dimension == .@"3d") extent.depth_or_array_layers else 1,
+        .array_count = if (dimension == .@"3d") 0 else extent.depth_or_array_layers,
+    };
+}
+
+fn calcOrigin(dimension: gpu.Texture.Dimension, origin: gpu.types.Origin3D) struct {
+    x: u32,
+    y: u32,
+    z: u32,
+    array_slice: u32,
+} {
+    return .{
+        .x = origin.x,
+        .y = origin.y,
+        .z = if (dimension == .@"3d") origin.z else 0,
+        .array_slice = if (dimension == .@"3d") 0 else origin.z,
+    };
+}

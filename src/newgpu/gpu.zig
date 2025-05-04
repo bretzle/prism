@@ -75,6 +75,16 @@ pub const Device = opaque {
         return @ptrCast(try impl.Buffer.create(device, desc));
     }
 
+    pub fn createTexture(self: *Device, desc: Texture.Descriptor) !*Texture {
+        const device: *impl.Device = @alignCast(@ptrCast(self));
+        return @ptrCast(try impl.Texture.create(device, desc));
+    }
+
+    pub fn createSampler(self: *Device, desc: Sampler.Descriptor) !*Sampler {
+        const device: *impl.Device = @alignCast(@ptrCast(self));
+        return @ptrCast(try impl.Sampler.create(device, desc));
+    }
+
     pub fn createRenderPipeline(self: *Device, desc: RenderPipeline.Descriptor) !*RenderPipeline {
         const device: *impl.Device = @alignCast(@ptrCast(self));
         return @ptrCast(try impl.RenderPipeline.create(device, desc));
@@ -143,7 +153,16 @@ pub const Swapchain = opaque {
 };
 
 pub const Texture = opaque {
-    pub const Descriptor = struct {};
+    pub const Descriptor = struct {
+        usage: UsageFlags,
+        dimension: Dimension = .@"2d",
+        size: types.Extent3D,
+        format: Format,
+        mip_level_count: u32 = 1,
+        sample_count: u32 = 1,
+
+        data: ?[]const u8 = null,
+    };
 
     pub const Aspect = enum { all, stencil_only, depth_only, plane0_only, plane1_only };
 
@@ -339,6 +358,11 @@ pub const CommandEncoder = opaque {
         try encoder.writeBuffer(buffer_, offset, data.ptr, data.len);
     }
 
+    pub inline fn copyTexture(self: *CommandEncoder, source: types.ImageCopyTexture, destination: types.ImageCopyTexture, copy_size: types.Extent3D) !void {
+        const encoder: *impl.CommandEncoder = @alignCast(@ptrCast(self));
+        try encoder.copyTexture(source, destination, copy_size);
+    }
+
     pub fn beginRenderPass(self: *CommandEncoder, desc: types.RenderPassDescriptor) !*RenderPassEncoder {
         const encoder: *impl.CommandEncoder = @alignCast(@ptrCast(self));
         return @ptrCast(try encoder.beginRenderPass(desc));
@@ -381,16 +405,23 @@ pub const RenderPassEncoder = opaque {
         try encoder.setPipeline(pipeline_);
     }
 
-    pub inline fn setVertexBuffer(self: *RenderPassEncoder, slot: u32, buffer: *Buffer, offset: u32, stride: u32) !void {
+    pub fn setVertexBuffer(self: *RenderPassEncoder, slot: u32, buffer: *Buffer, offset: u32, stride: u32) !void {
         const encoder: *impl.RenderPassEncoder = @alignCast(@ptrCast(self));
         const buffer_: *impl.Buffer = @alignCast(@ptrCast(buffer));
         try encoder.setVertexBuffer(slot, buffer_, offset, stride);
     }
 
-    pub inline fn setUniformBuffer(self: *RenderPassEncoder, slot: u32, buffer: *Buffer) !void {
+    pub fn setUniformBuffer(self: *RenderPassEncoder, slot: u32, buffer: *Buffer) !void {
         const encoder: *impl.RenderPassEncoder = @alignCast(@ptrCast(self));
         const buffer_: *impl.Buffer = @alignCast(@ptrCast(buffer));
         try encoder.setUniformBuffer(slot, buffer_);
+    }
+
+    pub fn setTexture(self: *RenderPassEncoder, slot: u32, view: *TextureView, sampler: *Sampler) !void {
+        const encoder: *impl.RenderPassEncoder = @alignCast(@ptrCast(self));
+        const view_: *impl.TextureView = @alignCast(@ptrCast(view));
+        const sampler_: *impl.Sampler = @alignCast(@ptrCast(sampler));
+        try encoder.setTexture(slot, view_, sampler_);
     }
 
     pub fn draw(self: *RenderPassEncoder, vertex_count: u32, instance_count: u32, first_vertex: u32, first_instance: u32) !void {
@@ -443,5 +474,38 @@ pub const Buffer = opaque {
     pub inline fn release(self: *Buffer) void {
         const buffer: *impl.Buffer = @alignCast(@ptrCast(self));
         buffer.manager.release();
+    }
+};
+
+pub const Sampler = opaque {
+    pub const Descriptor = struct {
+        address_mode_u: AddressMode = .clamp_to_edge,
+        address_mode_v: AddressMode = .clamp_to_edge,
+        address_mode_w: AddressMode = .clamp_to_edge,
+        mag_filter: types.FilterMode = .nearest,
+        min_filter: types.FilterMode = .nearest,
+        mipmap_filter: types.MipmapFilterMode = .nearest,
+        lod_min_clamp: f32 = 0.0,
+        lod_max_clamp: f32 = 32.0,
+        compare: types.CompareFunction = .undefined,
+        max_anisotropy: u16 = 1,
+    };
+
+    pub const AddressMode = enum { repeat, mirror_repeat, clamp_to_edge };
+
+    // pub const BindingType = enum { undefined, filtering, non_filtering, comparison };
+
+    // pub const BindingLayout = struct {
+    //     type: BindingType = .undefined,
+    // };
+
+    pub fn reference(self: *Sampler) void {
+        const sampler: *impl.Sampler = @alignCast(@ptrCast(self));
+        sampler.manager.reference();
+    }
+
+    pub fn release(self: *Sampler) void {
+        const sampler: *impl.Sampler = @alignCast(@ptrCast(self));
+        sampler.manager.release();
     }
 };

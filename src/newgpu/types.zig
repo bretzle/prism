@@ -183,15 +183,15 @@ pub const CullMode = enum {
 //     shared_fence_mtl_shared_event_export_info = 0x000004BD,
 // };
 
-// pub const FilterMode = enum {
-//     nearest,
-//     linear,
-// };
+pub const FilterMode = enum {
+    nearest,
+    linear,
+};
 
-// pub const MipmapFilterMode = enum {
-//     nearest,
-//     linear,
-// };
+pub const MipmapFilterMode = enum {
+    nearest,
+    linear,
+};
 
 pub const FrontFace = enum {
     ccw,
@@ -416,16 +416,16 @@ pub const Extent3D = struct {
 //     max_compute_workgroups_per_dimension: u32 = limit_u32_undefined,
 // };
 
-// pub const Origin2D = struct {
-//     x: u32 = 0,
-//     y: u32 = 0,
-// };
+pub const Origin2D = struct {
+    x: u32 = 0,
+    y: u32 = 0,
+};
 
-// pub const Origin3D = struct {
-//     x: u32 = 0,
-//     y: u32 = 0,
-//     z: u32 = 0,
-// };
+pub const Origin3D = struct {
+    x: u32 = 0,
+    y: u32 = 0,
+    z: u32 = 0,
+};
 
 // // pub const CompilationMessage = extern struct {
 // //     message: ?[*:0]const u8 = null,
@@ -538,12 +538,12 @@ pub const DepthStencilState = struct {
 //     natural_size: Extent2D,
 // };
 
-// pub const ImageCopyTexture = struct {
-//     texture: *Texture,
-//     mip_level: u32 = 0,
-//     origin: Origin3D = .{},
-//     aspect: Texture.Aspect = .all,
-// };
+pub const ImageCopyTexture = struct {
+    texture: *Texture,
+    mip_level: u32 = 0,
+    origin: Origin3D = .{},
+    aspect: Texture.Aspect = .all,
+};
 
 // pub const ProgrammableStageDescriptor = struct {
 //     module: *ShaderModule,

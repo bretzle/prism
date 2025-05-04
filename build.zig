@@ -26,7 +26,7 @@ pub const Backend = enum {
 const examples = [_][]const u8{
     "triangle",
     "cube",
-    // "fractal",
+    "fractal",
     // "batch",
 };
 

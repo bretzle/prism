@@ -20,12 +20,12 @@ define IDevice : IUnknown {
 
     fn createBuffer(self, desc: *const BUFFER_DESC, initial_data: ?*const SUBRESOURCE_DATA, buffer: *?*IBuffer) HRESULT
     fn createTexture1D(self) noreturn
-    fn createTexture2D(self) noreturn
+    fn createTexture2D(self, desc: *const TEXTURE2D_DESC, initial_data: ?*const SUBRESOURCE_DATA, texture: *?*ITexture2D) HRESULT
     fn createTexture3D(self) noreturn
-    fn createShaderResourceView(self) noreturn
+    fn createShaderResourceView(self, resource: *IResource, desc: ?*const SHADER_RESOURCE_VIEW_DESC, view: *?*IShaderResourceView) HRESULT
     fn createUnorderedAccessView(self) noreturn
-    fn createRenderTargetView(self, resource: ?*IResource, desc: ?*const RENDER_TARGET_VIEW_DESC, view: ?*?*IRenderTargetView) HRESULT
-    fn createDepthStencilView(self) noreturn
+    fn createRenderTargetView(self, resource: ?*IResource, desc: ?*const RENDER_TARGET_VIEW_DESC, view: *?*IRenderTargetView) HRESULT
+    fn createDepthStencilView(self, resource: ?*IResource, desc: ?*const DEPTH_STENCIL_VIEW_DESC, view: *?*IDepthStencilView) HRESULT
     fn createInputLayout(self, element_descs: ?[*]const INPUT_ELEMENT_DESC, num: u32, shader_bytecode: *const anyopaque, bytecode_length: SIZE_T, layout: *?*IInputLayout) HRESULT
     fn createVertexShader(self, bytecode: *const anyopaque, length: SIZE_T, class_linkage: ?*IClassLinkage, shader: *?*IVertexShader) HRESULT
     fn createGeometryShader(self) noreturn
@@ -38,7 +38,7 @@ define IDevice : IUnknown {
     fn createBlendState(self, desc: *const BLEND_DESC, state: *?*IBlendState) HRESULT
     fn createDepthStencilState(self, desc: *const DEPTH_STENCIL_DESC, state: *?*IDepthStencilState) HRESULT
     fn createRasterizerState(self, desc: *const RASTERIZER_DESC, state: *?*IRasterizerState) HRESULT
-    fn createSamplerState(self) noreturn
+    fn createSamplerState(self, desc: *const SAMPLER_DESC, sampler: *?*ISamplerState) HRESULT
     fn createQuery(self) noreturn
     fn createPredicate(self) noreturn
     fn createCounter(self) noreturn
@@ -73,9 +73,9 @@ define IDeviceContext : IDeviceChild {
     iid = "C0BFA96C-E089-44FB-8EAF-26F8796190DA"
 
     fn vsSetConstantBuffers(self, slot: u32, num: u32, buffers: [*]*IBuffer) void
-    fn psSetShaderResources(self) noreturn
+    fn psSetShaderResources(self, slot: u32, num: u32, views: ?[*]const *IShaderResourceView) void
     fn psSetShader(self, shader: ?*IPixelShader, class_instance: ?[*]const *IClassInstance, num: u32) void
-    fn psSetSamplers(self) noreturn
+    fn psSetSamplers(self, slot: u32, num: u32, samplers: ?[*]const *ISamplerState) void
     fn vsSetShader(self, shader: ?*IVertexShader, class_instance: ?[*]const *IClassInstance, num: u32) void
     fn drawIndexed(self) noreturn
     fn draw(self, vertex_count: u32, start_vertex_location: u32) void
@@ -111,7 +111,7 @@ define IDeviceContext : IDeviceChild {
     fn rsSetState(self, state: ?*IRasterizerState) void
     fn rsSetViewports(self, num: u32, viewports: ?[*]const VIEWPORT) void
     fn rsSetScissorRects(self, num: u32, rects: ?[*]const RECT) void
-    fn copySubresourceRegion(self) noreturn
+    fn copySubresourceRegion(self, dst: *IResource, dst_sub: u32, x: u32, y: u32, z: u32, src: *IResource, src_sub: u32, src_box: *const BOX) void
     fn copyResource(self) noreturn
     fn updateSubresource(self) noreturn
     fn copyStructureCount(self) noreturn
@@ -328,4 +328,16 @@ define IInputLayout : IDeviceChild {
 
 define IBuffer : IResource {
     iid = ""
+}
+
+define ISamplerState : IDeviceChild {
+    iid = "DA6FEA51-564C-4487-9810-F0D0F9B4E3A5"
+
+    fn getDesc(self) noreturn
+}
+
+define IShaderResourceView : IView {
+    iid = "B0E06FE0-8192-4E1A-B1CA-36D7414710B2"
+
+    fn getDesc(self) noreturn
 }

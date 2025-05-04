@@ -290,3 +290,165 @@ pub fn InputElementFormat(mask: u8, component: d3dcompiler.REGISTER_COMPONENT_TY
 
     return .UNKNOWN;
 }
+
+pub fn ResourceFlagsForTexture(usage: gpu.Texture.UsageFlags, format: gpu.Texture.Format) d3d11.BIND_FLAG {
+    return d3d11.BIND_FLAG{
+        .DEPTH_STENCIL = usage.render_attachment and formatHasDepthOrStencil(format),
+        .RENDER_TARGET = usage.render_attachment and !formatHasDepthOrStencil(format),
+        .UNORDERED_ACCESS = usage.storage_binding,
+        .SHADER_RESOURCE = usage.texture_binding and !formatHasDepthOrStencil(format),
+    };
+}
+
+pub const FormatType = enum {
+    float,
+    unorm,
+    unorm_srgb,
+    snorm,
+    uint,
+    sint,
+    depth,
+    stencil,
+    depth_stencil,
+};
+
+pub fn textureFormatType(format: gpu.Texture.Format) FormatType {
+    return switch (format) {
+        .undefined => unreachable,
+        .r8_unorm => .unorm,
+        .r8_snorm => .snorm,
+        .r8_uint => .uint,
+        .r8_sint => .sint,
+        .r16_uint => .uint,
+        .r16_sint => .sint,
+        .r16_float => .float,
+        .rg8_unorm => .unorm,
+        .rg8_snorm => .snorm,
+        .rg8_uint => .uint,
+        .rg8_sint => .sint,
+        .r32_float => .float,
+        .r32_uint => .uint,
+        .r32_sint => .sint,
+        .rg16_uint => .uint,
+        .rg16_sint => .sint,
+        .rg16_float => .float,
+        .rgba8_unorm => .unorm,
+        .rgba8_unorm_srgb => .unorm_srgb,
+        .rgba8_snorm => .snorm,
+        .rgba8_uint => .uint,
+        .rgba8_sint => .sint,
+        .bgra8_unorm => .unorm,
+        .bgra8_unorm_srgb => .unorm_srgb,
+        .rgb10_a2_unorm => .unorm,
+        .rg11_b10_ufloat => .float,
+        .rgb9_e5_ufloat => .float,
+        .rg32_float => .float,
+        .rg32_uint => .uint,
+        .rg32_sint => .sint,
+        .rgba16_uint => .uint,
+        .rgba16_sint => .sint,
+        .rgba16_float => .float,
+        .rgba32_float => .float,
+        .rgba32_uint => .uint,
+        .rgba32_sint => .sint,
+        .stencil8 => .stencil,
+        .depth16_unorm => .depth,
+        .depth24_plus => .depth,
+        .depth24_plus_stencil8 => .depth_stencil,
+        .depth32_float => .depth,
+        .depth32_float_stencil8 => .depth_stencil,
+        .bc1_rgba_unorm => .unorm,
+        .bc1_rgba_unorm_srgb => .unorm_srgb,
+        .bc2_rgba_unorm => .unorm,
+        .bc2_rgba_unorm_srgb => .unorm_srgb,
+        .bc3_rgba_unorm => .unorm,
+        .bc3_rgba_unorm_srgb => .unorm_srgb,
+        .bc4_runorm => .unorm,
+        .bc4_rsnorm => .snorm,
+        .bc5_rg_unorm => .unorm,
+        .bc5_rg_snorm => .snorm,
+        .bc6_hrgb_ufloat => .float,
+        .bc6_hrgb_float => .float,
+        .bc7_rgba_unorm => .unorm,
+        .bc7_rgba_unorm_srgb => .snorm,
+        .etc2_rgb8_unorm => .unorm,
+        .etc2_rgb8_unorm_srgb => .unorm_srgb,
+        .etc2_rgb8_a1_unorm => .unorm_srgb,
+        .etc2_rgb8_a1_unorm_srgb => .unorm,
+        .etc2_rgba8_unorm => .unorm,
+        .etc2_rgba8_unorm_srgb => .unorm_srgb,
+        .eacr11_unorm => .unorm,
+        .eacr11_snorm => .snorm,
+        .eacrg11_unorm => .unorm,
+        .eacrg11_snorm => .snorm,
+        .astc4x4_unorm => .unorm,
+        .astc4x4_unorm_srgb => .unorm_srgb,
+        .astc5x4_unorm => .unorm,
+        .astc5x4_unorm_srgb => .unorm_srgb,
+        .astc5x5_unorm => .unorm,
+        .astc5x5_unorm_srgb => .unorm_srgb,
+        .astc6x5_unorm => .unorm,
+        .astc6x5_unorm_srgb => .unorm_srgb,
+        .astc6x6_unorm => .unorm,
+        .astc6x6_unorm_srgb => .unorm_srgb,
+        .astc8x5_unorm => .unorm,
+        .astc8x5_unorm_srgb => .unorm_srgb,
+        .astc8x6_unorm => .unorm,
+        .astc8x6_unorm_srgb => .unorm_srgb,
+        .astc8x8_unorm => .unorm,
+        .astc8x8_unorm_srgb => .unorm_srgb,
+        .astc10x5_unorm => .unorm,
+        .astc10x5_unorm_srgb => .unorm_srgb,
+        .astc10x6_unorm => .unorm,
+        .astc10x6_unorm_srgb => .unorm_srgb,
+        .astc10x8_unorm => .unorm,
+        .astc10x8_unorm_srgb => .unorm_srgb,
+        .astc10x10_unorm => .unorm,
+        .astc10x10_unorm_srgb => .unorm_srgb,
+        .astc12x10_unorm => .unorm,
+        .astc12x10_unorm_srgb => .unorm_srgb,
+        .astc12x12_unorm => .unorm,
+        .astc12x12_unorm_srgb => .unorm_srgb,
+        .r8_bg8_biplanar420_unorm => .unorm,
+    };
+}
+
+pub fn formatHasDepthOrStencil(format: gpu.Texture.Format) bool {
+    return switch (textureFormatType(format)) {
+        .depth, .stencil, .depth_stencil => true,
+        else => false,
+    };
+}
+
+pub fn TextureAddressMode(address_mode: gpu.Sampler.AddressMode) d3d11.TEXTURE_ADDRESS_MODE {
+    return switch (address_mode) {
+        .repeat => .WRAP,
+        .mirror_repeat => .MIRROR,
+        .clamp_to_edge => .CLAMP,
+    };
+}
+
+pub fn Filter(mag_filter: gpu.types.FilterMode, min_filter: gpu.types.FilterMode, mipmap_filter: gpu.types.MipmapFilterMode, max_anisotropy: u16) u32 {
+    var filter: u32 = 0;
+    filter |= FilterType(min_filter) << d3d11.MIN_FILTER_SHIFT;
+    filter |= FilterType(mag_filter) << d3d11.MAG_FILTER_SHIFT;
+    filter |= FilterTypeForMipmap(mipmap_filter) << d3d11.MIP_FILTER_SHIFT;
+    // filter |= d3d11.FILTER_REDUCTION_TYPE_STANDARD << d3d11.FILTER_REDUCTION_TYPE_SHIFT;
+    if (max_anisotropy > 1)
+        filter |= d3d11.ANISOTROPIC_FILTERING_BIT;
+    return filter;
+}
+
+pub fn FilterType(filter: gpu.types.FilterMode) u32 {
+    return switch (filter) {
+        .nearest => d3d11.FILTER_TYPE_POINT,
+        .linear => d3d11.FILTER_TYPE_LINEAR,
+    };
+}
+
+pub fn FilterTypeForMipmap(filter: gpu.types.MipmapFilterMode) u32 {
+    return switch (filter) {
+        .nearest => d3d11.FILTER_TYPE_POINT,
+        .linear => d3d11.FILTER_TYPE_LINEAR,
+    };
+}
