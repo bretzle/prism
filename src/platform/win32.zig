@@ -114,7 +114,7 @@ pub const Window = struct {
 
     pub fn presentFrame(self: *Window) void {
         self.events.discard(self.events.readableLength());
-        // self.device.tick() catch unreachable;
+        self.device.tick();
         self.swapchain.present() catch unreachable;
     }
 

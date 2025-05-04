@@ -582,13 +582,13 @@ pub const ColorTargetState = struct {
 pub const VertexState = struct {
     module: *ShaderModule,
     entrypoint: [:0]const u8,
-    constants: []const ConstantEntry = &.{},
-    buffers: []const VertexBufferLayout = &.{},
+    // constants: []const ConstantEntry = &.{}, TODO
+    // buffers: []const VertexBufferLayout = &.{}, TODO
 };
 
 pub const FragmentState = struct {
     module: *ShaderModule,
     entrypoint: [:0]const u8,
-    constants: []const ConstantEntry = &.{},
+    // constants: []const ConstantEntry = &.{}, TODO
     targets: []const ColorTargetState = &.{},
 };

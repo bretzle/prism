@@ -14,6 +14,8 @@ const debug = true;
 const back_buffer_count = 2;
 const allocator = @import("../../prism.zig").allocator;
 
+// FIXME IMPORTANT there is still another memory leak in here
+
 pub const Instance = struct {
     manager: Manager(Instance) = .{},
     factory: *dxgi.IFactory4,
@@ -163,6 +165,7 @@ pub const Device = struct {
     context: *d3d11.IDeviceContext,
     debug_controller: ?*d3d11.IDebug = null,
     debug_info_queue: ?*d3d11.IInfoQueue = null,
+    reference_trackers: std.ArrayListUnmanaged(*ReferenceTracker) = .empty,
 
     pub fn create(adapter: *Adapter) !*Device {
         const self = try allocator.create(Device);
@@ -218,6 +221,7 @@ pub const Device = struct {
         defer command_lists.deinit(allocator);
 
         for (commands) |command| {
+            try self.reference_trackers.append(allocator, command.reference_tracker);
             const list = command_lists.addOneAssumeCapacity();
             const hr = command.dcontext.finishCommandList(0, @ptrCast(list));
             if (hr != 0) {
@@ -230,6 +234,18 @@ pub const Device = struct {
             _ = list.release();
         }
     }
+
+    pub fn processQueuedOperations(self: *Device) void {
+        // TODO use fences
+        for (self.reference_trackers.items) |rt| {
+            rt.deinit();
+        }
+        self.reference_trackers.items.len = 0;
+
+        // _ = self.debug_controller.?.reportLiveDeviceObjects(.{
+        //     .detail = true,
+        // });
+    }
 };
 
 pub const Swapchain = struct {
@@ -240,9 +256,11 @@ pub const Swapchain = struct {
 
     sync_interval: u32,
     present_flags: dxgi.PRESENT_FLAG,
+    swapchain_flags: dxgi.SWAP_CHAIN_FLAG,
     buffer_index: u32 = 0,
     textures: *Texture,
     views: *TextureView,
+    desc: gpu.Swapchain.Descriptor,
 
     pub fn create(device: *Device, surface: *Surface, desc: gpu.Swapchain.Descriptor) !*Swapchain {
         const instance = device.adapter.instance;
@@ -281,8 +299,10 @@ pub const Swapchain = struct {
             .swapchain = swapchain,
             .sync_interval = if (desc.present_mode == .immediate) 0 else 1,
             .present_flags = .{ .ALLOW_TEARING = desc.present_mode == .immediate and instance.allow_tearing },
+            .swapchain_flags = swapchain_desc.Flags,
             .textures = texture,
             .views = view,
+            .desc = desc,
         };
 
         return self;
@@ -300,13 +320,19 @@ pub const Swapchain = struct {
     }
 
     pub fn resize(self: *Swapchain, width: u32, height: u32) !void {
+        self.device.processQueuedOperations();
         _ = self.textures.resource.release();
 
-        _ = self.swapchain.resizeBuffers(back_buffer_count, width, height, .UNKNOWN, .{});
+        const hr = self.swapchain.resizeBuffers(back_buffer_count, width, height, .UNKNOWN, self.swapchain_flags);
+        if (hr != 0) {
+            std.debug.panic("{X}", .{@as(u32, @bitCast(hr))});
+        }
 
         var buffer: *d3d11.ITexture2D = undefined;
         _ = self.swapchain.getBuffer(0, &d3d11.ITexture2D.IID, @ptrCast(&buffer));
         self.textures.resource = buffer;
+        self.textures.size.width = width;
+        self.textures.size.height = height;
     }
 
     pub fn present(self: *Swapchain) !void {
@@ -319,9 +345,75 @@ pub const Swapchain = struct {
 
 pub const Buffer = struct {
     manager: Manager(Buffer) = .{},
+    device: *Device,
+    resource: *d3d11.IBuffer,
+    // gpu_count: u32 = 0,
 
-    pub fn create() !*Buffer {
-        unreachable;
+    size: u64,
+    usage: gpu.Buffer.UsageFlags,
+
+    pub fn create(device: *Device, desc: gpu.Buffer.Descriptor) !*Buffer {
+        const size = std.math.ceilPowerOfTwoAssert(u32, desc.size);
+        const buffer_desc = d3d11.BUFFER_DESC{
+            .ByteWidth = size,
+            .Usage = .DYNAMIC,
+            .BindFlags = .{
+                .VERTEX_BUFFER = desc.usage.vertex,
+                .INDEX_BUFFER = desc.usage.index,
+                .CONSTANT_BUFFER = desc.usage.uniform,
+                // SHADER_RESOURCE: bool = false,
+                // STREAM_OUTPUT: bool = false,
+                // RENDER_TARGET: bool = false,
+                // DEPTH_STENCIL: bool = false,
+                // UNORDERED_ACCESS: bool = false,
+                // __unused8: bool = false,
+                // DECODER: bool = false,
+                // VIDEO_ENCODER: bool = false,
+                // __unused: u21 = 0,
+            },
+            .CPUAccessFlags = .{ .WRITE = true },
+            .MiscFlags = .{
+                // GENERATE_MIPS: bool = false,
+                // SHARED: bool = false,
+                // TEXTURECUBE: bool = false,
+                // __unused3: bool = false,
+                // DRAWINDIRECT_ARGS: bool = false,
+                // BUFFER_ALLOW_RAW_VIEWS: bool = false,
+                // BUFFER_STRUCTURED: bool = false,
+                // RESOURCE_CLAMP: bool = false,
+                // SHARED_KEYEDMUTEX: bool = false,
+                // GDI_COMPATIBLE: bool = false,
+                // __unused10: bool = false,
+                // SHARED_NTHANDLE: bool = false,
+                // RESTRICTED_CONTENT: bool = false,
+                // RESTRICT_SHARED_RESOURCE: bool = false,
+                // RESTRICT_SHARED_RESOURCE_DRIVER: bool = false,
+                // GUARDED: bool = false,
+                // __unused16: bool = false,
+                // TILE_POOL: bool = false,
+                // TILED: bool = false,
+                // HW_PROTECTED: bool = false,
+                // __unused: u12 = 0,
+            },
+        };
+
+        const initial_data = d3d11.SUBRESOURCE_DATA{ .pSysMem = @ptrCast(desc.data) };
+
+        var buffer: *d3d11.IBuffer = undefined;
+        const hr = device.device.createBuffer(&buffer_desc, if (desc.data == null) null else &initial_data, @ptrCast(&buffer));
+        if (hr != 0) {
+            unreachable;
+        }
+
+        const self = try allocator.create(Buffer);
+        self.* = .{
+            .device = device,
+            .resource = buffer,
+            .size = size,
+            .usage = desc.usage,
+        };
+
+        return self;
     }
 
     pub fn deinit(_: *Buffer) void {
@@ -363,8 +455,9 @@ pub const Texture = struct {
         return texture;
     }
 
-    pub fn deinit(_: *Texture) void {
-        unreachable;
+    pub fn deinit(self: *Texture) void {
+        _ = self.resource.release();
+        allocator.destroy(self);
     }
 
     fn calcSubresource(texture: *Texture, mip_level: u32, array_slice: u32) u32 {
@@ -409,8 +502,9 @@ pub const TextureView = struct {
         return self;
     }
 
-    pub fn deinit(_: *TextureView) void {
-        unreachable;
+    pub fn deinit(self: *TextureView) void {
+        self.texture.manager.release();
+        allocator.destroy(self);
     }
 
     fn width(self: *TextureView) u32 {
@@ -582,18 +676,44 @@ pub const RenderPipeline = struct {
         }
 
         {
-            // var descs = std.BoundedArray(d3d11.INPUT_ELEMENT_DESC, 16){};
+            var descs = std.BoundedArray(d3d11.INPUT_ELEMENT_DESC, 16){};
 
-            // d3d11.INPUT_ELEMENT_DESC{
+            var reflector: *d3dcompiler.IShaderReflection = undefined;
+            var hr = d3dcompiler.D3DReflect(vertex_blob.getBufferPointer(), vertex_blob.getBufferSize(), &d3dcompiler.IShaderReflection.IID, @ptrCast(&reflector));
+            if (hr != 0) {
+                unreachable;
+            }
 
-            // };
+            var shader_desc: d3dcompiler.SHADER_DESC = undefined;
+            hr = reflector.getDesc(&shader_desc);
+            if (hr != 0) {
+                unreachable;
+            }
 
-            // const hr = device.device.createInputLayout(&descs.buffer, @intCast(descs.len), vertex_blob.getBufferPointer(), vertex_blob.getBufferSize(), @ptrCast(&layout));
-            // if (hr != 0) {
-            //     unreachable;
-            // }
+            if (shader_desc.InputParameters != 0) {
+                for (0..shader_desc.InputParameters) |i| {
+                    var param_desc: d3dcompiler.SIGNATURE_PARAMETER_DESC = undefined;
+                    hr = reflector.getInputParameterDesc(@intCast(i), &param_desc);
+                    if (hr != 0) {
+                        unreachable;
+                    }
 
-            layout = null;
+                    try descs.append(d3d11.INPUT_ELEMENT_DESC{
+                        .SemanticName = param_desc.SemanticName,
+                        .SemanticIndex = param_desc.SemanticIndex,
+                        .Format = conv.InputElementFormat(param_desc.Mask, param_desc.ComponentType),
+                        .InputSlot = 0,
+                        .AlignedByteOffset = 0xFFFFFFFF,
+                        .InputSlotClass = .INPUT_PER_VERTEX_DATA,
+                        .InstanceDataStepRate = 0,
+                    });
+                }
+
+                hr = device.device.createInputLayout(&descs.buffer, @intCast(descs.len), vertex_blob.getBufferPointer(), vertex_blob.getBufferSize(), @ptrCast(&layout));
+                if (hr != 0) {
+                    unreachable;
+                }
+            }
         }
 
         const self = try allocator.create(RenderPipeline);
@@ -640,6 +760,18 @@ pub const CommandEncoder = struct {
         allocator.destroy(self);
     }
 
+    pub fn writeBuffer(self: *CommandEncoder, buffer: *Buffer, offset: u64, ptr: [*]const u8, len: usize) !void {
+        var map: d3d11.MAPPED_SUBRESOURCE = undefined;
+        const hr = self.command_buffer.dcontext.map(@ptrCast(buffer.resource), 0, .WRITE_DISCARD, .{}, &map);
+        if (hr != 0) {
+            unreachable;
+        }
+        defer self.command_buffer.dcontext.unmap(@ptrCast(buffer.resource), 0);
+
+        const dest: [*]u8 = @ptrCast(map.pData);
+        @memcpy(dest[offset..][0..len], ptr[0..len]);
+    }
+
     pub fn beginRenderPass(self: *CommandEncoder, desc: gpu.types.RenderPassDescriptor) !*RenderPassEncoder {
         return try RenderPassEncoder.create(self, desc);
     }
@@ -677,7 +809,6 @@ pub const CommandBuffer = struct {
 
     pub fn deinit(self: *CommandBuffer) void {
         _ = self.dcontext.release();
-        self.reference_tracker.deinit();
         allocator.destroy(self);
     }
 };
@@ -692,6 +823,11 @@ pub const RenderPassEncoder = struct {
         var height: u32 = 0;
 
         var render_targets: std.BoundedArray(*d3d11.IRenderTargetView, 8) = .{};
+        defer {
+            for (render_targets.constSlice()) |rtv| {
+                _ = rtv.release();
+            }
+        }
 
         for (desc.color_attachments) |attach| {
             if (attach.view) |raw| {
@@ -760,6 +896,16 @@ pub const RenderPassEncoder = struct {
         self.dcontext.psSetShader(pipeline.pixel_shader, null, 0);
     }
 
+    pub fn setVertexBuffer(self: *RenderPassEncoder, slot: u32, buffer: *Buffer, offset: u32, stride: u32) !void {
+        try self.reference_tracker.referenceBuffer(buffer);
+        self.dcontext.iaSetVertexBuffers(slot, 1, @ptrCast(&buffer.resource), @ptrCast(&stride), @ptrCast(&offset));
+    }
+
+    pub fn setUniformBuffer(self: *RenderPassEncoder, slot: u32, buffer: *Buffer) !void {
+        try self.reference_tracker.referenceBuffer(buffer);
+        self.dcontext.vsSetConstantBuffers(slot, 1, @ptrCast(&buffer.resource));
+    }
+
     pub fn draw(self: *RenderPassEncoder, vertex_count: u32, instance_count: u32, first_vertex: u32, first_instance: u32) !void {
         self.dcontext.drawInstanced(vertex_count, instance_count, first_vertex, first_instance);
     }
@@ -772,7 +918,9 @@ pub const RenderPassEncoder = struct {
 // implementation details
 // ----------------------
 
+// TODO when should this stuff actually be freed
 const ReferenceTracker = struct {
+    buffers: std.ArrayListUnmanaged(*Buffer) = .empty,
     render_pipelines: std.ArrayListUnmanaged(*RenderPipeline) = .empty,
     textures: std.ArrayListUnmanaged(*Texture) = .empty,
 
@@ -783,6 +931,11 @@ const ReferenceTracker = struct {
     }
 
     fn deinit(self: *ReferenceTracker) void {
+        for (self.buffers.items) |buffer| {
+            // buffer.gpu_count -= 1;
+            buffer.manager.release();
+        }
+
         for (self.render_pipelines.items) |pipeline| {
             pipeline.manager.release();
         }
@@ -791,9 +944,15 @@ const ReferenceTracker = struct {
             texture.manager.release();
         }
 
+        self.buffers.deinit(allocator);
         self.render_pipelines.deinit(allocator);
         self.textures.deinit(allocator);
         allocator.destroy(self);
+    }
+
+    fn referenceBuffer(tracker: *ReferenceTracker, buffer: *Buffer) !void {
+        buffer.manager.reference();
+        try tracker.buffers.append(allocator, buffer);
     }
 
     fn referenceRenderPipeline(self: *ReferenceTracker, pipeline: *RenderPipeline) !void {

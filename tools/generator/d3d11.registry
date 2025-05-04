@@ -18,7 +18,7 @@ common IObject : IUnknown {
 define IDevice : IUnknown {
     iid = "DB6F6DDB-AC77-4E88-8253-819DF9BBF140"
 
-    fn createBuffer(self) noreturn
+    fn createBuffer(self, desc: *const BUFFER_DESC, initial_data: ?*const SUBRESOURCE_DATA, buffer: *?*IBuffer) HRESULT
     fn createTexture1D(self) noreturn
     fn createTexture2D(self) noreturn
     fn createTexture3D(self) noreturn
@@ -72,18 +72,18 @@ define IDeviceChild : IUnknown {
 define IDeviceContext : IDeviceChild {
     iid = "C0BFA96C-E089-44FB-8EAF-26F8796190DA"
 
-    fn vsSetConstantBuffers(self) noreturn
+    fn vsSetConstantBuffers(self, slot: u32, num: u32, buffers: [*]*IBuffer) void
     fn psSetShaderResources(self) noreturn
     fn psSetShader(self, shader: ?*IPixelShader, class_instance: ?[*]const *IClassInstance, num: u32) void
     fn psSetSamplers(self) noreturn
     fn vsSetShader(self, shader: ?*IVertexShader, class_instance: ?[*]const *IClassInstance, num: u32) void
     fn drawIndexed(self) noreturn
     fn draw(self, vertex_count: u32, start_vertex_location: u32) void
-    fn map(self) noreturn
-    fn unmap(self) noreturn
+    fn map(self, resource: *IResource, subresource: u32, map_type: MAP, map_flags: MAP_FLAG, mapped_resource: *MAPPED_SUBRESOURCE) HRESULT
+    fn unmap(self, resource: *IResource, subresource: u32) void
     fn psSetConstantBuffers(self) noreturn
     fn iaSetInputLayout(self, layout: ?*IInputLayout) void
-    fn iaSetVertexBuffers(self, start_slot: u32, num: u32, buffers: ?[*]*IBuffer, strides: ?[*]u32, offsets: ?[*]u32) void
+    fn iaSetVertexBuffers(self, start_slot: u32, num: u32, buffers: ?[*]*IBuffer, strides: ?[*]const u32, offsets: ?[*]const u32) void
     fn iaSetIndexBuffer(self) noreturn
     fn drawIndexedInstanced(self, index_count_per_instance: u32, instance_count: u32, start_index_location: u32, base_vertex_location: i32, start_instance_location: u32) void
     fn drawInstanced(self, vertex_count_per_instance: u32, instance_count: u32, start_vertex_location: u32, start_instance_location: u32) void

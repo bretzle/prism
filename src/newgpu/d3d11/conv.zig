@@ -3,6 +3,7 @@ const w32 = @import("w32");
 const dxgi = w32.dxgi;
 const d3d11 = w32.d3d11;
 const d3dcommon = w32.d3dcommon;
+const d3dcompiler = w32.d3dcompiler;
 
 pub fn dxgiFormatForTexture(format: gpu.Texture.Format) dxgi.FORMAT {
     return switch (format) {
@@ -250,4 +251,42 @@ pub fn PrimitiveTopologyType(topology: gpu.types.PrimitiveTopology) d3dcommon.PR
         .triangle_list => .TRIANGLELIST,
         .triangle_strip => .TRIANGLESTRIP,
     };
+}
+
+pub fn InputElementFormat(mask: u8, component: d3dcompiler.REGISTER_COMPONENT_TYPE) dxgi.FORMAT {
+    if (mask == 1) {
+        if (component == .UINT32) {
+            return .R32_UINT;
+        } else if (component == .SINT32) {
+            return .R32_SINT;
+        } else if (component == .FLOAT32) {
+            return .R32_FLOAT;
+        }
+    } else if (mask <= 3) {
+        if (component == .UINT32) {
+            return .R32G32_UINT;
+        } else if (component == .SINT32) {
+            return .R32G32_SINT;
+        } else if (component == .FLOAT32) {
+            return .R32G32_FLOAT;
+        }
+    } else if (mask <= 7) {
+        if (component == .UINT32) {
+            return .R32G32B32_UINT;
+        } else if (component == .SINT32) {
+            return .R32G32B32_SINT;
+        } else if (component == .FLOAT32) {
+            return .R32G32B32_FLOAT;
+        }
+    } else if (mask <= 15) {
+        if (component == .UINT32) {
+            return .R32G32B32A32_UINT;
+        } else if (component == .SINT32) {
+            return .R32G32B32A32_SINT;
+        } else if (component == .FLOAT32) {
+            return .R32G32B32A32_FLOAT;
+        }
+    }
+
+    return .UNKNOWN;
 }

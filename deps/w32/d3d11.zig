@@ -131,41 +131,20 @@ pub const FEATURE_DATA_ARCHITECTURE = extern struct {
     CacheCoherentUMA: BOOL = 0,
 };
 
-// const IUnknown = windows.IUnknown;
-// const UINT = windows.UINT;
-// const WINAPI = windows.WINAPI;
-// const GUID = windows.GUID;
-// const HRESULT = windows.HRESULT;
-// const HINSTANCE = windows.HINSTANCE;
-// const SIZE_T = windows.SIZE_T;
-// const LPCSTR = windows.LPCSTR;
-// const FLOAT = f32;
-// const BOOL = windows.BOOL;
-// const TRUE = 1;
-// const FALSE = 0;
-// const INT = windows.INT;
-// const UINT8 = u8;
-
-// const d3dcommon = @import("d3dcommon.zig");
-// const FEATURE_LEVEL = d3dcommon.FEATURE_LEVEL;
-// const DRIVER_TYPE = d3dcommon.DRIVER_TYPE;
-
-// pub const BIND_FLAG = packed struct(UINT) {
-//     VERTEX_BUFFER: bool = false,
-//     INDEX_BUFFER: bool = false,
-//     CONSTANT_BUFFER: bool = false,
-//     SHADER_RESOURCE: bool = false,
-//     STREAM_OUTPUT: bool = false,
-//     RENDER_TARGET: bool = false,
-//     DEPTH_STENCIL: bool = false,
-//     UNORDERED_ACCESS: bool = false,
-//     __unused8: bool = false,
-//     DECODER: bool = false,
-//     VIDEO_ENCODER: bool = false,
-//     __unused: u21 = 0,
-// };
-
-// pub const RECT = windows.RECT;
+pub const BIND_FLAG = packed struct(u32) {
+    VERTEX_BUFFER: bool = false,
+    INDEX_BUFFER: bool = false,
+    CONSTANT_BUFFER: bool = false,
+    SHADER_RESOURCE: bool = false,
+    STREAM_OUTPUT: bool = false,
+    RENDER_TARGET: bool = false,
+    DEPTH_STENCIL: bool = false,
+    UNORDERED_ACCESS: bool = false,
+    __unused8: bool = false,
+    DECODER: bool = false,
+    VIDEO_ENCODER: bool = false,
+    __unused: u21 = 0,
+};
 
 // pub const RESOURCE_DIMENSION = enum(UINT) {
 //     UNKNOWN = 0,
@@ -274,58 +253,58 @@ pub const INPUT_ELEMENT_DESC = extern struct {
     InstanceDataStepRate: u32,
 };
 
-// pub const SUBRESOURCE_DATA = extern struct {
-//     pSysMem: ?*const anyopaque,
-//     SysMemPitch: UINT = 0,
-//     SysMemSlicePitch: UINT = 0,
-// };
+pub const SUBRESOURCE_DATA = extern struct {
+    pSysMem: ?*const anyopaque,
+    SysMemPitch: u32 = 0,
+    SysMemSlicePitch: u32 = 0,
+};
 
-// pub const USAGE = enum(UINT) {
-//     DEFAULT,
-//     IMMUTABLE,
-//     DYNAMIC,
-//     STAGING,
-// };
+pub const USAGE = enum(u32) {
+    DEFAULT,
+    IMMUTABLE,
+    DYNAMIC,
+    STAGING,
+};
 
-// pub const CPU_ACCCESS_FLAG = packed struct(UINT) {
-//     __unused0: u16 = 0,
-//     WRITE: bool = false,
-//     READ: bool = false,
-//     __unused: u14 = 0,
-// };
+pub const CPU_ACCCESS_FLAG = packed struct(u32) {
+    __unused0: u16 = 0,
+    WRITE: bool = false,
+    READ: bool = false,
+    __unused: u14 = 0,
+};
 
-// pub const RESOURCE_MISC_FLAG = packed struct(UINT) {
-//     GENERATE_MIPS: bool = false,
-//     SHARED: bool = false,
-//     TEXTURECUBE: bool = false,
-//     __unused3: bool = false,
-//     DRAWINDIRECT_ARGS: bool = false,
-//     BUFFER_ALLOW_RAW_VIEWS: bool = false,
-//     BUFFER_STRUCTURED: bool = false,
-//     RESOURCE_CLAMP: bool = false,
-//     SHARED_KEYEDMUTEX: bool = false,
-//     GDI_COMPATIBLE: bool = false,
-//     __unused10: bool = false,
-//     SHARED_NTHANDLE: bool = false,
-//     RESTRICTED_CONTENT: bool = false,
-//     RESTRICT_SHARED_RESOURCE: bool = false,
-//     RESTRICT_SHARED_RESOURCE_DRIVER: bool = false,
-//     GUARDED: bool = false,
-//     __unused16: bool = false,
-//     TILE_POOL: bool = false,
-//     TILED: bool = false,
-//     HW_PROTECTED: bool = false,
-//     __unused: u12 = 0,
-// };
+pub const RESOURCE_MISC_FLAG = packed struct(u32) {
+    GENERATE_MIPS: bool = false,
+    SHARED: bool = false,
+    TEXTURECUBE: bool = false,
+    __unused3: bool = false,
+    DRAWINDIRECT_ARGS: bool = false,
+    BUFFER_ALLOW_RAW_VIEWS: bool = false,
+    BUFFER_STRUCTURED: bool = false,
+    RESOURCE_CLAMP: bool = false,
+    SHARED_KEYEDMUTEX: bool = false,
+    GDI_COMPATIBLE: bool = false,
+    __unused10: bool = false,
+    SHARED_NTHANDLE: bool = false,
+    RESTRICTED_CONTENT: bool = false,
+    RESTRICT_SHARED_RESOURCE: bool = false,
+    RESTRICT_SHARED_RESOURCE_DRIVER: bool = false,
+    GUARDED: bool = false,
+    __unused16: bool = false,
+    TILE_POOL: bool = false,
+    TILED: bool = false,
+    HW_PROTECTED: bool = false,
+    __unused: u12 = 0,
+};
 
-// pub const BUFFER_DESC = extern struct {
-//     ByteWidth: UINT,
-//     Usage: USAGE,
-//     BindFlags: BIND_FLAG,
-//     CPUAccessFlags: CPU_ACCCESS_FLAG = .{},
-//     MiscFlags: RESOURCE_MISC_FLAG = .{},
-//     StructureByteStride: UINT = 0,
-// };
+pub const BUFFER_DESC = extern struct {
+    ByteWidth: u32,
+    Usage: USAGE,
+    BindFlags: BIND_FLAG,
+    CPUAccessFlags: CPU_ACCCESS_FLAG = .{},
+    MiscFlags: RESOURCE_MISC_FLAG = .{},
+    StructureByteStride: u32 = 0,
+};
 
 pub const VIEWPORT = extern struct {
     TopLeftX: f32,
@@ -340,24 +319,24 @@ pub const VIEWPORT = extern struct {
 //     ptr: SIZE_T,
 // };
 
-// pub const MAP = enum(UINT) {
-//     READ = 1,
-//     WRITE = 2,
-//     READ_WRITE = 3,
-//     WRITE_DISCARD = 4,
-//     WRITE_NO_OVERWRITE = 5,
-// };
+pub const MAP = enum(u32) {
+    READ = 1,
+    WRITE = 2,
+    READ_WRITE = 3,
+    WRITE_DISCARD = 4,
+    WRITE_NO_OVERWRITE = 5,
+};
 
-// pub const MAP_FLAG = packed struct(UINT) {
-//     DO_NOT_WAIT: bool = false,
-//     __unused: u31 = 0,
-// };
+pub const MAP_FLAG = packed struct(u32) {
+    DO_NOT_WAIT: bool = false,
+    __unused: u31 = 0,
+};
 
-// pub const MAPPED_SUBRESOURCE = extern struct {
-//     pData: *anyopaque,
-//     RowPitch: UINT,
-//     DepthPitch: UINT,
-// };
+pub const MAPPED_SUBRESOURCE = extern struct {
+    pData: *anyopaque,
+    RowPitch: u32,
+    DepthPitch: u32,
+};
 
 pub const FILL_MODE = enum(u32) {
     WIREFRAME = 2,
@@ -951,7 +930,7 @@ pub const IDevice = extern struct {
 
     const VTable = extern struct {
         base: IUnknown.VTable,
-        create_buffer: *const fn (*IDevice) callconv(.winapi) noreturn,
+        create_buffer: *const fn (*IDevice, desc: *const BUFFER_DESC, initial_data: ?*const SUBRESOURCE_DATA, buffer: *?*IBuffer) callconv(.winapi) HRESULT,
         create_texture1_d: *const fn (*IDevice) callconv(.winapi) noreturn,
         create_texture2_d: *const fn (*IDevice) callconv(.winapi) noreturn,
         create_texture3_d: *const fn (*IDevice) callconv(.winapi) noreturn,
@@ -993,8 +972,8 @@ pub const IDevice = extern struct {
         get_exception_mode: *const fn (*IDevice) callconv(.winapi) noreturn,
     };
 
-    pub fn createBuffer(self: *IDevice) noreturn {
-        return (self.vtable.create_buffer)(self);
+    pub fn createBuffer(self: *IDevice, desc: *const BUFFER_DESC, initial_data: ?*const SUBRESOURCE_DATA, buffer: *?*IBuffer) HRESULT {
+        return (self.vtable.create_buffer)(self, desc, initial_data, buffer);
     }
     pub fn createTexture1D(self: *IDevice) noreturn {
         return (self.vtable.create_texture1_d)(self);
@@ -1169,18 +1148,18 @@ pub const IDeviceContext = extern struct {
 
     const VTable = extern struct {
         base: IDeviceChild.VTable,
-        vs_set_constant_buffers: *const fn (*IDeviceContext) callconv(.winapi) noreturn,
+        vs_set_constant_buffers: *const fn (*IDeviceContext, slot: u32, num: u32, buffers: [*]*IBuffer) callconv(.winapi) void,
         ps_set_shader_resources: *const fn (*IDeviceContext) callconv(.winapi) noreturn,
         ps_set_shader: *const fn (*IDeviceContext, shader: ?*IPixelShader, class_instance: ?[*]const *IClassInstance, num: u32) callconv(.winapi) void,
         ps_set_samplers: *const fn (*IDeviceContext) callconv(.winapi) noreturn,
         vs_set_shader: *const fn (*IDeviceContext, shader: ?*IVertexShader, class_instance: ?[*]const *IClassInstance, num: u32) callconv(.winapi) void,
         draw_indexed: *const fn (*IDeviceContext) callconv(.winapi) noreturn,
         draw: *const fn (*IDeviceContext, vertex_count: u32, start_vertex_location: u32) callconv(.winapi) void,
-        map: *const fn (*IDeviceContext) callconv(.winapi) noreturn,
-        unmap: *const fn (*IDeviceContext) callconv(.winapi) noreturn,
+        map: *const fn (*IDeviceContext, resource: *IResource, subresource: u32, map_type: MAP, map_flags: MAP_FLAG, mapped_resource: *MAPPED_SUBRESOURCE) callconv(.winapi) HRESULT,
+        unmap: *const fn (*IDeviceContext, resource: *IResource, subresource: u32) callconv(.winapi) void,
         ps_set_constant_buffers: *const fn (*IDeviceContext) callconv(.winapi) noreturn,
         ia_set_input_layout: *const fn (*IDeviceContext, layout: ?*IInputLayout) callconv(.winapi) void,
-        ia_set_vertex_buffers: *const fn (*IDeviceContext, start_slot: u32, num: u32, buffers: ?[*]*IBuffer, strides: ?[*]u32, offsets: ?[*]u32) callconv(.winapi) void,
+        ia_set_vertex_buffers: *const fn (*IDeviceContext, start_slot: u32, num: u32, buffers: ?[*]*IBuffer, strides: ?[*]const u32, offsets: ?[*]const u32) callconv(.winapi) void,
         ia_set_index_buffer: *const fn (*IDeviceContext) callconv(.winapi) noreturn,
         draw_indexed_instanced: *const fn (*IDeviceContext, index_count_per_instance: u32, instance_count: u32, start_index_location: u32, base_vertex_location: i32, start_instance_location: u32) callconv(.winapi) void,
         draw_instanced: *const fn (*IDeviceContext, vertex_count_per_instance: u32, instance_count: u32, start_vertex_location: u32, start_instance_location: u32) callconv(.winapi) void,
@@ -1279,8 +1258,8 @@ pub const IDeviceContext = extern struct {
         finish_command_list: *const fn (*IDeviceContext, restore: BOOL, command_list: *?*ICommandList) callconv(.winapi) HRESULT,
     };
 
-    pub fn vsSetConstantBuffers(self: *IDeviceContext) noreturn {
-        return (self.vtable.vs_set_constant_buffers)(self);
+    pub fn vsSetConstantBuffers(self: *IDeviceContext, slot: u32, num: u32, buffers: [*]*IBuffer) void {
+        return (self.vtable.vs_set_constant_buffers)(self, slot, num, buffers);
     }
     pub fn psSetShaderResources(self: *IDeviceContext) noreturn {
         return (self.vtable.ps_set_shader_resources)(self);
@@ -1300,11 +1279,11 @@ pub const IDeviceContext = extern struct {
     pub fn draw(self: *IDeviceContext, vertex_count: u32, start_vertex_location: u32) void {
         return (self.vtable.draw)(self, vertex_count, start_vertex_location);
     }
-    pub fn map(self: *IDeviceContext) noreturn {
-        return (self.vtable.map)(self);
+    pub fn map(self: *IDeviceContext, resource: *IResource, subresource: u32, map_type: MAP, map_flags: MAP_FLAG, mapped_resource: *MAPPED_SUBRESOURCE) HRESULT {
+        return (self.vtable.map)(self, resource, subresource, map_type, map_flags, mapped_resource);
     }
-    pub fn unmap(self: *IDeviceContext) noreturn {
-        return (self.vtable.unmap)(self);
+    pub fn unmap(self: *IDeviceContext, resource: *IResource, subresource: u32) void {
+        return (self.vtable.unmap)(self, resource, subresource);
     }
     pub fn psSetConstantBuffers(self: *IDeviceContext) noreturn {
         return (self.vtable.ps_set_constant_buffers)(self);
@@ -1312,7 +1291,7 @@ pub const IDeviceContext = extern struct {
     pub fn iaSetInputLayout(self: *IDeviceContext, layout: ?*IInputLayout) void {
         return (self.vtable.ia_set_input_layout)(self, layout);
     }
-    pub fn iaSetVertexBuffers(self: *IDeviceContext, start_slot: u32, num: u32, buffers: ?[*]*IBuffer, strides: ?[*]u32, offsets: ?[*]u32) void {
+    pub fn iaSetVertexBuffers(self: *IDeviceContext, start_slot: u32, num: u32, buffers: ?[*]*IBuffer, strides: ?[*]const u32, offsets: ?[*]const u32) void {
         return (self.vtable.ia_set_vertex_buffers)(self, start_slot, num, buffers, strides, offsets);
     }
     pub fn iaSetIndexBuffer(self: *IDeviceContext) noreturn {

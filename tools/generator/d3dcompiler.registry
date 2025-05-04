@@ -11,27 +11,27 @@ define IInclude {
 }
 
 define IShaderReflection : IUnknown {
-    iid = "8d536ca1-0cca-4956-a837-786963755584"
+    iid = "8D536CA1-0CCA-4956-A837-786963755584"
 
     fn getDesc(self, desc: *SHADER_DESC) HRESULT
     fn getConstantBufferByIndex(self, index: UINT) *IShaderReflectionConstantBuffer
     fn getConstantBufferByName(self) noreturn
     fn getResourceBindingDesc(self, index: UINT, desc: *SHADER_INPUT_BIND_DESC) HRESULT
-    fn getBitwiseInstructionCount(self) noreturn
-    fn getConversionInstructionCount(self) noreturn
-    fn getGSInputPrimitive(self) noreturn
-    fn getInputParameterDesc(self) noreturn
-    fn getMinFeatureLevel(self) noreturn
-    fn getMovcInstructionCount(self) noreturn
-    fn getMovInstructionCount(self) noreturn
-    fn getNumInterfaceSlots(self) noreturn
+    fn getInputParameterDesc(self, index: u32, desc: *SIGNATURE_PARAMETER_DESC) HRESULT
     fn getOutputParameterDesc(self) noreturn
     fn getPatchConstantParameterDesc(self) noreturn
-    fn getRequiresFlags(self) noreturn
-    fn getResourceBindingDescByName(self) noreturn
-    fn getThreadGroupSize(self) noreturn
     fn getVariableByName(self) noreturn
+    fn getResourceBindingDescByName(self) noreturn
+    fn getMovInstructionCount(self) noreturn
+    fn getMovcInstructionCount(self) noreturn
+    fn getConversionInstructionCount(self) noreturn
+    fn getBitwiseInstructionCount(self) noreturn
+    fn getGSInputPrimitive(self) noreturn
     fn isSampleFrequencyShader(self) noreturn
+    fn getNumInterfaceSlots(self) noreturn
+    fn getMinFeatureLevel(self) noreturn
+    fn getThreadGroupSize(self) noreturn
+    fn getRequiresFlags(self) noreturn
 }
 
 define IShaderReflectionConstantBuffer {

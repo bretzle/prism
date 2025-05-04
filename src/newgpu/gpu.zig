@@ -70,6 +70,11 @@ pub const Device = opaque {
         });
     }
 
+    pub fn createBuffer(self: *Device, desc: Buffer.Descriptor) !*Buffer {
+        const device: *impl.Device = @alignCast(@ptrCast(self));
+        return @ptrCast(try impl.Buffer.create(device, desc));
+    }
+
     pub fn createRenderPipeline(self: *Device, desc: RenderPipeline.Descriptor) !*RenderPipeline {
         const device: *impl.Device = @alignCast(@ptrCast(self));
         return @ptrCast(try impl.RenderPipeline.create(device, desc));
@@ -84,6 +89,11 @@ pub const Device = opaque {
         const device: *impl.Device = @alignCast(@ptrCast(self));
         const buffers: []const *impl.CommandBuffer = @ptrCast(commands);
         try device.submit(buffers);
+    }
+
+    pub fn tick(self: *Device) void {
+        const device: *impl.Device = @alignCast(@ptrCast(self));
+        device.processQueuedOperations();
     }
 
     pub fn reference(self: *Device) void {
@@ -322,6 +332,13 @@ pub const RenderPipeline = opaque {
 };
 
 pub const CommandEncoder = opaque {
+    pub fn writeBuffer(self: *CommandEncoder, buffer: *Buffer, offset: u64, slice: anytype) !void {
+        const encoder: *impl.CommandEncoder = @alignCast(@ptrCast(self));
+        const buffer_: *impl.Buffer = @alignCast(@ptrCast(buffer));
+        const data = std.mem.sliceAsBytes(slice);
+        try encoder.writeBuffer(buffer_, offset, data.ptr, data.len);
+    }
+
     pub fn beginRenderPass(self: *CommandEncoder, desc: types.RenderPassDescriptor) !*RenderPassEncoder {
         const encoder: *impl.CommandEncoder = @alignCast(@ptrCast(self));
         return @ptrCast(try encoder.beginRenderPass(desc));
@@ -364,6 +381,18 @@ pub const RenderPassEncoder = opaque {
         try encoder.setPipeline(pipeline_);
     }
 
+    pub inline fn setVertexBuffer(self: *RenderPassEncoder, slot: u32, buffer: *Buffer, offset: u32, stride: u32) !void {
+        const encoder: *impl.RenderPassEncoder = @alignCast(@ptrCast(self));
+        const buffer_: *impl.Buffer = @alignCast(@ptrCast(buffer));
+        try encoder.setVertexBuffer(slot, buffer_, offset, stride);
+    }
+
+    pub inline fn setUniformBuffer(self: *RenderPassEncoder, slot: u32, buffer: *Buffer) !void {
+        const encoder: *impl.RenderPassEncoder = @alignCast(@ptrCast(self));
+        const buffer_: *impl.Buffer = @alignCast(@ptrCast(buffer));
+        try encoder.setUniformBuffer(slot, buffer_);
+    }
+
     pub fn draw(self: *RenderPassEncoder, vertex_count: u32, instance_count: u32, first_vertex: u32, first_instance: u32) !void {
         const encoder: *impl.RenderPassEncoder = @alignCast(@ptrCast(self));
         try encoder.draw(vertex_count, instance_count, first_vertex, first_instance);
@@ -382,5 +411,37 @@ pub const RenderPassEncoder = opaque {
     pub fn release(self: *RenderPassEncoder) void {
         const pass: *impl.RenderPassEncoder = @alignCast(@ptrCast(self));
         pass.manager.release();
+    }
+};
+
+pub const Buffer = opaque {
+    pub const Descriptor = struct {
+        usage: UsageFlags,
+        size: u32,
+        data: ?[]const u8 = null,
+    };
+
+    pub const UsageFlags = packed struct(u16) {
+        map_read: bool = false,
+        map_write: bool = false,
+        copy_src: bool = false,
+        copy_dst: bool = false,
+        index: bool = false,
+        vertex: bool = false,
+        uniform: bool = false,
+        storage: bool = false,
+        indirect: bool = false,
+        query_resolve: bool = false,
+        _: u6 = 0,
+    };
+
+    pub inline fn reference(self: *Buffer) void {
+        const buffer: *impl.Buffer = @alignCast(@ptrCast(self));
+        buffer.manager.reference();
+    }
+
+    pub inline fn release(self: *Buffer) void {
+        const buffer: *impl.Buffer = @alignCast(@ptrCast(self));
+        buffer.manager.release();
     }
 };

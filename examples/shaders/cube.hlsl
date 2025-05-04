@@ -12,7 +12,6 @@ struct vs_in
 struct vs_out
 {
     float2 fragUV : ATTR0;
-    float2 pad0 : PAD0;
     float4 fragPosition : ATTR1;
     float4 position_clip : SV_Position;
 };
