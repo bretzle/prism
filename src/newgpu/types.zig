@@ -491,9 +491,10 @@ pub const StencilFaceState = struct {
 // };
 
 pub const VertexAttribute = struct {
-    format: VertexFormat,
+    name: ?[*:0]const u8 = null,
+    index: u32 = 0,
     offset: u64,
-    shader_location: u32,
+    format: VertexFormat,
 };
 
 pub const BlendState = struct {
@@ -583,7 +584,7 @@ pub const VertexState = struct {
     module: *ShaderModule,
     entrypoint: [:0]const u8,
     // constants: []const ConstantEntry = &.{}, TODO
-    // buffers: []const VertexBufferLayout = &.{}, TODO
+    layout: ?VertexBufferLayout = null,
 };
 
 pub const FragmentState = struct {

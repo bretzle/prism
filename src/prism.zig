@@ -7,7 +7,7 @@ const platform = switch (options.platform) {
 };
 
 pub const gpu = @import("newgpu/gpu.zig");
-// pub const gfx = @import("gfx/gfx.zig");
+pub const gfx = @import("gfx/gfx.zig");
 pub const math = @import("math/math.zig");
 pub const time = @import("time.zig");
 

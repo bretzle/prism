@@ -10,7 +10,7 @@ const d3dcompiler = w32.d3dcompiler;
 
 const Manager = @import("../../util.zig").Manager;
 
-const debug = true;
+const debug = false;
 const back_buffer_count = 2;
 const allocator = @import("../../prism.zig").allocator;
 
@@ -206,8 +206,8 @@ pub const Device = struct {
                     var len: usize = 0;
                     _ = queue.getMessage(i, null, &len);
 
-                    var message: *d3d11.MESSAGE = try allocator.create(d3d11.MESSAGE);
-                    defer allocator.destroy(message);
+                var message: *d3d11.MESSAGE = try allocator.create(d3d11.MESSAGE);
+                defer allocator.destroy(message);
 
                     _ = queue.getMessage(i, message, &len);
                     std.log.debug("{s}", .{message.pDescription[0..message.DescriptionByteLength]});
@@ -568,11 +568,11 @@ pub const TextureView = struct {
         allocator.destroy(self);
     }
 
-    fn width(self: *TextureView) u32 {
+    pub fn width(self: *TextureView) u32 {
         return @max(1, self.texture.size.width >> @intCast(self.base_mip_level));
     }
 
-    fn height(self: *TextureView) u32 {
+    pub fn height(self: *TextureView) u32 {
         return @max(1, self.texture.size.height >> @intCast(self.base_mip_level));
     }
 };
@@ -739,19 +739,31 @@ pub const RenderPipeline = struct {
         {
             var descs = std.BoundedArray(d3d11.INPUT_ELEMENT_DESC, 16){};
 
-            var reflector: *d3dcompiler.IShaderReflection = undefined;
-            var hr = d3dcompiler.D3DReflect(vertex_blob.getBufferPointer(), vertex_blob.getBufferSize(), &d3dcompiler.IShaderReflection.IID, @ptrCast(&reflector));
-            if (hr != 0) {
-                unreachable;
-            }
+            if (desc.vertex.layout) |vbl| {
+                for (vbl.attributes) |attr| {
+                    try descs.append(d3d11.INPUT_ELEMENT_DESC{
+                        .SemanticName = attr.name.?,
+                        .SemanticIndex = attr.index,
+                        .Format = conv.VertexFormat(attr.format),
+                        .InputSlot = 0,
+                        .AlignedByteOffset = 0xFFFFFFFF,
+                        .InputSlotClass = if (vbl.step_mode == .vertex) .INPUT_PER_VERTEX_DATA else .INPUT_PER_INSTANCE_DATA,
+                        .InstanceDataStepRate = 0,
+                    });
+                }
+            } else {
+                var reflector: *d3dcompiler.IShaderReflection = undefined;
+                var hr = d3dcompiler.D3DReflect(vertex_blob.getBufferPointer(), vertex_blob.getBufferSize(), &d3dcompiler.IShaderReflection.IID, @ptrCast(&reflector));
+                if (hr != 0) {
+                    unreachable;
+                }
 
-            var shader_desc: d3dcompiler.SHADER_DESC = undefined;
-            hr = reflector.getDesc(&shader_desc);
-            if (hr != 0) {
-                unreachable;
-            }
+                var shader_desc: d3dcompiler.SHADER_DESC = undefined;
+                hr = reflector.getDesc(&shader_desc);
+                if (hr != 0) {
+                    unreachable;
+                }
 
-            if (shader_desc.InputParameters != 0) {
                 for (0..shader_desc.InputParameters) |i| {
                     var param_desc: d3dcompiler.SIGNATURE_PARAMETER_DESC = undefined;
                     hr = reflector.getInputParameterDesc(@intCast(i), &param_desc);
@@ -769,11 +781,11 @@ pub const RenderPipeline = struct {
                         .InstanceDataStepRate = 0,
                     });
                 }
+            }
 
-                hr = device.device.createInputLayout(&descs.buffer, @intCast(descs.len), vertex_blob.getBufferPointer(), vertex_blob.getBufferSize(), @ptrCast(&layout));
-                if (hr != 0) {
-                    unreachable;
-                }
+            const hr = device.device.createInputLayout(&descs.buffer, @intCast(descs.len), vertex_blob.getBufferPointer(), vertex_blob.getBufferSize(), @ptrCast(&layout));
+            if (hr != 0) {
+                unreachable;
             }
         }
 
@@ -1037,6 +1049,11 @@ pub const RenderPassEncoder = struct {
         self.dcontext.iaSetVertexBuffers(slot, 1, @ptrCast(&buffer.resource), @ptrCast(&stride), @ptrCast(&offset));
     }
 
+    pub fn setIndexBuffer(self: *RenderPassEncoder, buffer: *Buffer, format: gpu.types.IndexFormat, offset: u64) !void {
+        try self.reference_tracker.referenceBuffer(buffer);
+        self.dcontext.iaSetIndexBuffer(@ptrCast(buffer.resource), conv.IndexFormat(format), @intCast(offset));
+    }
+
     pub fn setUniformBuffer(self: *RenderPassEncoder, slot: u32, buffer: *Buffer) !void {
         try self.reference_tracker.referenceBuffer(buffer);
         self.dcontext.vsSetConstantBuffers(slot, 1, @ptrCast(&buffer.resource));
@@ -1049,6 +1066,10 @@ pub const RenderPassEncoder = struct {
 
     pub fn draw(self: *RenderPassEncoder, vertex_count: u32, instance_count: u32, first_vertex: u32, first_instance: u32) !void {
         self.dcontext.drawInstanced(vertex_count, instance_count, first_vertex, first_instance);
+    }
+
+    pub fn drawIndexed(self: *RenderPassEncoder, index_count: u32, instance_count: u32, first_index: u32, base_vertex: i32, first_instance: u32) !void {
+        self.dcontext.drawIndexedInstanced(index_count, instance_count, first_index, base_vertex, first_instance);
     }
 
     pub fn end(_: *RenderPassEncoder) !void {

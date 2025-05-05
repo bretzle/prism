@@ -525,6 +525,15 @@ pub fn Mat4x4(comptime Scalar: type) type {
             );
         }
 
+        pub fn ortho(width: f32, height: f32) Matrix {
+            return Matrix.create(
+                &RowVec.create(2.0 / width, 0, 0, 0),
+                &RowVec.create(0, -2.0 / height, 0, 0),
+                &RowVec.create(0, 0, 1, 0),
+                &RowVec.create(-1, 1, 0, 1),
+            );
+        }
+
         pub const mul = Shared.mul;
         pub const mulVec = Shared.mulVec;
         pub const eql = Shared.eql;

@@ -306,6 +306,16 @@ pub const TextureView = opaque {
 
     pub const Dimension = enum { undefined, @"1d", @"2d", @"2d_array", cube, cube_array, @"3d" };
 
+    pub fn width(self: *TextureView) u32 {
+        const view: *impl.TextureView = @alignCast(@ptrCast(self));
+        return view.width();
+    }
+
+    pub fn height(self: *TextureView) u32 {
+        const view: *impl.TextureView = @alignCast(@ptrCast(self));
+        return view.height();
+    }
+
     pub fn reference(self: *TextureView) void {
         const view: *impl.TextureView = @alignCast(@ptrCast(self));
         view.manager.reference();
@@ -410,6 +420,12 @@ pub const RenderPassEncoder = opaque {
         try encoder.setVertexBuffer(slot, buffer_, offset, stride);
     }
 
+    pub fn setIndexBuffer(self: *RenderPassEncoder, buffer: *Buffer, format: types.IndexFormat, offset: u64) !void {
+        const encoder: *impl.RenderPassEncoder = @alignCast(@ptrCast(self));
+        const buffer_: *impl.Buffer = @alignCast(@ptrCast(buffer));
+        try encoder.setIndexBuffer(buffer_, format, offset);
+    }
+
     pub fn setUniformBuffer(self: *RenderPassEncoder, slot: u32, buffer: *Buffer) !void {
         const encoder: *impl.RenderPassEncoder = @alignCast(@ptrCast(self));
         const buffer_: *impl.Buffer = @alignCast(@ptrCast(buffer));
@@ -426,6 +442,11 @@ pub const RenderPassEncoder = opaque {
     pub fn draw(self: *RenderPassEncoder, vertex_count: u32, instance_count: u32, first_vertex: u32, first_instance: u32) !void {
         const encoder: *impl.RenderPassEncoder = @alignCast(@ptrCast(self));
         try encoder.draw(vertex_count, instance_count, first_vertex, first_instance);
+    }
+
+    pub fn drawIndexed(self: *RenderPassEncoder, index_count: u32, instance_count: u32, first_index: u32, base_vertex: i32, first_instance: u32) !void {
+        const encoder: *impl.RenderPassEncoder = @alignCast(@ptrCast(self));
+        try encoder.drawIndexed(index_count, instance_count, first_index, base_vertex, first_instance);
     }
 
     pub fn end(self: *RenderPassEncoder) !void {

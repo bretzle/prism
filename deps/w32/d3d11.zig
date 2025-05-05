@@ -1190,7 +1190,7 @@ pub const IDeviceContext = extern struct {
         ps_set_constant_buffers: *const fn (*IDeviceContext) callconv(.winapi) noreturn,
         ia_set_input_layout: *const fn (*IDeviceContext, layout: ?*IInputLayout) callconv(.winapi) void,
         ia_set_vertex_buffers: *const fn (*IDeviceContext, start_slot: u32, num: u32, buffers: ?[*]*IBuffer, strides: ?[*]const u32, offsets: ?[*]const u32) callconv(.winapi) void,
-        ia_set_index_buffer: *const fn (*IDeviceContext) callconv(.winapi) noreturn,
+        ia_set_index_buffer: *const fn (*IDeviceContext, buffer: *IBuffer, format: dxgi.FORMAT, offset: u32) callconv(.winapi) void,
         draw_indexed_instanced: *const fn (*IDeviceContext, index_count_per_instance: u32, instance_count: u32, start_index_location: u32, base_vertex_location: i32, start_instance_location: u32) callconv(.winapi) void,
         draw_instanced: *const fn (*IDeviceContext, vertex_count_per_instance: u32, instance_count: u32, start_vertex_location: u32, start_instance_location: u32) callconv(.winapi) void,
         gs_set_constant_buffers: *const fn (*IDeviceContext) callconv(.winapi) noreturn,
@@ -1324,8 +1324,8 @@ pub const IDeviceContext = extern struct {
     pub fn iaSetVertexBuffers(self: *IDeviceContext, start_slot: u32, num: u32, buffers: ?[*]*IBuffer, strides: ?[*]const u32, offsets: ?[*]const u32) void {
         return (self.vtable.ia_set_vertex_buffers)(self, start_slot, num, buffers, strides, offsets);
     }
-    pub fn iaSetIndexBuffer(self: *IDeviceContext) noreturn {
-        return (self.vtable.ia_set_index_buffer)(self);
+    pub fn iaSetIndexBuffer(self: *IDeviceContext, buffer: *IBuffer, format: dxgi.FORMAT, offset: u32) void {
+        return (self.vtable.ia_set_index_buffer)(self, buffer, format, offset);
     }
     pub fn drawIndexedInstanced(self: *IDeviceContext, index_count_per_instance: u32, instance_count: u32, start_index_location: u32, base_vertex_location: i32, start_instance_location: u32) void {
         return (self.vtable.draw_indexed_instanced)(self, index_count_per_instance, instance_count, start_index_location, base_vertex_location, start_instance_location);

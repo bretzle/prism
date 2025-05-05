@@ -84,7 +84,7 @@ define IDeviceContext : IDeviceChild {
     fn psSetConstantBuffers(self) noreturn
     fn iaSetInputLayout(self, layout: ?*IInputLayout) void
     fn iaSetVertexBuffers(self, start_slot: u32, num: u32, buffers: ?[*]*IBuffer, strides: ?[*]const u32, offsets: ?[*]const u32) void
-    fn iaSetIndexBuffer(self) noreturn
+    fn iaSetIndexBuffer(self, buffer: *IBuffer, format: dxgi.FORMAT, offset: u32) void
     fn drawIndexedInstanced(self, index_count_per_instance: u32, instance_count: u32, start_index_location: u32, base_vertex_location: i32, start_instance_location: u32) void
     fn drawInstanced(self, vertex_count_per_instance: u32, instance_count: u32, start_vertex_location: u32, start_instance_location: u32) void
     fn gsSetConstantBuffers(self) noreturn
