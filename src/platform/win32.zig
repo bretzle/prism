@@ -1,5 +1,5 @@
 const std = @import("std");
-const gpu = @import("../newgpu/gpu.zig");
+const gpu = @import("../gpu/gpu.zig");
 const prism = @import("../prism.zig");
 const w32 = @import("w32");
 

@@ -1,5 +1,5 @@
 const std = @import("std");
-const gpu = @import("../newgpu/gpu.zig");
+const gpu = @import("../gpu/gpu.zig");
 const math = @import("../math/math.zig");
 
 const List = std.ArrayListUnmanaged;
