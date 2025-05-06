@@ -58,14 +58,6 @@ pub fn build(b: *std.Build) void {
         });
     }
 
-    if (backend != .dummy) {
-        prism.addAnonymousImport("shader", .{
-            .root_source_file = b.path("deps/shader.zig"),
-            .target = target,
-            .optimize = optimize,
-        });
-    }
-
     buildTools(b, target, optimize);
     buildExamples(b, prism, target, optimize);
     buildTest(b, prism, target, optimize);
