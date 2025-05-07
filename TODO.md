@@ -1,7 +1,7 @@
 # Big Things
 - [X] gpu mvp
 - [ ] flush out the window interface
-- [ ] high level renderer
+- [X] high level renderer
     - [ ] text rendering
 - [ ] web build
 
@@ -22,7 +22,6 @@
 - [ ] work through rest of API
 - [ ] mailbox present mode is not being handles correctly
 - [ ] veryify that resources are referenced/released correctly
-- [ ] audit shader module
 - [ ] load gpu procs from lib at runtime
 - [ ] use debug labels
 - [ ] more examples

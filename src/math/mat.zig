@@ -7,9 +7,6 @@ pub fn Mat2x2(comptime Scalar: type) type {
     return extern struct {
         /// The column vectors of the matrix.
         ///
-        /// Mach matrices use [column-major storage and column-vectors](https://machengine.org/engine/math/matrix-storage/).
-        /// The translation vector is stored in contiguous memory elements 12, 13, 14:
-        ///
         /// ```
         /// [4]Vec4{
         ///     vec4( 1,  0,  0,  0),
@@ -51,24 +48,7 @@ pub fn Mat2x2(comptime Scalar: type) type {
             &RowVec.create(0, 1),
         );
 
-        /// Constructs a 2x2 matrix with the given rows. For example to write a translation
-        /// matrix like in the left part of this equation:
-        ///
-        /// ```
-        /// |1 tx| |x  |   |x+y*tx|
-        /// |0 ty| |y=1| = |ty    |
-        /// ```
-        ///
-        /// You would write it with the same visual layout:
-        ///
-        /// ```
-        /// const m = Mat2x2.create(
-        ///     vec3(1, tx),
-        ///     vec3(0, ty),
-        /// );
-        /// ```
-        ///
-        /// Note that Mach matrices use [column-major storage and column-vectors](https://machengine.org/engine/math/matrix-storage/).
+        /// Constructs a 2x2 matrix with the given rows
         pub inline fn create(r0: *const RowVec, r1: *const RowVec) Matrix {
             return .{ .v = [_]Vec{
                 Vec.create(r0.x(), r1.x()),
@@ -124,9 +104,6 @@ pub fn Mat3x3(comptime Scalar: type) type {
     return extern struct {
         /// The column vectors of the matrix.
         ///
-        /// Mach matrices use [column-major storage and column-vectors](https://machengine.org/engine/math/matrix-storage/).
-        /// The translation vector is stored in contiguous memory elements 12, 13, 14:
-        ///
         /// ```
         /// [4]Vec4{
         ///     vec4( 1,  0,  0,  0),
@@ -169,26 +146,7 @@ pub fn Mat3x3(comptime Scalar: type) type {
             &RowVec.create(0, 0, 1),
         );
 
-        /// Constructs a 3x3 matrix with the given rows. For example to write a translation
-        /// matrix like in the left part of this equation:
-        ///
-        /// ```
-        /// |1 0 tx| |x  |   |x+z*tx|
-        /// |0 1 ty| |y  | = |y+z*ty|
-        /// |0 0 tz| |z=1|   |tz    |
-        /// ```
-        ///
-        /// You would write it with the same visual layout:
-        ///
-        /// ```
-        /// const m = Mat3x3.create(
-        ///     vec3(1, 0, tx),
-        ///     vec3(0, 1, ty),
-        ///     vec3(0, 0, tz),
-        /// );
-        /// ```
-        ///
-        /// Note that Mach matrices use [column-major storage and column-vectors](https://machengine.org/engine/math/matrix-storage/).
+        /// Constructs a 3x3 matrix with the given rows
         pub inline fn create(r0: *const RowVec, r1: *const RowVec, r2: *const RowVec) Matrix {
             return .{ .v = [_]Vec{
                 Vec.create(r0.x(), r1.x(), r2.x()),
@@ -263,9 +221,6 @@ pub fn Mat4x4(comptime Scalar: type) type {
     return extern struct {
         /// The column vectors of the matrix.
         ///
-        /// Mach matrices use [column-major storage and column-vectors](https://machengine.org/engine/math/matrix-storage/).
-        /// The translation vector is stored in contiguous memory elements 12, 13, 14:
-        ///
         /// ```
         /// [4]Vec4{
         ///     vec4( 1,  0,  0,  0),
@@ -309,28 +264,7 @@ pub fn Mat4x4(comptime Scalar: type) type {
             &Vec.create(0, 0, 0, 1),
         );
 
-        /// Constructs a 4x4 matrix with the given rows. For example to write a translation
-        /// matrix like in the left part of this equation:
-        ///
-        /// ```
-        /// |1 0 0 tx| |x  |   |x+w*tx|
-        /// |0 1 0 ty| |y  | = |y+w*ty|
-        /// |0 0 1 tz| |z  |   |z+w*tz|
-        /// |0 0 0 tw| |w=1|   |tw    |
-        /// ```
-        ///
-        /// You would write it with the same visual layout:
-        ///
-        /// ```
-        /// const m = Mat4x4.create(
-        ///     &vec4(1, 0, 0, tx),
-        ///     &vec4(0, 1, 0, ty),
-        ///     &vec4(0, 0, 1, tz),
-        ///     &vec4(0, 0, 0, tw),
-        /// );
-        /// ```
-        ///
-        /// Note that Mach matrices use [column-major storage and column-vectors](https://machengine.org/engine/math/matrix-storage/).
+        /// Constructs a 4x4 matrix with the given rows
         pub inline fn create(r0: *const RowVec, r1: *const RowVec, r2: *const RowVec, r3: *const RowVec) Matrix {
             return .{ .v = [_]Vec{
                 Vec.create(r0.x(), r1.x(), r2.x(), r3.x()),
@@ -454,23 +388,6 @@ pub fn Mat4x4(comptime Scalar: type) type {
         /// * (right - left) defining the distance between the left and right faces of the cube
         /// * (top - bottom) defining the distance between the top and bottom faces of the cube
         /// * (near - far) defining the distance between the back (near) and front (far) faces of the cube
-        ///
-        /// We then need to construct a projection matrix which converts points in that
-        /// cuboid's space into clip space:
-        ///
-        /// https://machengine.org/engine/math/traversing-coordinate-systems/#view---clip-space
-        ///
-        /// Normally, in sysgpu/webgpu the depth buffer of floating point values would
-        /// have the range [0, 1] representing [near, far], i.e. a pixel very close to the
-        /// viewer would have a depth value of 0.0, and a pixel very far from the viewer
-        /// would have a depth value of 1.0. But this is an ineffective use of floating
-        /// point precision, a better approach is a reversed depth buffer:
-        ///
-        /// * https://webgpu.github.io/webgpu-samples/samples/reversedZ
-        /// * https://developer.nvidia.com/content/depth-precision-visualized
-        ///
-        /// Mach mandates the use of a reversed depth buffer, so the returned transformation
-        /// matrix maps to near=1 and far=0.
         pub inline fn projection2D(v: struct {
             left: f32,
             right: f32,
