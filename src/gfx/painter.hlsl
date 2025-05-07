@@ -37,7 +37,6 @@ vs_out vs_main(vs_in input)
 float4 ps_main(vs_out input) : SV_TARGET
 {
     float4 color = u_texture.Sample(u_sampler, input.texcoord);
-    // float4 color = float4(1,1,1,1);
     return
         input.mask.x * color * input.color +
         input.mask.y * color.a * input.color +

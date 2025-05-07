@@ -206,8 +206,8 @@ pub const Device = struct {
                     var len: usize = 0;
                     _ = queue.getMessage(i, null, &len);
 
-                var message: *d3d11.MESSAGE = try allocator.create(d3d11.MESSAGE);
-                defer allocator.destroy(message);
+                    var message: *d3d11.MESSAGE = try allocator.create(d3d11.MESSAGE);
+                    defer allocator.destroy(message);
 
                     _ = queue.getMessage(i, message, &len);
                     std.log.debug("{s}", .{message.pDescription[0..message.DescriptionByteLength]});
@@ -440,7 +440,7 @@ pub const Texture = struct {
     pub fn create(device: *Device, desc: gpu.Texture.Descriptor) !*Texture {
         var has_shader_view = false;
 
-        const data = d3d11.SUBRESOURCE_DATA{ .pSysMem = @ptrCast(desc.data) };
+        const data = d3d11.SUBRESOURCE_DATA{ .pSysMem = @ptrCast(desc.data), .SysMemPitch = desc.size.width * conv.Stride(desc.format) };
         const initial_data = if (desc.data == null) null else &data;
 
         const resource: *d3d11.IResource = switch (desc.dimension) {

@@ -496,3 +496,11 @@ pub fn IndexFormat(format: gpu.types.IndexFormat) dxgi.FORMAT {
         .uint32 => .R32_UINT,
     };
 }
+
+pub fn Stride(format: gpu.Texture.Format) u32 {
+    return switch (format) {
+        .bgra8_unorm => 4,
+        .rgba8_unorm => 4,
+        else => unreachable, // TODO
+    };
+}
