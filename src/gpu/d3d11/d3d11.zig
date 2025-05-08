@@ -845,6 +845,27 @@ pub const CommandEncoder = struct {
         @memcpy(dest[offset..][0..len], ptr[0..len]);
     }
 
+    pub fn writeTexture(self: *CommandEncoder, texture: *Texture, ptr: [*]u8, _: usize) !void {
+        const box = d3d11.BOX{
+            .left = 0,
+            .right = texture.size.width,
+            .top = 0,
+            .bottom = texture.size.height,
+            .front = 0,
+            .back = 1,
+        };
+
+        const pitch = texture.size.width * conv.Stride(texture.format);
+        self.command_buffer.dcontext.updateSubresource(
+            texture.resource,
+            0,
+            &box,
+            @ptrCast(ptr),
+            pitch,
+            0,
+        );
+    }
+
     pub fn copyTexture(self: *CommandEncoder, source: gpu.types.ImageCopyTexture, destination: gpu.types.ImageCopyTexture, copy_size_raw: gpu.types.Extent3D) !void {
         const source_texture: *Texture = @alignCast(@ptrCast(source.texture));
         const destination_texture: *Texture = @alignCast(@ptrCast(destination.texture));

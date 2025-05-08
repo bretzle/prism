@@ -113,7 +113,7 @@ define IDeviceContext : IDeviceChild {
     fn rsSetScissorRects(self, num: u32, rects: ?[*]const RECT) void
     fn copySubresourceRegion(self, dst: *IResource, dst_sub: u32, x: u32, y: u32, z: u32, src: *IResource, src_sub: u32, src_box: *const BOX) void
     fn copyResource(self) noreturn
-    fn updateSubresource(self) noreturn
+    fn updateSubresource(self, dst: *IResource, dst_sub: u32, dst_box: ?*const BOX, src_data: *const anyopaque, row_pitch: u32, depth_pitch: u32) void
     fn copyStructureCount(self) noreturn
     fn clearRenderTargetView(self, target: *IRenderTargetView, color: *const [4]f32) void
     fn clearUnorderedAccessViewUint(self) noreturn

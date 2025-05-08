@@ -367,6 +367,13 @@ pub const CommandEncoder = opaque {
         try encoder.writeBuffer(buffer_, offset, data.ptr, data.len);
     }
 
+    pub fn writeTexture(self: *CommandEncoder, texture: *Texture, slice: anytype) !void {
+        const encoder: *impl.CommandEncoder = @alignCast(@ptrCast(self));
+        const texture_: *impl.Texture = @alignCast(@ptrCast(texture));
+        const data = std.mem.sliceAsBytes(slice);
+        try encoder.writeTexture(texture_, data.ptr, data.len);
+    }
+
     pub inline fn copyTexture(self: *CommandEncoder, source: types.ImageCopyTexture, destination: types.ImageCopyTexture, copy_size: types.Extent3D) !void {
         const encoder: *impl.CommandEncoder = @alignCast(@ptrCast(self));
         try encoder.copyTexture(source, destination, copy_size);

@@ -1219,7 +1219,7 @@ pub const IDeviceContext = extern struct {
         rs_set_scissor_rects: *const fn (*IDeviceContext, num: u32, rects: ?[*]const RECT) callconv(.winapi) void,
         copy_subresource_region: *const fn (*IDeviceContext, dst: *IResource, dst_sub: u32, x: u32, y: u32, z: u32, src: *IResource, src_sub: u32, src_box: *const BOX) callconv(.winapi) void,
         copy_resource: *const fn (*IDeviceContext) callconv(.winapi) noreturn,
-        update_subresource: *const fn (*IDeviceContext) callconv(.winapi) noreturn,
+        update_subresource: *const fn (*IDeviceContext, dst: *IResource, dst_sub: u32, dst_box: ?*const BOX, src_data: *const anyopaque, row_pitch: u32, depth_pitch: u32) callconv(.winapi) void,
         copy_structure_count: *const fn (*IDeviceContext) callconv(.winapi) noreturn,
         clear_render_target_view: *const fn (*IDeviceContext, target: *IRenderTargetView, color: *const [4]f32) callconv(.winapi) void,
         clear_unordered_access_view_uint: *const fn (*IDeviceContext) callconv(.winapi) noreturn,
@@ -1411,8 +1411,8 @@ pub const IDeviceContext = extern struct {
     pub fn copyResource(self: *IDeviceContext) noreturn {
         return (self.vtable.copy_resource)(self);
     }
-    pub fn updateSubresource(self: *IDeviceContext) noreturn {
-        return (self.vtable.update_subresource)(self);
+    pub fn updateSubresource(self: *IDeviceContext, dst: *IResource, dst_sub: u32, dst_box: ?*const BOX, src_data: *const anyopaque, row_pitch: u32, depth_pitch: u32) void {
+        return (self.vtable.update_subresource)(self, dst, dst_sub, dst_box, src_data, row_pitch, depth_pitch);
     }
     pub fn copyStructureCount(self: *IDeviceContext) noreturn {
         return (self.vtable.copy_structure_count)(self);
