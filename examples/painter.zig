@@ -30,9 +30,9 @@ pub fn main() !void {
             else => {},
         };
 
-        try painter.drawTri(.{ 50, 50 }, .{ 50, 100 }, .{ 100, 50 }, .red);
+        // try painter.drawTri(.{ 50, 50 }, .{ 50, 100 }, .{ 100, 50 }, .red);
         try painter.drawTexture(tex1, sampler, .{ 75, 75 }, .white);
-        try painter.drawRect(.{ 125, 50, 40, 60 }, .yellow);
+        // try painter.drawRect(.{ 125, 50, 40, 60 }, .yellow);
         try painter.drawTexture(tex2, sampler, .{ 75, 200 }, .white);
 
         const backbuffer = try swapchain.getCurrentTextureView();

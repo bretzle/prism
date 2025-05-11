@@ -60,8 +60,8 @@ indices: List(u32) = .empty,
 batches: List(Batch),
 alllocator: std.mem.Allocator,
 
-pub fn create(allocator: std.mem.Allocator, device: *gpu.Device) !*Painter {
-    const shader = try device.createShaderModule(.hlsl, @embedFile("painter.hlsl"));
+pub fn create(allocator: std.mem.Allocator, device: *gpu.Device, replacement_shader: ?*gpu.ShaderModule) !*Painter {
+    const shader = replacement_shader orelse try device.createShaderModule(.hlsl, @embedFile("painter.hlsl"));
 
     const vertex_layout = gpu.types.VertexBufferLayout{
         .array_stride = @sizeOf(Vertex),
